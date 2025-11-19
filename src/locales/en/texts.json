@@ -212,6 +212,7 @@
     "previous": "‹ Previous"
   },
   "poweredBy": "Powered by {link}",
+  "extensionInfo": "Collection Search extended by {company}",
   "protocol": {
     "azure": "Microsoft Azure",
     "file": "file system (local)",

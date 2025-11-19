@@ -9,10 +9,12 @@
         <b-col md="12">
           <nav class="actions navigation">
             <b-button-group v-if="canSearch || isServerSelector">
-              <b-button v-if="isServerSelector" variant="primary" size="sm" :title="$t('browse')" v-b-toggle.sidebar @click="sidebar = true">
+              <b-button v-if="isServerSelector" variant="primary" size="sm" :title="$t('browse')" v-b-toggle.sidebar
+                @click="sidebar = true">
                 <b-icon-list /><span class="button-label">{{ $t('browse') }}</span>
               </b-button>
-              <b-button v-if="canSearch" variant="primary" size="sm" :to="searchBrowserLink" :title="$t('search.title')" :pressed="isSearchPage">
+              <b-button v-if="canSearch" variant="primary" size="sm" :to="searchBrowserLink" :title="$t('search.title')"
+                :pressed="isSearchPage">
                 <b-icon-search /><span class="button-label">{{ $t('search.title') }}</span>
               </b-button>
             </b-button-group>
@@ -23,10 +25,8 @@
               <StacLink v-if="root" :data="root" hideIcon />
               <template v-else>{{ catalogTitle }}</template>
             </span>
-            <b-button
-              v-if="root" size="sm" variant="outline-primary" id="popover-root-btn"
-              :title="serviceType" tag="a" tabindex="0"
-            >
+            <b-button v-if="root" size="sm" variant="outline-primary" id="popover-root-btn" :title="serviceType" tag="a"
+              tabindex="0">
               <b-icon-caret-down-fill />
             </b-button>
           </div>
@@ -35,10 +35,8 @@
               <b-button v-if="canAuthenticate" variant="primary" size="sm" @click="logInOut" :title="authTitle">
                 <component :is="authIcon" /><span class="button-label">{{ authLabel }}</span>
               </b-button>
-              <LanguageChooser
-                :data="data" :currentLocale="localeFromVueX" :locales="supportedLocalesFromVueX"
-                @setLocale="locale => switchLocale({locale, userSelected: true})"
-              />
+              <LanguageChooser :data="data" :currentLocale="localeFromVueX" :locales="supportedLocalesFromVueX"
+                @setLocale="locale => switchLocale({ locale, userSelected: true })" />
             </b-button-group>
           </nav>
         </b-col>
@@ -51,13 +49,16 @@
           </div>
           <nav class="actions navigation">
             <b-button-group>
-              <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', {type})" variant="outline-primary" size="sm">
+              <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', { type })"
+                variant="outline-primary" size="sm">
                 <b-icon-arrow-left /><span class="button-label">{{ $t('goBack.label') }}</span>
               </b-button>
-              <b-button v-if="collectionLink" :to="toBrowserPath(collectionLink.href)" :title="collectionLinkTitle" variant="outline-primary" size="sm">
+              <b-button v-if="collectionLink" :to="toBrowserPath(collectionLink.href)" :title="collectionLinkTitle"
+                variant="outline-primary" size="sm">
                 <b-icon-folder-symlink /><span class="button-label">{{ $t('goToCollection.label') }}</span>
               </b-button>
-              <b-button v-if="parentLink" :to="toBrowserPath(parentLink.href)" :title="parentLinkTitle" variant="outline-primary" size="sm">
+              <b-button v-if="parentLink" :to="toBrowserPath(parentLink.href)" :title="parentLinkTitle"
+                variant="outline-primary" size="sm">
                 <b-icon-arrow-90deg-up /><span class="button-label">{{ $t('goToParent.label') }}</span>
               </b-button>
             </b-button-group>
@@ -74,11 +75,14 @@
           <a href="https://github.com/radiantearth/stac-browser" target="_blank">STAC Browser</a> {{ browserVersion }}
         </template>
       </i18n>
+      <i18n tag="small" path="extensionInfo" class="text-muted d-block mt-1">
+        <template #company>
+          <a href="https://github.com/GeoStack-Solutions" target="_blank">GeoStack Solutions</a>
+        </template>
+      </i18n>
     </footer>
-    <b-popover
-      v-if="root" id="popover-root" custom-class="popover-large" target="popover-root-btn"
-      triggers="focus" placement="bottom" container="stac-browser"
-    >
+    <b-popover v-if="root" id="popover-root" custom-class="popover-large" target="popover-root-btn" triggers="focus"
+      placement="bottom" container="stac-browser">
       <template #title>
         {{ serviceType }}
       </template>
@@ -100,7 +104,8 @@ import {
   BIconArrow90degUp, BIconArrowLeft, BIconCaretDownFill,
   BIconFolderSymlink, BIconInfoLg, BIconList, BIconSearch,
   ButtonGroupPlugin, ButtonPlugin, CardPlugin, LayoutPlugin, SpinnerPlugin,
-  VBToggle, VBVisible } from "bootstrap-vue";
+  VBToggle, VBVisible
+} from "bootstrap-vue";
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
 
@@ -154,13 +159,13 @@ const store = getStore(CONFIG, router);
 // Pass Config through from props to vuex
 let Props = {};
 let Watchers = {};
-for(let key in CONFIG) {
+for (let key in CONFIG) {
   Props[key] = {
     default: ['object', 'function'].includes(typeof CONFIG[key]) ? () => CONFIG[key] : CONFIG[key]
   };
   Watchers[key] = {
     immediate: true,
-    handler: async function(newValue) {
+    handler: async function (newValue) {
       await this.$store.dispatch('config', {
         [key]: newValue
       });
@@ -384,7 +389,7 @@ export default {
             }
           }
           else if (value !== null) {
-              query[name] = value;
+            query[name] = value;
           }
         }
 
@@ -410,7 +415,7 @@ export default {
       let doReset = !root || (oldRoot && Utils.isObject(oldRoot['stac_browser']));
       let doSet = root && Utils.isObject(root['stac_browser']);
 
-      for(let key of canChange) {
+      for (let key of canChange) {
         let value;
         if (doReset) {
           value = CONFIG[key]; // Original value
@@ -514,7 +519,7 @@ export default {
       if (!locale && this.detectLocaleFromBrowserFromVueX && Array.isArray(navigator.languages)) {
         // Detect the most suitable locale
         const supported = prepareSupported(this.supportedLocalesFromVueX);
-        for(let l of navigator.languages) {
+        for (let l of navigator.languages) {
           const best = getBest(supported, l, null);
           if (best) {
             locale = best;
@@ -524,11 +529,11 @@ export default {
       }
       if (locale && this.supportedLocalesFromVueX.includes(locale)) {
         // This may only change the UI language, but does not change the data language if the data is not loaded yet
-        this.switchLocale({locale});
+        this.switchLocale({ locale });
         if (!this.data) {
           // Thus try switching the (data) language again once the data is loaded.
           this.onDataLoaded = () => {
-            this.switchLocale({locale});
+            this.switchLocale({ locale });
             this.onDataLoaded = null;
           };
         }
@@ -542,7 +547,7 @@ export default {
       }
       let query = Object.assign({}, route.query, privateFromHash);
       let params = {};
-      for(let key in query) {
+      for (let key in query) {
         let value = query[key];
         // Store all private query parameters (start with ~) and replace them in the shown URI
         if (key.startsWith('~')) {
@@ -570,12 +575,12 @@ export default {
       if (Utils.size(params) > 0) {
         for (let type in params) {
           for (let key in params[type]) {
-            this.$store.commit('setQueryParameter', {type, key, value: params[type][key]});
+            this.$store.commit('setQueryParameter', { type, key, value: params[type][key] });
           }
         }
       }
       if (params?.state?.language) {
-        this.switchLocale({locale: params.state.language});
+        this.switchLocale({ locale: params.state.language });
       }
       if (Utils.size(params.private) > 0) {
         this.$router.replace({ query });
@@ -584,7 +589,7 @@ export default {
     },
     showError(error, message) {
       this.$store.commit('showGlobalError', {
-        error, 
+        error,
         message
       });
     },
@@ -602,4 +607,3 @@ export default {
 @import "./theme/page.scss";
 @import "./theme/custom.scss";
 </style>
-

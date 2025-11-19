@@ -12,6 +12,7 @@
 
 ## Fragen 
 - Wie STAC Browser Code in Projekt Repo einbringen? 
+- Inwiefern exestiert Collection Search schon? 
 - Wie alle Ergebnisse auf einer Karte darstellen?
 
 ## Aufgaben
@@ -62,6 +63,7 @@ Legende Status: Offen | Bearbeitung | Fertig
 | Nutzerfeedback anzeigen, z.B. "x Collections gefunden"     | Offen       |                       |
 | Fehlermeldungen verständlich anzeigen                      | Offen       |                       |
 | Responsive Design sicherstellen                            | Offen       |                       |
+| Navigation und Routing; Nutzer kann zwischen Seiten wechseln | Offen     |                       |
 
 ### Integration und Tests
 | Aufgabe                                                    | Status      | Verantwortliche Person|
