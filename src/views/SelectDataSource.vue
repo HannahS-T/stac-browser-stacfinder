@@ -9,6 +9,8 @@
       </b-form-group>
       <b-button type="submit" variant="primary">{{ $t('index.load') }}</b-button>
     </b-form>
+    <!-- Collection Filter Panel -->
+    <CollectionFilterPanel />
     <hr v-if="stacIndex.length > 0">
     <b-form-group v-if="stacIndex.length > 0" class="stac-index">
       <template #label>
@@ -40,6 +42,7 @@ import { mapGetters } from "vuex";
 import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
+import CollectionFilterPanel from '../components/CollectionFilterPanel.vue'; 
 
 export default {
   name: "SelectDataSource",
@@ -49,7 +52,8 @@ export default {
     BFormInput,
     BListGroup,
     BListGroupItem,
-    Description
+    Description, 
+    CollectionFilterPanel
   },
   data() {
     return {
