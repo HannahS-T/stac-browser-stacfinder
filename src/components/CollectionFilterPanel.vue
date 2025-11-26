@@ -1,7 +1,7 @@
 <template>
   <b-card no-body class="collection-filter-panel mb-4">
     <b-card-header>
-      <h5 class="mb-0">Collections durchsuchen</h5>
+      <h5 class="mb-0">{{ $t('search.searchCollections') }}</h5>
     </b-card-header>
     <b-card-body>
       <b-form-group 
