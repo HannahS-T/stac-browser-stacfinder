@@ -4,6 +4,8 @@
       <h5 class="mb-0">{{ $t('search.searchCollections') }}</h5>
     </b-card-header>
     <b-card-body>
+
+      <!--Timefilter --> 
       <b-form-group 
         class="filter-datetime" 
         :label="$t('search.temporalExtent')" 
@@ -21,12 +23,51 @@
           @input="emitFilter"
         />
       </b-form-group>
+      
+      <!--Metadata filter --> 
+      <b-form-group v-if="showAdditionalFilters" class="additional-filters" :label="$t('search.additionalFilters')">
+        <b-dropdown size="sm" :text="$t('search.addFilter')" block variant="primary" class="metadata-filters mt-2 mb-3" menu-class="w-100">
+          <b-dropdown-item-button
+            v-for="metadata in availableMetadataOptions"
+            :key="metadata.id"
+            @click="additionalFieldSelected(metadata)"
+          >
+            <span>{{ metadata.title }}</span>
+            <b-badge variant="dark" class="ml-2">{{ metadata.id }}</b-badge>
+          </b-dropdown-item-button>
+        </b-dropdown>
+
+        <div v-for="(filter, index) in metadataFilters" :key="`${filter.id}-${index}`" class="metadata-filter-row mt-3">
+          <b-row class="align-items-center">
+            <b-col md="4" class="font-weight-bold">
+              {{ filter.title }}
+            </b-col>
+            <b-col md="6">
+              <b-form-input
+                v-model="filter.value"
+                size="sm"
+                :placeholder="`Enter ${filter.title}`"
+              />
+            </b-col>
+            <b-col md="2" class="text-right">
+              <b-button
+                size="sm"
+                variant="danger"
+                @click="removeMetadataFilter(index)"
+              >
+                <b-icon-x-circle-fill aria-hidden="true" />
+              </b-button>
+            </b-col>
+          </b-row>
+        </div>
+      </b-form-group>
+      
     </b-card-body>
   </b-card>
 </template>
 
 <script>
-import { BCard, BCardBody, BCardHeader, BForm, BFormGroup } from 'bootstrap-vue';
+import { BCard, BCardBody, BCardHeader, BForm, BFormGroup, BDropdown, BDropdownItemButton, BButton, BCol, BRow, BFormInput, BBadge, BIconXCircleFill } from 'bootstrap-vue';
 import DatePickerMixin from './DatePickerMixin';
 import Utils from '../utils';
 
@@ -40,14 +81,43 @@ export default {
     BCardHeader,
     BForm,
     BFormGroup,
+    BDropdown,
+    BDropdownItemButton,
+    BButton,
+    BCol,
+    BRow,
+    BFormInput,
+    BBadge,
+    BIconXCircleFill,
     DatePicker: () => import('vue2-datepicker')
   },
   mixins: [DatePickerMixin],
   data() {
     return {
       datetimeRange: null,
-      filterId: ++filterId
+      filterId: ++filterId,
+      metadataFilters: [],
+      allMetadataOptions: [
+        { id: 'title', title: 'Title' },
+        { id: 'description', title: 'Description' },
+        { id: 'keywords', title: 'Keywords' },
+        { id: 'license', title: 'License' },
+        { id: 'providers', title: 'Providers' }
+      ]
     };
+  },
+  computed: {
+    showAdditionalFilters() {
+      return this.allMetadataOptions && this.allMetadataOptions.length > 0;
+    },
+    metadataOptions() {
+      return this.allMetadataOptions;
+    },
+    availableMetadataOptions() {
+      // Only show metadata options that haven't been selected yet
+      const selectedIds = this.metadataFilters.map(f => f.id);
+      return this.allMetadataOptions.filter(opt => !selectedIds.includes(opt.id));
+    }
   },
   methods: {
     emitFilter() {
@@ -57,6 +127,17 @@ export default {
         datetime = this.datetimeRange.map(d => d ? Utils.dateToUTC(d) : null);
       }
       this.$emit('filter-changed', { datetime });
+    },
+    additionalFieldSelected(metadata) {
+      // Add metadata filter to list with empty value
+      this.metadataFilters.push({
+        id: metadata.id,
+        title: metadata.title,
+        value: ''
+      });
+    },
+    removeMetadataFilter(index) {
+      this.metadataFilters.splice(index, 1);
     }
   }
 };
@@ -83,6 +164,30 @@ $primary-color: map-get($theme-colors, "primary");
 
     > label {
       font-weight: 600;
+    }
+  }
+
+  .metadata-filters .dropdown-menu {
+    max-height: 90vh;
+    overflow: auto;
+  }
+
+  .additional-filters {
+    margin-top: 1.5em;
+    padding-top: 1.5em;
+    border-top: 1px solid rgba(0,0,0,.125);
+  }
+
+  .metadata-filter-row {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0,0,0,.05);
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    .text-right {
+      text-align: right;
     }
   }
 }
