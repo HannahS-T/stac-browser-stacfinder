@@ -9,9 +9,11 @@
       </b-form-group>
       <b-button type="submit" variant="primary">{{ $t('index.load') }}</b-button>
     </b-form>
-    <!-- Collection Filter Panel -->
-    <CollectionFilterPanel />
     <hr v-if="stacIndex.length > 0">
+
+    <!-- Filter Collections -->
+    <CollectionFilterPanel @filter-changed="setCollectionFilter" />
+
     <b-form-group v-if="stacIndex.length > 0" class="stac-index">
       <template #label>
         <i18n path="index.selectStacIndex">
@@ -42,7 +44,7 @@ import { mapGetters } from "vuex";
 import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
-import CollectionFilterPanel from '../components/CollectionFilterPanel.vue'; 
+import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
 
 export default {
   name: "SelectDataSource",
@@ -52,13 +54,14 @@ export default {
     BFormInput,
     BListGroup,
     BListGroupItem,
-    Description, 
+    Description,
     CollectionFilterPanel
   },
   data() {
     return {
       url: '',
-      stacIndex: []
+      stacIndex: [],
+      collectionFilter: null
     };
   },
   computed: {
@@ -99,17 +102,59 @@ export default {
   },
   methods: {
     show(catalog) {
+      // Always hide private entries
       if (catalog.access === 'private') {
         return false;
       }
-      else if(!this.url) {
+
+      // If user has entered a URL to open directly or there are filters set
+      if (!this.url && !this.collectionFilter) {
         return true;
       }
 
-      return Utils.search(this.url, [catalog.title, catalog.url]);
+      // Apply text/url filter from the url input (if provided)
+      if (this.url) {
+        if (Utils.search(this.url, [catalog.title, catalog.url]) === false) {
+          return false;
+        }
+      }
+
+      // Apply temporal filter from CollectionFilterPanel if present
+      if (this.collectionFilter && this.collectionFilter.datetime) {
+        const filterDatetime = this.collectionFilter.datetime;
+        if (Array.isArray(filterDatetime) && (filterDatetime[0] || filterDatetime[1])) {
+          // Try to find temporal extent on the catalog entry
+          const temporal = catalog.extent && Array.isArray(catalog.extent.temporal) ? catalog.extent.temporal[0] : null;
+          if (!temporal || (!temporal[0] && !temporal[1])) {
+            // If the catalog has no temporal info, exclude it when a time filter is requested
+            return false;
+          }
+          const colStart = temporal[0] ? new Date(temporal[0]) : null;
+          const colEnd = temporal[1] ? new Date(temporal[1]) : colStart;
+          const selStart = filterDatetime[0] ? new Date(filterDatetime[0]) : null;
+          const selEnd = filterDatetime[1] ? new Date(filterDatetime[1]) : null;
+
+          // Check for overlap
+          if (selStart && selEnd) {
+            if (colEnd && colEnd < selStart) return false;
+            if (colStart && colStart > selEnd) return false;
+          }
+          else if (selStart) {
+            if (colEnd && colEnd < selStart) return false;
+          }
+          else if (selEnd) {
+            if (colStart && colStart > selEnd) return false;
+          }
+        }
+      }
+
+      return true;
     },
     setUrl(url) {
       this.url = url;
+    },
+    setCollectionFilter(filter) {
+      this.collectionFilter = filter;
     },
     open(url) {
       this.url = url;
