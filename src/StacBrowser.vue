@@ -24,9 +24,11 @@
           </div>
           <div class="title">
             <img v-if="logo" :src="logo.getAbsoluteUrl()" :alt="logo.title" :title="logo.title" class="logo">
-            <span role="banner">
-              <StacLink v-if="root" :data="root" hideIcon />
-              <template v-else>{{ catalogTitle }}</template>
+            <span role="banner" style="display: block; text-align: center;">
+              <div style="white-space: nowrap; display: inline-block;">
+                <img src="./media/STACFinder_logo.png" alt="STACFinder logo" style="height: 60px;">
+                <h1 style="white-space: normal; display: inline-block; margin: 0; vertical-align: middle;">STACFinder</h1>
+              </div>
             </span>
             <b-button v-if="root" size="sm" variant="outline-primary" id="popover-root-btn" :title="serviceType" tag="a"
               tabindex="0">
