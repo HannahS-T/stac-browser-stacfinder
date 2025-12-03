@@ -1,45 +1,66 @@
 <template>
   <main class="select-data-source">
-    <b-form @submit="go">
-      <b-form-group
-        id="select" :label="$t('index.specifyCatalog')" label-for="url"
-        :invalid-feedback="error" :state="valid"
-      >
-        <b-form-input id="url" type="url" :value="url" @input="setUrl" placeholder="https://..." />
-      </b-form-group>
-      <b-button type="submit" variant="primary">{{ $t('index.load') }}</b-button>
-    </b-form>
-    <hr v-if="stacIndex.length > 0">
-    <b-form-group v-if="stacIndex.length > 0" class="stac-index">
-      <template #label>
-        <i18n path="index.selectStacIndex">
-          <template #stacIndex>
-            <a href="https://stacindex.org" target="_blank">STAC Index</a>
+    <!-- URL Input Section -->
+    <b-card no-body class="mb-4">
+      <b-card-header>
+        <h5 class="mb-0">{{ $t('index.specifyCatalog') }}</h5>
+      </b-card-header>
+      <b-card-body>
+        <b-form @submit="go">
+          <b-form-group
+            id="select" label-for="url"
+            :invalid-feedback="error" :state="valid"
+          >
+            <b-form-input id="url" type="url" :value="url" @input="setUrl" placeholder="https://..." />
+          </b-form-group>
+          <b-button type="submit" variant="primary">{{ $t('index.load') }}</b-button>
+        </b-form>
+      </b-card-body>
+    </b-card>
+
+    <!-- Filter Collections Section -->
+    <CollectionFilterPanel :parent="parent"  title="" :value="itemFilters" type="Global"
+              @input="setFilters"/>
+
+    <!-- STAC Index Section -->
+    <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
+      <b-card-header>
+        <h5 class="mb-0">
+          <i18n path="index.selectStacIndex">
+            <template #stacIndex>
+              <a href="https://stacindex.org" target="_blank">STAC Index</a>
+            </template>
+          </i18n>
+        </h5>
+      </b-card-header>
+      <b-card-body class="p-0">
+        <b-list-group flush>
+          <template v-for="catalog in stacIndex">
+            <b-list-group-item button v-if="show(catalog)" :key="catalog.id" :active="url === catalog.url" @click="open(catalog.url)">
+              <div class="d-flex justify-content-between align-items-baseline mb-1">
+                <strong>{{ catalog.title }}</strong>
+                <b-badge v-if="catalog.isApi" variant="danger">{{ $t('index.api') }}</b-badge>
+                <b-badge v-else variant="success">{{ $t('index.catalog') }}</b-badge>
+              </div>
+              <Description :description="catalog.summary" compact />
+            </b-list-group-item>
           </template>
-        </i18n>
-      </template>
-      <b-list-group>
-        <template v-for="catalog in stacIndex">
-          <b-list-group-item button v-if="show(catalog)" :key="catalog.id" :active="url === catalog.url" @click="open(catalog.url)">
-            <div class="d-flex justify-content-between align-items-baseline mb-1">
-              <strong>{{ catalog.title }}</strong>
-              <b-badge v-if="catalog.isApi" variant="danger">{{ $t('index.api') }}</b-badge>
-              <b-badge v-else variant="success">{{ $t('index.catalog') }}</b-badge>
-            </div>
-            <Description :description="catalog.summary" compact />
-          </b-list-group-item>
-        </template>
-      </b-list-group>
-    </b-form-group>
+        </b-list-group>
+      </b-card-body>
+    </b-card>
   </main>
 </template>
 
 <script>
-import { BForm, BFormGroup, BFormInput, BListGroup, BListGroupItem } from 'bootstrap-vue';
-import { mapGetters } from "vuex";
+import { BForm, BFormGroup, BFormInput, BListGroup, BListGroupItem, BCard, BCardHeader, BCardBody } from 'bootstrap-vue';
+import { mapGetters, mapState  } from "vuex";
 import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
+import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
+import { STAC } from 'stac-js';
+import { getErrorCode, getErrorMessage, processSTAC, stacRequest } from '../store/utils';
+import { getDisplayTitle, createSTAC, ItemCollection } from '../models/stac';
 
 export default {
   name: "SelectDataSource",
@@ -49,7 +70,11 @@ export default {
     BFormInput,
     BListGroup,
     BListGroupItem,
-    Description
+    BCard,
+    BCardHeader,
+    BCardBody,
+    Description,
+    CollectionFilterPanel
   },
   data() {
     return {
@@ -124,39 +149,54 @@ export default {
 #stac-browser .select-data-source {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  overflow: hidden;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
 
-  hr {
-    width: 100%;
+  > .card:first-child,
+  > div:not(.stac-index),
+  > .collection-filter-panel {
+    flex-shrink: 0;
+    margin: $block-margin;
+    margin-bottom: 0;
   }
 
   .stac-index {
-    margin: 0;
+    flex: 0 0 auto;
+    margin: $block-margin;
+    height: 500px;
     display: flex;
     flex-direction: column;
-    flex: 1;
     overflow: hidden;
 
-    > div {
-      display: flex;
-      flex-direction: column;
+    .card-header {
+      flex-shrink: 0;
+    }
+
+    .card-body {
       flex: 1;
-      overflow: auto;
-      border: 1px solid rgba(0,0,0,.125);
-      border-radius: $border-radius;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 0;
+    }
 
-      .list-group {
-        width: 100%;
+    .list-group {
+      width: 100%;
+      border-radius: 0;
 
-        .list-group-item {
-          border: 0;
-          border-bottom: 1px solid rgba(0,0,0,.125);
+      .list-group-item {
+        border: 0;
+        border-bottom: 1px solid rgba(0,0,0,.125);
+
+        &:last-child {
+          border-bottom: 0;
         }
+      }
 
-        .active .styled-description a {
-          color: white;
-        }
+      .active .styled-description a {
+        color: white;
       }
     }
   }
