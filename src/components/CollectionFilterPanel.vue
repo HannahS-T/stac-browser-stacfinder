@@ -5,7 +5,14 @@
     </b-card-header>
     <b-card-body>
 
-      <!--Timefilter --> 
+      <!--Keyword filter-->
+      <b-form-group
+        :label="$t('search.KeywordSearch')"
+      >
+        <SearchBox />
+      </b-form-group>
+      
+      <!--Time filter --> 
       <b-form-group 
         class="filter-datetime" 
         :label="$t('search.temporalExtent')" 
@@ -23,7 +30,15 @@
           @input="emitFilter"
         />
       </b-form-group>
-      
+
+      <!--Map filter-->
+      <b-form-group  :label="$t('search.spatialExtent')">
+        <MapSelect
+          v-model="query.bbox"
+          :stac="stac"
+        />
+      </b-form-group>
+
       <!--Metadata filter --> 
       <b-form-group v-if="showAdditionalFilters" class="additional-filters" :label="$t('search.additionalFilters')">
         <b-dropdown size="sm" :text="$t('search.addFilter')" block variant="primary" class="metadata-filters mt-2 mb-3" menu-class="w-100">
@@ -61,13 +76,17 @@
           </b-row>
         </div>
       </b-form-group>
-      
     </b-card-body>
   </b-card>
 </template>
 
 <script>
-import { BCard, BCardBody, BCardHeader, BForm, BFormGroup, BDropdown, BDropdownItemButton, BButton, BCol, BRow, BFormInput, BBadge, BIconXCircleFill } from 'bootstrap-vue';
+import { 
+  BCard, BCardBody, BCardHeader, BForm, BFormGroup, 
+  BDropdown, BDropdownItemButton, BButton, BCol, BRow, 
+  BFormInput, BBadge, BIconXCircleFill 
+} from 'bootstrap-vue';
+
 import DatePickerMixin from './DatePickerMixin';
 import Utils from '../utils';
 
@@ -89,7 +108,18 @@ export default {
     BFormInput,
     BBadge,
     BIconXCircleFill,
-    DatePicker: () => import('vue2-datepicker')
+    DatePicker: () => import('vue2-datepicker'),
+    SearchBox: () => import('./SearchBox.vue'),
+    MapSelect: () => import('./maps/MapSelect.vue'),
+  },
+
+  props: {
+    parent: {
+      type: Object,
+      default: null
+    },
+    stac: Object,
+    value: Object
   },
   mixins: [DatePickerMixin],
   data() {
@@ -103,20 +133,44 @@ export default {
         { id: 'keywords', title: 'Keywords' },
         { id: 'license', title: 'License' },
         { id: 'providers', title: 'Providers' }
-      ]
+      ],
+
+      query: {
+        bbox: null
+      }
     };
   },
   computed: {
     showAdditionalFilters() {
-      return this.allMetadataOptions && this.allMetadataOptions.length > 0;
+      return this.allMetadataOptions.length > 0;
     },
-    metadataOptions() {
-      return this.allMetadataOptions;
-    },
+
     availableMetadataOptions() {
-      // Only show metadata options that haven't been selected yet
-      const selectedIds = this.metadataFilters.map(f => f.id);
-      return this.allMetadataOptions.filter(opt => !selectedIds.includes(opt.id));
+      const selected = this.metadataFilters.map(f => f.id);
+      return this.allMetadataOptions.filter(opt => !selected.includes(opt.id));
+    },
+    
+    // Resolve a STAC instance for MapSelect: prefer explicit prop, then resolve via store using parent
+    resolvedStac() {
+      if (this.stac) return this.stac;
+      if (!this.parent) return this.root || null;
+
+      // if parent is a string URL
+      if (typeof this.parent === 'string') {
+        return this.getStac(this.parent) || this.root || null;
+      }
+
+      // if parent looks like a STAC-like object, try to return it or lookup by a url-like property
+      if (typeof this.parent === 'object') {
+        // common property names that might hold the URL
+        const url = this.parent.url || this.parent.href || this.parent.id || null;
+        if (typeof url === 'string') {
+          return this.getStac(url) || this.parent || this.root || null;
+        }
+        return this.parent;
+      }
+
+      return this.root || null;
     }
   },
   methods: {
@@ -128,11 +182,11 @@ export default {
       }
       this.$emit('filter-changed', { datetime });
     },
-    additionalFieldSelected(metadata) {
-      // Add metadata filter to list with empty value
+
+    additionalFieldSelected(meta) {
       this.metadataFilters.push({
-        id: metadata.id,
-        title: metadata.title,
+        id: meta.id,
+        title: meta.title,
         value: ''
       });
     },

@@ -260,6 +260,7 @@
     "itemIds": "Item IDs",
     "itemsPerPage": "Items per page",
     "itemsPerPageDescription": "Number of items requested per page, max. {maxItems} items.",
+    "KeywordSearch": "Search for keywords",
     "lessThan": "less than",
     "lessThanEqual": "less than or equal to",
     "likeOperatorDescription": "You can use wildcard characters. `_` matches a single character, `%` matches any number of characters. To search for a wildcard character specifically, you need to add a `\\` in front of the character.",
