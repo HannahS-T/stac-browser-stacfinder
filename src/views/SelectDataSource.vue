@@ -19,7 +19,7 @@
     </b-card>
 
     <!-- Filter Collections Section -->
-    <CollectionFilterPanel /> 
+    <CollectionFilterPanel :parent="parent" />
 
     <!-- STAC Index Section -->
     <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
@@ -57,6 +57,7 @@ import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
 import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
+import { STAC } from 'stac-js';
 
 export default {
   name: "SelectDataSource",
