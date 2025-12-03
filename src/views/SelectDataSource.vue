@@ -19,7 +19,8 @@
     </b-card>
 
     <!-- Filter Collections Section -->
-    <CollectionFilterPanel :parent="parent" />
+    <CollectionFilterPanel :parent="parent"  title="" :value="itemFilters" type="Global"
+              @input="setFilters"/>
 
     <!-- STAC Index Section -->
     <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
@@ -52,12 +53,14 @@
 
 <script>
 import { BForm, BFormGroup, BFormInput, BListGroup, BListGroupItem, BCard, BCardHeader, BCardBody } from 'bootstrap-vue';
-import { mapGetters } from "vuex";
+import { mapGetters, mapState  } from "vuex";
 import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
 import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
 import { STAC } from 'stac-js';
+import { getErrorCode, getErrorMessage, processSTAC, stacRequest } from '../store/utils';
+import { getDisplayTitle, createSTAC, ItemCollection } from '../models/stac';
 
 export default {
   name: "SelectDataSource",

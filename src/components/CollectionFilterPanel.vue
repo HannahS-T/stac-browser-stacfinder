@@ -148,6 +148,29 @@ export default {
     availableMetadataOptions() {
       const selected = this.metadataFilters.map(f => f.id);
       return this.allMetadataOptions.filter(opt => !selected.includes(opt.id));
+    },
+    
+    // Resolve a STAC instance for MapSelect: prefer explicit prop, then resolve via store using parent
+    resolvedStac() {
+      if (this.stac) return this.stac;
+      if (!this.parent) return this.root || null;
+
+      // if parent is a string URL
+      if (typeof this.parent === 'string') {
+        return this.getStac(this.parent) || this.root || null;
+      }
+
+      // if parent looks like a STAC-like object, try to return it or lookup by a url-like property
+      if (typeof this.parent === 'object') {
+        // common property names that might hold the URL
+        const url = this.parent.url || this.parent.href || this.parent.id || null;
+        if (typeof url === 'string') {
+          return this.getStac(url) || this.parent || this.root || null;
+        }
+        return this.parent;
+      }
+
+      return this.root || null;
     }
   },
   methods: {

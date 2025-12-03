@@ -19,6 +19,9 @@
               </b-button>
             </b-button-group>
           </nav>
+          <div class="col-md-1">
+            <img src="./media/GeoStack_Solutions_logo.png" alt="GeoStack Solutions logo" style="height: 60px;">
+          </div>
           <div class="title">
             <img v-if="logo" :src="logo.getAbsoluteUrl()" :alt="logo.title" :title="logo.title" class="logo">
             <span role="banner">
