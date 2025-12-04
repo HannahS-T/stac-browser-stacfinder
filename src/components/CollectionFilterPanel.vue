@@ -35,7 +35,7 @@
       <b-form-group  :label="$t('search.spatialExtent')">
         <MapSelect
           v-model="query.bbox"
-          :stac="stac"
+          :stac="{}"
         />
       </b-form-group>
 
@@ -112,7 +112,27 @@ export default {
     SearchBox: () => import('./SearchBox.vue'),
     MapSelect: () => import('./maps/MapSelect.vue'),
   },
-
+  watch: {
+    query: {
+      deep: true,
+      handler(query) {
+        if (query?.bbox) {
+          // Store the previously selected bbox so that it can be restored after the
+          // map had been hidden accidentally.
+          this.bbox = query.bbox;
+        }
+      }
+    ,
+    provideBBox(shown) {
+      if (!shown) {
+        this.query.bbox = null;
+      }
+      else {
+        this.query.bbox = this.bbox;
+      }
+    }
+    }
+  },
   props: {
     parent: {
       type: Object,
