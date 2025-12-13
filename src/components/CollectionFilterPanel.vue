@@ -3,64 +3,102 @@
     <b-card-header>
       <h5 class="mb-0">{{ $t('search.searchCollections') }}</h5>
     </b-card-header>
+
     <b-card-body>
 
-      <!--Keyword filter-->
-      <b-form-group :label="$t('search.KeywordSearch')">
-        <SearchBox />
+      <!-- Free-text search -->
+      <b-form-group :label="$t('search.enterSearchTerms')">
+        <SearchBox
+          v-model="query.q"
+          :placeholder="$t('search.enterSearchTerms')"
+        />
       </b-form-group>
 
-      <!--Time filter -->
-      <b-form-group class="filter-datetime" :label="$t('search.temporalExtent')" :label-for="`cfp-datetime-${filterId}`"
-        :description="$t('search.dateDescription')">
-        <date-picker :id="`cfp-datetime-${filterId}`" range type="datetime" v-model="datetimeRange"
-          input-class="form-control mx-input" :lang="datepickerLang" :format="dateTimeFormat" @input="emitFilter" />
+      <!-- Temporal filter: start / end datetime -->
+      <b-form-group
+        class="filter-datetime"
+        :label="$t('search.temporalExtent')"
+        :description="$t('search.dateDescription')"
+      >
+        <DatePicker
+          range
+          type="datetime"
+          v-model="datetimeRange"
+          input-class="form-control mx-input"
+          :lang="datepickerLang"
+          :format="dateTimeFormat"
+        />
       </b-form-group>
 
-      <!--Map filter-->
+      <!-- Map filter -->
       <b-form-group :label="$t('search.spatialExtent')">
-        <MapSelect v-model="query.bbox" :stac="stac" />
+        <MapSelect v-model="bbox" :stac="resolvedStac" />
       </b-form-group>
 
-      <!--Metadata filter -->
-      <b-form-group v-if="showAdditionalFilters" class="additional-filters" :label="$t('search.additionalFilters')">
-        <b-dropdown size="sm" :text="$t('search.addFilter')" block variant="primary" class="metadata-filters mt-2 mb-3"
-          menu-class="w-100">
-          <b-dropdown-item-button v-for="metadata in availableMetadataOptions" :key="metadata.id"
-            @click="additionalFieldSelected(metadata)">
-            <span>{{ metadata.title }}</span>
-            <b-badge variant="dark" class="ml-2">{{ metadata.id }}</b-badge>
+      <!-- Additional metadata filters -->
+      <!-- Available fields are currently static, later loaded from /queryables -->
+      <b-form-group
+        v-if="allMetadataOptions.length > 0"
+        class="additional-filters"
+        :label="$t('search.additionalFilters')"
+      >
+        <b-dropdown
+          size="sm"
+          block
+          variant="primary"
+          :text="$t('search.addFilter')"
+          class="metadata-filters mt-2 mb-3"
+        >
+          <b-dropdown-item-button
+            v-for="meta in availableMetadataOptions"
+            :key="meta.id"
+            @click="addMetadataFilter(meta)"
+          >
+            {{ meta.title }}
+            <b-badge variant="dark" class="ml-2">{{ meta.id }}</b-badge>
           </b-dropdown-item-button>
         </b-dropdown>
 
-        <div v-for="(filter, index) in metadataFilters" :key="`${filter.id}-${index}`" class="metadata-filter-row mt-3">
+        <!-- Render active metadata filters -->
+        <div
+          v-for="(filter, index) in metadataFilters"
+          :key="`${filter.id}-${index}`"
+          class="metadata-filter-row mt-3"
+        >
           <b-row class="align-items-center">
             <b-col md="4" class="font-weight-bold">
               {{ filter.title }}
             </b-col>
+
             <b-col md="6">
-              <b-form-input v-model="filter.value" size="sm" :placeholder="`Enter ${filter.title}`" />
+              <b-form-input
+                v-model="filter.value"
+                size="sm"
+                :placeholder="`Enter ${filter.title}`"
+              />
             </b-col>
+
             <b-col md="2" class="text-right">
-              <b-button size="sm" variant="danger" @click="removeMetadataFilter(index)">
-                <b-icon-x-circle-fill aria-hidden="true" />
+              <b-button
+                size="sm"
+                variant="danger"
+                @click="removeMetadataFilter(index)"
+              >
+                <b-icon-x-circle-fill />
               </b-button>
             </b-col>
           </b-row>
         </div>
       </b-form-group>
 
-      <!-- To Do: Delete test button for API -->
-      <b-card class="mt-3">
-        <b-card-header>
-          <h6>API Test</h6>
-        </b-card-header>
-        <b-card-body>
-          <b-button @click="testApi" variant="success" size="sm">Collections abrufen</b-button>
-          <pre v-if="testCollections">{{ testCollections }}</pre>
-          <div v-if="testError" class="text-danger">{{ testError }}</div>
-        </b-card-body>
-      </b-card>
+      <!-- Submit button -->
+      <b-button
+        variant="primary"
+        class="mt-3"
+        @click="submitFilters"
+      >
+        {{ $t('submit') }}
+      </b-button>
 
     </b-card-body>
   </b-card>
@@ -68,24 +106,31 @@
 
 <script>
 import {
-  BCard, BCardBody, BCardHeader, BForm, BFormGroup,
-  BDropdown, BDropdownItemButton, BButton, BCol, BRow,
-  BFormInput, BBadge, BIconXCircleFill
+  BCard,
+  BCardBody,
+  BCardHeader,
+  BFormGroup,
+  BDropdown,
+  BDropdownItemButton,
+  BButton,
+  BCol,
+  BRow,
+  BFormInput,
+  BBadge,
+  BIconXCircleFill
 } from 'bootstrap-vue';
 
 import DatePickerMixin from './DatePickerMixin';
 import Utils from '../utils';
-import { fetchCollections, fetchQueryables } from '../services/collectionApi';
-
-let filterId = 0;
+import { mapGetters } from 'vuex';
 
 export default {
   name: 'CollectionFilterPanel',
+
   components: {
     BCard,
     BCardBody,
     BCardHeader,
-    BForm,
     BFormGroup,
     BDropdown,
     BDropdownItemButton,
@@ -97,65 +142,83 @@ export default {
     BIconXCircleFill,
     DatePicker: () => import('vue2-datepicker'),
     SearchBox: () => import('./SearchBox.vue'),
-    MapSelect: () => import('./maps/MapSelect.vue'),
+    MapSelect: () => import('./maps/MapSelect.vue')
   },
 
+  mixins: [DatePickerMixin],
+
   props: {
-    parent: {
+    /**
+     * Optional STAC instance to use for the MapSelect component.
+     * If not provided, the parent reference or root STAC will be used.
+     */
+    stac: {
       type: Object,
       default: null
     },
-    stac: Object,
-    value: Object
+    parent: {
+      type: [String, Object],
+      default: null
+    }
   },
-  mixins: [DatePickerMixin],
+
   data() {
     return {
+      // Free-text search term
+      query: {
+        q: ''
+      },
+
+      // Temporal filter as Date objects [start, end]
       datetimeRange: null,
-      filterId: ++filterId,
+
+      // Spatial filter as bounding box [minX, minY, maxX, maxY]
+      bbox: null,
+
+      // Active metadata filters selected by the user
       metadataFilters: [],
+
+      // Available metadata fields (later fetched from /queryables)
       allMetadataOptions: [
         { id: 'title', title: 'Title' },
         { id: 'description', title: 'Description' },
-        { id: 'keywords', title: 'Keywords' },
         { id: 'license', title: 'License' },
-        { id: 'providers', title: 'Providers' }
-      ],
-
-      query: {
-        bbox: null
-      },
-      // To Do: Delete test variables for API
-      testCollections: null,
-      testError: null
+        { id: 'keywords', title: 'Keywords' }
+      ]
     };
   },
+
   computed: {
-    showAdditionalFilters() {
-      return this.allMetadataOptions.length > 0;
-    },
+    ...mapGetters(['getStac', 'root']),
 
+    /**
+     * Metadata fields that are not yet active.
+     */
     availableMetadataOptions() {
-      const selected = this.metadataFilters.map(f => f.id);
-      return this.allMetadataOptions.filter(opt => !selected.includes(opt.id));
+      const used = this.metadataFilters.map(f => f.id);
+      return this.allMetadataOptions.filter(m => !used.includes(m.id));
     },
 
-    // Resolve a STAC instance for MapSelect: prefer explicit prop, then resolve via store using parent
+    /**
+     * Resolve the STAC instance for MapSelect.
+     * Matches the logic used in the STAC Browser.
+     */
     resolvedStac() {
       if (this.stac) return this.stac;
       if (!this.parent) return this.root || null;
 
-      // if parent is a string URL
       if (typeof this.parent === 'string') {
-        return this.getStac(this.parent) || this.root || null;
+        return this.getStac
+          ? this.getStac(this.parent) || this.root || null
+          : this.root || null;
       }
 
-      // if parent looks like a STAC-like object, try to return it or lookup by a url-like property
       if (typeof this.parent === 'object') {
-        // common property names that might hold the URL
         const url = this.parent.url || this.parent.href || this.parent.id || null;
         if (typeof url === 'string') {
-          return this.getStac(url) || this.parent || this.root || null;
+          return this.getStac
+            ? this.getStac(url) || this.parent || this.root || null
+            : this.parent;
         }
         return this.parent;
       }
@@ -163,40 +226,54 @@ export default {
       return this.root || null;
     }
   },
-  methods: {
-    emitFilter() {
-      // Convert datetimeRange to UTC format similar to SearchFilter
-      let datetime = null;
-      if (Array.isArray(this.datetimeRange) && this.datetimeRange.length === 2) {
-        datetime = this.datetimeRange.map(d => d ? Utils.dateToUTC(d) : null);
-      }
-      this.$emit('filter-changed', { datetime });
-    },
 
-    additionalFieldSelected(meta) {
+  methods: {
+    /**
+     * Add a new metadata filter row.
+     */
+    addMetadataFilter(meta) {
       this.metadataFilters.push({
         id: meta.id,
         title: meta.title,
         value: ''
       });
     },
+
+    /**
+     * Remove a metadata filter row.
+     */
     removeMetadataFilter(index) {
       this.metadataFilters.splice(index, 1);
     },
 
-    // To Do: delete test function for API
-    async testApi() {
-      try {
-        const data = await fetchCollections();
-        this.testCollections = data;
-        console.log('Collections erfolgreich abgerufen:', data);
-      } catch (err) {
-        this.testError = err.message;
-        console.error('Fehler beim Abrufen der Collections:', err);
-      }
+    /**
+     * Collect all filter values and emit them to the parent component.
+     * The parent is responsible for mapping these values to API parameters.
+     */
+    submitFilters() {
+      const filters = {
+        q: Utils.hasText(this.query.q)
+          ? this.query.q.trim()
+          : null,
+
+        datetime: Array.isArray(this.datetimeRange)
+          ? this.datetimeRange.map(d => d ? Utils.dateToUTC(d) : null)
+          : null,
+
+        bbox: Array.isArray(this.bbox) && this.bbox.length === 4
+          ? [...this.bbox]
+          : null,
+
+        metadata: this.metadataFilters.reduce((acc, f) => {
+          if (Utils.hasText(f.value)) {
+            acc[f.id] = f.value;
+          }
+          return acc;
+        }, {})
+      };
+
+      this.$emit('submit', filters);
     }
-
-
   }
 };
 </script>
@@ -216,11 +293,11 @@ $primary-color: map-get($theme-colors, "primary");
   }
 
   .form-group {
-    >div {
+    > div {
       margin-left: 1em;
     }
 
-    >label {
+    > label {
       font-weight: 600;
     }
   }
@@ -233,12 +310,12 @@ $primary-color: map-get($theme-colors, "primary");
   .additional-filters {
     margin-top: 1.5em;
     padding-top: 1.5em;
-    border-top: 1px solid rgba(0, 0, 0, .125);
+    border-top: 1px solid rgba(0,0,0,.125);
   }
 
   .metadata-filter-row {
     padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, .05);
+    border-bottom: 1px solid rgba(0,0,0,.05);
 
     &:last-child {
       border-bottom: none;
