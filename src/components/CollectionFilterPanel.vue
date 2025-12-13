@@ -6,47 +6,28 @@
     <b-card-body>
 
       <!--Keyword filter-->
-      <b-form-group
-        :label="$t('search.KeywordSearch')"
-      >
+      <b-form-group :label="$t('search.KeywordSearch')">
         <SearchBox />
       </b-form-group>
-      
-      <!--Time filter --> 
-      <b-form-group 
-        class="filter-datetime" 
-        :label="$t('search.temporalExtent')" 
-        :label-for="`cfp-datetime-${filterId}`" 
-        :description="$t('search.dateDescription')"
-      >
-        <date-picker
-          :id="`cfp-datetime-${filterId}`"
-          range 
-          type="datetime" 
-          v-model="datetimeRange" 
-          input-class="form-control mx-input"
-          :lang="datepickerLang" 
-          :format="dateTimeFormat"
-          @input="emitFilter"
-        />
+
+      <!--Time filter -->
+      <b-form-group class="filter-datetime" :label="$t('search.temporalExtent')" :label-for="`cfp-datetime-${filterId}`"
+        :description="$t('search.dateDescription')">
+        <date-picker :id="`cfp-datetime-${filterId}`" range type="datetime" v-model="datetimeRange"
+          input-class="form-control mx-input" :lang="datepickerLang" :format="dateTimeFormat" @input="emitFilter" />
       </b-form-group>
 
       <!--Map filter-->
-      <b-form-group  :label="$t('search.spatialExtent')">
-        <MapSelect
-          v-model="query.bbox"
-          :stac="stac"
-        />
+      <b-form-group :label="$t('search.spatialExtent')">
+        <MapSelect v-model="query.bbox" :stac="stac" />
       </b-form-group>
 
-      <!--Metadata filter --> 
+      <!--Metadata filter -->
       <b-form-group v-if="showAdditionalFilters" class="additional-filters" :label="$t('search.additionalFilters')">
-        <b-dropdown size="sm" :text="$t('search.addFilter')" block variant="primary" class="metadata-filters mt-2 mb-3" menu-class="w-100">
-          <b-dropdown-item-button
-            v-for="metadata in availableMetadataOptions"
-            :key="metadata.id"
-            @click="additionalFieldSelected(metadata)"
-          >
+        <b-dropdown size="sm" :text="$t('search.addFilter')" block variant="primary" class="metadata-filters mt-2 mb-3"
+          menu-class="w-100">
+          <b-dropdown-item-button v-for="metadata in availableMetadataOptions" :key="metadata.id"
+            @click="additionalFieldSelected(metadata)">
             <span>{{ metadata.title }}</span>
             <b-badge variant="dark" class="ml-2">{{ metadata.id }}</b-badge>
           </b-dropdown-item-button>
@@ -58,37 +39,43 @@
               {{ filter.title }}
             </b-col>
             <b-col md="6">
-              <b-form-input
-                v-model="filter.value"
-                size="sm"
-                :placeholder="`Enter ${filter.title}`"
-              />
+              <b-form-input v-model="filter.value" size="sm" :placeholder="`Enter ${filter.title}`" />
             </b-col>
             <b-col md="2" class="text-right">
-              <b-button
-                size="sm"
-                variant="danger"
-                @click="removeMetadataFilter(index)"
-              >
+              <b-button size="sm" variant="danger" @click="removeMetadataFilter(index)">
                 <b-icon-x-circle-fill aria-hidden="true" />
               </b-button>
             </b-col>
           </b-row>
         </div>
       </b-form-group>
+
+      <!-- To Do: Delete test button for API -->
+      <b-card class="mt-3">
+        <b-card-header>
+          <h6>API Test</h6>
+        </b-card-header>
+        <b-card-body>
+          <b-button @click="testApi" variant="success" size="sm">Collections abrufen</b-button>
+          <pre v-if="testCollections">{{ testCollections }}</pre>
+          <div v-if="testError" class="text-danger">{{ testError }}</div>
+        </b-card-body>
+      </b-card>
+
     </b-card-body>
   </b-card>
 </template>
 
 <script>
-import { 
-  BCard, BCardBody, BCardHeader, BForm, BFormGroup, 
-  BDropdown, BDropdownItemButton, BButton, BCol, BRow, 
-  BFormInput, BBadge, BIconXCircleFill 
+import {
+  BCard, BCardBody, BCardHeader, BForm, BFormGroup,
+  BDropdown, BDropdownItemButton, BButton, BCol, BRow,
+  BFormInput, BBadge, BIconXCircleFill
 } from 'bootstrap-vue';
 
 import DatePickerMixin from './DatePickerMixin';
 import Utils from '../utils';
+import { fetchCollections, fetchQueryables } from '../services/collectionApi';
 
 let filterId = 0;
 
@@ -137,7 +124,10 @@ export default {
 
       query: {
         bbox: null
-      }
+      },
+      // To Do: Delete test variables for API
+      testCollections: null,
+      testError: null
     };
   },
   computed: {
@@ -149,7 +139,7 @@ export default {
       const selected = this.metadataFilters.map(f => f.id);
       return this.allMetadataOptions.filter(opt => !selected.includes(opt.id));
     },
-    
+
     // Resolve a STAC instance for MapSelect: prefer explicit prop, then resolve via store using parent
     resolvedStac() {
       if (this.stac) return this.stac;
@@ -192,7 +182,21 @@ export default {
     },
     removeMetadataFilter(index) {
       this.metadataFilters.splice(index, 1);
+    },
+
+    // To Do: delete test function for API
+    async testApi() {
+      try {
+        const data = await fetchCollections();
+        this.testCollections = data;
+        console.log('Collections erfolgreich abgerufen:', data);
+      } catch (err) {
+        this.testError = err.message;
+        console.error('Fehler beim Abrufen der Collections:', err);
+      }
     }
+
+
   }
 };
 </script>
@@ -212,11 +216,11 @@ $primary-color: map-get($theme-colors, "primary");
   }
 
   .form-group {
-    > div {
+    >div {
       margin-left: 1em;
     }
 
-    > label {
+    >label {
       font-weight: 600;
     }
   }
@@ -229,12 +233,12 @@ $primary-color: map-get($theme-colors, "primary");
   .additional-filters {
     margin-top: 1.5em;
     padding-top: 1.5em;
-    border-top: 1px solid rgba(0,0,0,.125);
+    border-top: 1px solid rgba(0, 0, 0, .125);
   }
 
   .metadata-filter-row {
     padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(0,0,0,.05);
+    border-bottom: 1px solid rgba(0, 0, 0, .05);
 
     &:last-child {
       border-bottom: none;
