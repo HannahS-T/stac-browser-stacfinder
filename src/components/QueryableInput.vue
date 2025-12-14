@@ -1,4 +1,4 @@
-<template>
+<template> 
   <div class="queryable-group">
     <b-row class="queryable-row">
       <span class="title">

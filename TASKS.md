@@ -2,17 +2,32 @@
 
 ## Branches
 - main: ursprünglicher Code
-- dev/collection-search: Entwicklung für die Collection Search (development branch)
-- weitere Branches z.B. feature/filter-panel oder feature/result-list von dev/collection-search ausgehend hinzufügen
+- dev: Entwicklung für die Collection Search (development branch)
+- weitere Branches z.B. feature/filter-panel oder feature/result-list von dev ausgehend hinzufügen
 
 ## Layout
 - Such- und Filterbereich: Freitext-, Zeit-, Raum-, Metadateneingabe
 - Ergebnisbereich: Liste mit Ergebnissen als Card mit wichtigsten Metadaten + Karte mit räumlicher Ausdehnung 
 - Detailansicht: zusätsliche Seite mit vollständigen Informationen zur Collection (öffnet sich bei Klick auf einzelnes Ergebnis)
 
-## Fragen 
-- Wie STAC Browser Code in Projekt Repo einbringen? 
-- Inwiefern exestiert Collection Search schon? 
+## API Integration  
+Momentan nur für Development, für Production noch anpassen
+- Proxy in vue.config.js 
+- Service-Datei für API (src/services/collectionApi.js) 
+- UI kann im Dev über Axios auf die API zugreifen, ohne CORS-Probleme
+# API Starten: 
+- Repo vom STACFinder clonen 
+- cd api 
+- npm install (beim ersten Mal)
+- npm run dev
+  --> läuft auf http://localhost:3000 (Endpoints: /collections und /collections/queryables)
+# UI Starten 
+- Repo vom STAC Browser clonen 
+- npm install (beim ersten Mal)
+- npm start
+  --> läuft auf http://localhost:8080
+
+## Fragen  
 - Wie alle Ergebnisse auf einer Karte darstellen?
 
 ## Aufgaben
@@ -21,20 +36,20 @@ Legende Status: Offen | Bearbeitung | Fertig
 ### Allgemeine Aufgaben 
 | Aufgabe                                                    | Status      | Verantwortliche Person|
 |------------------------------------------------------------|-------------|-----------------------|
-| Fork des STAC Browser Repos und in Projekt Repo integrieren | Offen      |                       |
-| Struktur und Komponenten des bestehenden STAC Browsers analysieren |Offen |                      |
-| Technologieauswahl und Setup                               | Offen       |                       |
-| Layoutkonzept und Seitenaufbau festlegen                   | Offen       |                       |
+| Fork des STAC Browser Repos und in Projekt Repo integrieren | Fertig     |  Hannah               |
+| Struktur und Komponenten des bestehenden STAC Browsers analysieren |Fertig| Beide                |
+| Technologieauswahl und Setup                               | Fertig      | Beide                 |
+| Layoutkonzept und Seitenaufbau festlegen                   | Fertig      | Beide                 |
 | Test-JSON erstellen, um Funktionalität ohne API zu testen  | Offen       |                       |
 
 ### Grundlayout  
 | Aufgabe                                                    | Status      | Verantwortliche Person|
 |------------------------------------------------------------|-------------|-----------------------|
-| Grundgerüst der Seite anlegen: Header, Footer, Hauptbereich| Offen       |                       |
-| Search Bar für Freitextsuche                               | Offen       | Hannah                |
-| Zeitraumfilter mit Date Picker                             | Offen       |                       |
-| Räumlicher Filter: Karte einbinden und zeichnen einer BBox ermöglichen |Offen |                  |
-| Filterpanel für Metadaten mit Dropdowns für Felder, Operatoren, Werte |Offen |                   |
+| Grundgerüst der Seite anlegen: Header, Footer, Hauptbereich| Fertig      | Kian                  |
+| Search Bar für Freitextsuche                               | Fertig      | Kian                  |
+| Zeitraumfilter mit Date Picker                             | Fertig      |  Hannah               |
+| Räumlicher Filter: Karte einbinden und zeichnen einer BBox ermöglichen | Fertig| Kian            |
+| Filterpanel für Metadaten mit Dropdowns für Felder, Operatoren, Werte | Fertig| Hannah           |
 
 ### Ergebnissanzeige und Detailansicht 
 | Aufgabe                                                    | Status      | Verantwortliche Person|
@@ -48,10 +63,10 @@ Legende Status: Offen | Bearbeitung | Fertig
 ### API-Integration
 | Aufgabe                                                    | Status      | Verantwortliche Person|
 |------------------------------------------------------------|-------------|-----------------------|
-| Verbindung zur API herstellen (Axios oder Fetch)           | Offen       |                       |
-| Parameterübergabe: Freitextsuche (titel, description usw.) | Offen       |                       |
-| Parameterübergabe: Zeitfilter (extent.temporal)            | Offen       |                       |
-| Parameterübergabe: Räumlicher Filter (bbox)                | Offen       |                       |
+| Verbindung zur API herstellen (Axios oder Fetch)           | Bearbeitung |  Hannah               |
+| Parameterübergabe: Freitextsuche (titel, description usw.) | Bearbeitung |  Hannah               |
+| Parameterübergabe: Zeitfilter (extent.temporal)            | Bearbeitung |  Hannah               |
+| Parameterübergabe: Räumlicher Filter (bbox)                | Bearbeitung |  Hannah               |
 | Zusammensetzten von mehreren Metadaten Filtern in CQL2-Ausdruck und an API übergeben |Offen |    |
 | Ergebnisse der passenden Collections von der API empfangen | Offen       |                       |
 
