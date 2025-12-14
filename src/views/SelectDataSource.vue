@@ -18,9 +18,8 @@
       </b-card-body>
     </b-card>
 
-    <!-- Filter Collections Section -->
-    <CollectionFilterPanel :parent="parent"  title="" :value="itemFilters" type="Global"
-              @input="setFilters"/>
+    <!-- Filter Collections Section: To Do: parent und value? -->
+    <CollectionFilterPanel @submit="goToCollectionList" />
 
     <!-- STAC Index Section -->
     <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
@@ -119,6 +118,15 @@ export default {
     }
   },
   methods: {
+
+    // When collection filter panel submits filters start collection list view
+    goToCollectionList(filters) {
+    this.$router.push({
+      name: "collections",
+      query: { filters: JSON.stringify(filters) }
+    });
+  },
+
     show(catalog) {
       if (catalog.access === 'private') {
         return false;

@@ -2,7 +2,7 @@
   <b-form class="filter mb-4" @submit.stop.prevent="onSubmit" @reset="onReset">
     <b-card no-body :title="title">
       <b-card-body>
-        <Loading v-if="!loaded" fill />
+        <Loading v-if="!loaded" fill /> 
 
         <b-card-title v-if="title" :title="title" />
 

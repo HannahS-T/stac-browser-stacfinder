@@ -37,5 +37,5 @@ export default {
         this.dateTimeFormat = options.dateTimeFormat;
       }
     }
-  }
+  } 
 };

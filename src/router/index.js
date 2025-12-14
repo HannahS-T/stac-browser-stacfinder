@@ -11,6 +11,17 @@ function getPath(route, config) {
 function getRoutes(config) {
   let routes = [];
 
+  // Collections Route
+    routes.push({
+  path: "/collections",
+  name: "collections",
+  component: () => import("../views/CollectionList.vue"),
+  props: route => ({
+    // Optional: parse filters from query parameters
+    filters: route.query.filters ? JSON.parse(route.query.filters) : {}
+  })
+});
+
   if (!config.catalogUrl) {
     routes.push({
       path: "/",
@@ -59,6 +70,7 @@ function getRoutes(config) {
     component: Browse,
     props: route => getPath(route, config)
   });
+
 
   // if you add new routes that may include .../external/... in the path make sure
   // to add the new path prefix to the fromBrowserPath regexp in store/index.js
