@@ -38,8 +38,7 @@ const vueConfig = {
   devServer: {
     proxy: {
       '/collections': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
+        target: 'http://localhost:4000', // Docker: API on port 4000 | npm run dev: port 3000
       }
     }
   },

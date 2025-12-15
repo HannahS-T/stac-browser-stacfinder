@@ -15,17 +15,31 @@ Momentan nur für Development, für Production noch anpassen
 - Proxy in vue.config.js 
 - Service-Datei für API (src/services/collectionApi.js) 
 - UI kann im Dev über Axios auf die API zugreifen, ohne CORS-Probleme
-# API Starten: 
+  
+# Backend starten mit Docker: 
 - Repo vom STACFinder clonen 
-- cd api 
-- npm install (beim ersten Mal)
-- npm run dev
-  --> läuft auf http://localhost:3000 (Endpoints: /collections und /collections/queryables)
-# UI Starten 
+- Docker muss installiert sein und laufen
+1. API konfigurieren
+- im Terminal: cp api/.env.example api/.env
+- in der Datei api/.env das Passwort in DB_PASS setzen
+2. Crawler konfigurieren
+- im Terminal: cp crawler/.env.example crawler/.env
+- in der Datei crawler/.env das Passwort in DB_PASS setzen
+3. Docker starten
+- dann im Terminal: docker-compose up --build 
+  --> läuft auf http://localhost:4000
+# UI starten 
 - Repo vom STAC Browser clonen 
 - npm install (beim ersten Mal)
 - npm start
   --> läuft auf http://localhost:8080
+
+# nur Api lokal starten (kann ignoriert werden)
+- Repo vom STACFinder clonen 
+- cd api 
+- npm install (beim ersten Mal)
+- npm run dev
+  --> läuft auf http://localhost:3000 
 
 ## Fragen  
 - Wie alle Ergebnisse auf einer Karte darstellen?
