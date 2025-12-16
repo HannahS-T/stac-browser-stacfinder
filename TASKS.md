@@ -39,7 +39,21 @@ Momentan nur für Development, für Production noch anpassen
 - cd api 
 - npm install (beim ersten Mal)
 - npm run dev
-  --> läuft auf http://localhost:3000 
+  --> läuft auf http://localhost:3000
+  
+Was jetzt funktioniert:
+fetchCollections({
+  q: 'sentinel',           // ✅ Textsuche
+  limit: 20,               // ✅ Pagination
+  sortby: 'title',         // ✅ Sortierung
+  token: 'xyz'             // ✅ Navigation
+});
+
+- Textsuche nach Collections
+- Sortierung nach Titel oder ID
+- Pagination mit "Vorherige/Nächste" Buttons
+- Klick auf Collection → Detailseite
+- Alle Metadaten werden angezeigt
 
 ## Fragen  
 - Wie alle Ergebnisse auf einer Karte darstellen?
