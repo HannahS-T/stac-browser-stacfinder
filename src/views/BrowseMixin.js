@@ -29,19 +29,48 @@ export default {
     }
   },
   watch: {
+    // React to path changes
     path: {
       immediate: true,
       async handler(path, oldPath) {
         if (path === oldPath) {
           return;
         }
+        // Block external access if not allowed
         else if (!this.allowExternalAccess && this.isExternal) {
           return;
         }
 
-        let url = this.fromBrowserPath(path || '/');
-        this.$store.dispatch("load", { url, show: true });
+      // Handle external collections via internal protocol
+      if (path.startsWith('internal://collections')) {
+        await this.loadExternalCollections(path);
+        return;
       }
+
+      // Default behavior: resolve path and load data 
+      let url = this.fromBrowserPath(path || '/');
+      this.$store.dispatch("load", { url, show: true });
+    }
+  }   
+  },
+methods: {
+  // Load external collections or a single collection
+  async loadExternalCollections(path) {
+    try {
+      // Load list of collections
+      if (path === 'internal://collections') {
+        await this.$store.dispatch('loadExternalCollections', { show: true });
+      }
+      // Load a single collection by ID
+      else {
+        const id = path.split('/').pop();
+        await this.$store.dispatch('loadExternalCollection', { id, show: true });
+      }
+    } catch (error) {
+      // Log loading errors
+      console.error('Error loading collections:', error);
     }
   }
+}
+
 };

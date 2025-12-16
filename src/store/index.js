@@ -16,6 +16,8 @@ import { translateFields, executeCustomFunctions, loadMessages } from '../i18n';
 import { TYPES } from "../components/ApiCapabilitiesMixin";
 import BrowserStorage from "../browser-store.js";
 
+import collectionAdapter from '../adapters/CollectionApiAdapter';
+
 function getStore(config, router) {
   // Local settings (e.g. for currently loaded STAC entity)
   const localDefaults = () => ({
@@ -48,7 +50,8 @@ function getStore(config, router) {
 
     apiCollections: [],
     apiItemsLoading: {},
-    nextCollectionsLink: null
+    nextCollectionsLink: null,
+    externalCollectionsLoaded: false
   });
 
   return new Vuex.Store({
@@ -597,6 +600,23 @@ function getStore(config, router) {
           console.trace(error);
         }
         state.globalError = error;
+      },
+      // Store an external catalog and its collections in the Vuex database
+      setExternalCollections(state, { catalog, collections }) {
+        Vue.set(state.database, collectionAdapter.syntheticUrl, catalog);
+
+        collections.forEach(collection => {
+          const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
+          Vue.set(state.database, url, processSTAC(state, collection));
+        });
+
+        state.externalCollectionsLoaded = true;
+      },
+
+      // Store a single external collection in the Vuex database
+      setExternalCollection(state, collection) {
+        const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
+        Vue.set(state.database, url, processSTAC(state, collection));
       }
     },
     actions: {
@@ -994,7 +1014,86 @@ function getStore(config, router) {
             errorFn(error);
           }
         }
+      },
+
+      /**
+       * Load all collections from the external API and store them as STAC objects.
+       * @param {Object} cx Vuex context
+       * @param {Object} options Optional settings (show: boolean)
+       */
+  async loadExternalCollections(cx, { show = false } = {}) {
+    try {
+      // Fetch collections from the external API
+      const { collections, totalCount } = await collectionAdapter.fetchCollections();
+
+      // Convert API collections to STAC Collections
+      const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
+
+      // Create a synthetic catalog that lists the collections
+      const catalog = collectionAdapter.createCatalog(stacCollections, totalCount);
+
+      // Save catalog and collections in the Vuex store
+      cx.commit('setExternalCollections', {
+        catalog: processSTAC(cx.state, catalog),
+        collections: stacCollections
+      });
+
+      // Optionally show the collections page
+      if (show) {
+        cx.commit('showPage', {
+          url: collectionAdapter.syntheticUrl,
+          page: () => ({
+            title: 'Collections',
+            description: `${totalCount} Collections`
+          })
+        });
       }
+
+    } catch (error) {
+      console.error('Error loading collections:', error);
+      cx.commit('errored', {
+        url: collectionAdapter.syntheticUrl,
+        error
+      });
+      throw error;
+    }
+  },
+  
+  /**
+   * Load a single external collection by ID and store it in the Vuex database.
+   * @param {Object} cx Vuex context
+   * @param {Object} options { id: string, show?: boolean }
+   */
+  async loadExternalCollection(cx, { id, show = false }) {
+    const url = `${collectionAdapter.syntheticUrl}/${id}`;
+
+    try {
+      // Fetch the collection from the external API
+      const collection = await collectionAdapter.fetchCollection(id);
+
+      // Convert to a STAC Collection
+      const stacCollection = collectionAdapter.transformToStac(collection);
+
+      // Save the collection in the Vuex store
+      cx.commit('setExternalCollection', stacCollection);
+
+      // Optionally display the collection page
+      if (show) {
+        cx.commit('showPage', {
+          url,
+          page: () => ({
+            title: stacCollection.title,
+            description: stacCollection.description
+          })
+        });
+      }
+
+    } catch (error) {
+      console.error('Error loading collection:', error);
+      cx.commit('errored', { url, error });
+      throw error;
+    }
+  }
     },
   });
 }

@@ -19,7 +19,7 @@
     </b-card>
 
     <!-- Filter Collections Section: To Do: parent und value? -->
-    <CollectionFilterPanel @submit="goToCollectionList" />
+    <CollectionFilterPanel @submit="browseCollections" />
 
     <!-- STAC Index Section -->
     <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
@@ -118,9 +118,8 @@ export default {
     }
   },
   methods: {
-
-    // When collection filter panel submits filters start collection list view
-    goToCollectionList(filters) {
+    // When collection filter panel submits filters show listed collections
+    browseCollections(filters) {
     this.$router.push({
       name: "collections",
       query: { filters: JSON.stringify(filters) }
