@@ -13,23 +13,36 @@ class CollectionApiAdapter {
 
   /**
    * Fetches all collections
+   * @param {Object} filters - Optional filters for the collections
    */
-  async fetchCollections() {
-    try {
-      const response = await axios.get(this.baseUrl);
-      
-      if (!response.data?.collections || !Array.isArray(response.data.collections)) {
-        throw new BrowserError('Invalid API response');
-      }
-
-      return {
-        collections: response.data.collections,
-        totalCount: response.data.numberMatched || response.data.collections.length
-      };
-    } catch (error) {
-      throw new BrowserError(`API Error: ${error.message}`);
+  async fetchCollections(filters = {}) {
+  try {
+    // Build query parameters
+    const params = new URLSearchParams();
+    
+    // Add free-text search (q parameter)
+    if (filters.q && typeof filters.q === 'string') {
+      params.append('q', filters.q.trim());
     }
+    
+    // Build URL with query string
+    const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
+    
+    const response = await axios.get(url);
+    
+    if (!response.data?.collections || !Array.isArray(response.data.collections)) {
+      throw new BrowserError('Invalid API response');
+    }
+
+    return {
+      collections: response.data.collections,
+      totalCount: response.data.numberMatched || response.data.collections.length,
+      links: response.data.links || []
+    };
+  } catch (error) {
+    throw new BrowserError(`API Error: ${error.message}`);
   }
+}
 
   /**
    * Fetches a single collection by ID
@@ -79,23 +92,24 @@ class CollectionApiAdapter {
   /**
    * Creates a catalog for the collections list
    */
-  createCatalog(collections, totalCount) {
-    const catalogData = {
-      type: 'Catalog',
-      id: 'collections',
-      title: 'Collections',
-      stac_version: '1.0.0',
-      links: [
-        { rel: 'self', href: this.syntheticUrl, type: 'application/json' }
-      ]
-    };
+  createCatalog(collections, totalCount, filters = {}) {
+  const catalogData = {
+    type: 'Catalog',
+    id: 'collections',
+    title: 'Collections',
+    stac_version: '1.0.0',
+    links: [
+      { rel: 'self', href: this.syntheticUrl, type: 'application/json' }
+    ]
+  };
 
-    const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
-    catalog._apiCollections = collections;
-    catalog._totalCount = totalCount;
-    
-    return catalog;
-  }
+  const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
+  catalog._apiCollections = collections;
+  catalog._totalCount = totalCount;
+  catalog._filters = filters; // Store filters for reference
+  
+  return catalog;
+}
 }
 
 export default new CollectionApiAdapter();
