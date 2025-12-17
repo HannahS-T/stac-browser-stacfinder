@@ -1047,7 +1047,6 @@ function getStore(config, router) {
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
               page: () => ({
-                title: 'Collections',
                 description: `${totalCount} Collections${filterDescription}`
               })
             });
