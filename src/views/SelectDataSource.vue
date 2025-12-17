@@ -7,10 +7,7 @@
       </b-card-header>
       <b-card-body>
         <b-form @submit="go">
-          <b-form-group
-            id="select" label-for="url"
-            :invalid-feedback="error" :state="valid"
-          >
+          <b-form-group id="select" label-for="url" :invalid-feedback="error" :state="valid">
             <b-form-input id="url" type="url" :value="url" @input="setUrl" placeholder="https://..." />
           </b-form-group>
           <b-button type="submit" variant="primary">{{ $t('index.load') }}</b-button>
@@ -19,7 +16,7 @@
     </b-card>
 
     <!-- Filter Collections Section: To Do: parent und value? -->
-    <CollectionFilterPanel @submit="goToCollectionList" />
+    <CollectionFilterPanel @submit="browseCollections" />
 
     <!-- STAC Index Section -->
     <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
@@ -35,7 +32,8 @@
       <b-card-body class="p-0">
         <b-list-group flush>
           <template v-for="catalog in stacIndex">
-            <b-list-group-item button v-if="show(catalog)" :key="catalog.id" :active="url === catalog.url" @click="open(catalog.url)">
+            <b-list-group-item button v-if="show(catalog)" :key="catalog.id" :active="url === catalog.url"
+              @click="open(catalog.url)">
               <div class="d-flex justify-content-between align-items-baseline mb-1">
                 <strong>{{ catalog.title }}</strong>
                 <b-badge v-if="catalog.isApi" variant="danger">{{ $t('index.api') }}</b-badge>
@@ -52,7 +50,7 @@
 
 <script>
 import { BForm, BFormGroup, BFormInput, BListGroup, BListGroupItem, BCard, BCardHeader, BCardBody } from 'bootstrap-vue';
-import { mapGetters, mapState  } from "vuex";
+import { mapGetters, mapState } from "vuex";
 import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
@@ -110,7 +108,7 @@ export default {
     // Load entries from STAC Index
     try {
       let response = await axios.get('https://stacindex.org/api/catalogs');
-      if(Array.isArray(response.data)) {
+      if (Array.isArray(response.data)) {
         this.stacIndex = response.data;
       }
     } catch (error) {
@@ -118,20 +116,47 @@ export default {
     }
   },
   methods: {
+    /**
+     * When collection filter panel submits filters, load filtered collections
+     * @param {Object} filters - Filter object from CollectionFilterPanel
+     */
+    async browseCollections(filters) {
+      try {
+        // Build filter object for API
+        const apiFilters = {};
 
-    // When collection filter panel submits filters start collection list view
-    goToCollectionList(filters) {
-    this.$router.push({
-      name: "collections",
-      query: { filters: JSON.stringify(filters) }
-    });
-  },
+        // Add free-text search (only implemented filter so far)
+        if (filters.q) {
+          apiFilters.q = filters.q;
+        }
+
+        // TODO: Add other filters when API supports them
+        // if (filters.bbox) apiFilters.bbox = filters.bbox;
+        // if (filters.datetime) apiFilters.datetime = filters.datetime;
+
+        // Load collections with filters via Vuex action
+        await this.$store.dispatch('loadExternalCollections', {
+          show: true,
+          filters: apiFilters
+        });
+
+        // Navigate to collections route and include filters in the query
+        this.$router.push({
+          name: 'collections',
+          query: { filters: JSON.stringify(apiFilters) }
+        });
+
+      } catch (error) {
+        console.error('Error loading filtered collections:', error);
+        this.$root.$emit('error', error, 'Failed to load collections');
+      }
+    },
 
     show(catalog) {
       if (catalog.access === 'private') {
         return false;
       }
-      else if(!this.url) {
+      else if (!this.url) {
         return true;
       }
 
@@ -162,9 +187,9 @@ export default {
   overflow-x: hidden;
   padding: 0;
 
-  > .card:first-child,
-  > div:not(.stac-index),
-  > .collection-filter-panel {
+  >.card:first-child,
+  >div:not(.stac-index),
+  >.collection-filter-panel {
     flex-shrink: 0;
     margin: $block-margin;
     margin-bottom: 0;
@@ -196,7 +221,7 @@ export default {
 
       .list-group-item {
         border: 0;
-        border-bottom: 1px solid rgba(0,0,0,.125);
+        border-bottom: 1px solid rgba(0, 0, 0, .125);
 
         &:last-child {
           border-bottom: 0;

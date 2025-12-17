@@ -16,6 +16,8 @@ import { translateFields, executeCustomFunctions, loadMessages } from '../i18n';
 import { TYPES } from "../components/ApiCapabilitiesMixin";
 import BrowserStorage from "../browser-store.js";
 
+import collectionAdapter from '../adapters/CollectionApiAdapter';
+
 function getStore(config, router) {
   // Local settings (e.g. for currently loaded STAC entity)
   const localDefaults = () => ({
@@ -48,7 +50,8 @@ function getStore(config, router) {
 
     apiCollections: [],
     apiItemsLoading: {},
-    nextCollectionsLink: null
+    nextCollectionsLink: null,
+    externalCollectionsLoaded: false
   });
 
   return new Vuex.Store({
@@ -205,7 +208,7 @@ function getStore(config, router) {
         return null;
       },
       supportsConformance: state => classes => {
-        if(!Array.isArray(classes)) {
+        if (!Array.isArray(classes)) {
           return classes;
         }
         let classRegexp = classes
@@ -358,7 +361,7 @@ function getStore(config, router) {
           languages[state.locale] = 1;
         }
         return Object.entries(languages)
-          .sort((a,b) => {
+          .sort((a, b) => {
             if (a[1] > b[1]) {
               return -1;
             }
@@ -396,7 +399,7 @@ function getStore(config, router) {
           }
         }
       },
-      languages(state, {uiLanguage, dataLanguage}) {
+      languages(state, { uiLanguage, dataLanguage }) {
         state.dataLanguage = dataLanguage || null;
         state.uiLanguage = uiLanguage || null;
       },
@@ -431,7 +434,7 @@ function getStore(config, router) {
       state(state, newState) {
         state.stateQueryParameters = newState;
       },
-      updateState(state, {type, value}) {
+      updateState(state, { type, value }) {
         if (value === null || typeof value === 'undefined') {
           Vue.delete(state.stateQueryParameters, type);
         }
@@ -593,10 +596,27 @@ function getStore(config, router) {
         state.parents = parents;
       },
       showGlobalError(state, error) {
-        if(error) {
+        if (error) {
           console.trace(error);
         }
         state.globalError = error;
+      },
+      // Store an external catalog and its collections in the Vuex database
+      setExternalCollections(state, { catalog, collections }) {
+        Vue.set(state.database, collectionAdapter.syntheticUrl, catalog);
+
+        collections.forEach(collection => {
+          const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
+          Vue.set(state.database, url, processSTAC(state, collection));
+        });
+
+        state.externalCollectionsLoaded = true;
+      },
+
+      // Store a single external collection in the Vuex database
+      setExternalCollection(state, collection) {
+        const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
+        Vue.set(state.database, url, processSTAC(state, collection));
       }
     },
     actions: {
@@ -616,8 +636,8 @@ function getStore(config, router) {
           }
         }
       },
-      async switchLocale(cx, {locale, userSelected}) {
-        await cx.dispatch('config', {locale});
+      async switchLocale(cx, { locale, userSelected }) {
+        await cx.dispatch('config', { locale });
 
         if (cx.state.storeLocale && userSelected) {
           const storage = new BrowserStorage();
@@ -642,7 +662,7 @@ function getStore(config, router) {
         // Execute other custom functions required to localize
         await executeCustomFunctions(uiLanguage);
 
-        cx.commit('languages', {dataLanguage, uiLanguage});
+        cx.commit('languages', { dataLanguage, uiLanguage });
         cx.commit('setQueryParameter', { type: 'state', key: 'language', value: locale });
       },
       async loadBackground(cx, count) {
@@ -684,7 +704,7 @@ function getStore(config, router) {
         }
         cx.commit('parents', parents);
       },
-      async tryLogin(cx, {url, action}) {
+      async tryLogin(cx, { url, action }) {
         cx.commit('clear', url);
         cx.commit('errored', { url, error: new BrowserError(i18n.t('authentication.unauthorized')) });
         if (action) {
@@ -751,7 +771,7 @@ function getStore(config, router) {
             if (!noRetry && cx.state.authConfig && isAuthenticationError(error)) {
               await cx.dispatch('tryLogin', {
                 url,
-                action: () => cx.dispatch('load', Object.assign({noRetry: true, force: true, show: true}, args))
+                action: () => cx.dispatch('load', Object.assign({ noRetry: true, force: true, show: true }, args))
               });
               return;
             }
@@ -896,7 +916,7 @@ function getStore(config, router) {
           if (!noRetry && cx.state.authConfig && isAuthenticationError(error)) {
             await cx.dispatch('tryLogin', {
               url: link.href,
-              action: () => cx.dispatch('loadApiItems', Object.assign({noRetry: true, force: true}, args))
+              action: () => cx.dispatch('loadApiItems', Object.assign({ noRetry: true, force: true }, args))
             });
             return;
           }
@@ -965,7 +985,7 @@ function getStore(config, router) {
           if (!noRetry && cx.state.authConfig && isAuthenticationError(error)) {
             await cx.dispatch('tryLogin', {
               url: link.href,
-              action: () => cx.dispatch('loadNextApiCollections', Object.assign({noRetry: true, force: true}, args))
+              action: () => cx.dispatch('loadNextApiCollections', Object.assign({ noRetry: true, force: true }, args))
             });
             return;
           }
@@ -993,6 +1013,88 @@ function getStore(config, router) {
           } catch (error) {
             errorFn(error);
           }
+        }
+      },
+
+      /**
+       * Load all collections from the external API and store them as STAC objects.
+       * @param {Object} cx Vuex context
+       * @param {Object} options { show?: boolean, filters?: Object }
+       */
+      async loadExternalCollections(cx, { show = false, filters = {} } = {}) {
+        try {
+          // Fetch collections from the external API with filters
+          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(filters);
+
+          // Convert API collections to STAC Collections
+          const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
+
+          // Create a synthetic catalog that lists the collections
+          const catalog = collectionAdapter.createCatalog(stacCollections, totalCount, filters);
+
+          // Save catalog and collections in the Vuex store
+          cx.commit('setExternalCollections', {
+            catalog: processSTAC(cx.state, catalog),
+            collections: stacCollections
+          });
+
+          // Optionally show the collections page
+          if (show) {
+            const filterDescription = filters.q
+              ? ` matching "${filters.q}"`
+              : '';
+
+            cx.commit('showPage', {
+              url: collectionAdapter.syntheticUrl,
+              page: () => ({
+                description: `${totalCount} Collections${filterDescription}`
+              })
+            });
+          }
+
+        } catch (error) {
+          console.error('Error loading collections:', error);
+          cx.commit('errored', {
+            url: collectionAdapter.syntheticUrl,
+            error
+          });
+          throw error;
+        }
+      },
+
+      /**
+       * Load a single external collection by ID and store it in the Vuex database.
+       * @param {Object} cx Vuex context
+       * @param {Object} options { id: string, show?: boolean }
+       */
+      async loadExternalCollection(cx, { id, show = false }) {
+        const url = `${collectionAdapter.syntheticUrl}/${id}`;
+
+        try {
+          // Fetch the collection from the external API
+          const collection = await collectionAdapter.fetchCollection(id);
+
+          // Convert to a STAC Collection
+          const stacCollection = collectionAdapter.transformToStac(collection);
+
+          // Save the collection in the Vuex store
+          cx.commit('setExternalCollection', stacCollection);
+
+          // Optionally display the collection page
+          if (show) {
+            cx.commit('showPage', {
+              url,
+              page: () => ({
+                title: stacCollection.title,
+                description: stacCollection.description
+              })
+            });
+          }
+
+        } catch (error) {
+          console.error('Error loading collection:', error);
+          cx.commit('errored', { url, error });
+          throw error;
         }
       }
     },

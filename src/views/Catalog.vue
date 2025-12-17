@@ -214,8 +214,22 @@ export default {
     hasItems() {
       return this.items.length > 0 || this.isApi;
     },
+    // Detects the external collections list
+    isExternalCollectionsList() {
+      return this.url === 'internal://collections';
+    },
     hasCatalogs() {
       return this.catalogs.length > 0;
+    },
+    // Catalogs getter extended to support external collections
+    catalogs() {
+      // External collections list from API
+      if (this.isExternalCollectionsList && this.data?._apiCollections) {
+        return this.data._apiCollections;
+      }
+      
+      // Default behavior: use Vuex catalogs getter
+      return this.$store.getters.catalogs;
     },
     mapData() {
       const data = {};

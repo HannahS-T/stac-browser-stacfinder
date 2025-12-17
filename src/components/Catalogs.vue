@@ -6,7 +6,7 @@
       <ViewButtons class="mr-2" v-model="view" />
       <SortButtons v-if="isComplete && catalogs.length > 1" v-model="sort" />
     </header>
-    <section v-if="isComplete && catalogs.length > 1" class="catalog-filter mb-2">
+    <section v-if="!collectionsOnly && isComplete && catalogs.length > 1" class="catalog-filter mb-2">
       <SearchBox v-model="searchTerm" :placeholder="filterPlaceholder" />
       <multiselect
         v-if="allKeywords.length > 0" v-model="selectedKeywords" multiple :options="allKeywords"

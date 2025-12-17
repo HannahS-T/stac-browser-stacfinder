@@ -11,16 +11,27 @@ function getPath(route, config) {
 function getRoutes(config) {
   let routes = [];
 
-  // Collections Route
-    routes.push({
-  path: "/collections",
-  name: "collections",
-  component: () => import("../views/CollectionList.vue"),
-  props: route => ({
-    // Optional: parse filters from query parameters
-    filters: route.query.filters ? JSON.parse(route.query.filters) : {}
-  })
-});
+  // Collections-Liste
+  routes.push({
+    path: "/collections",
+    name: "collections",
+    component: Browse,
+    props: route => ({
+      path: 'internal://collections',
+      // Optional: parse filters from query parameters
+      filters: route.query && route.query.filters ? JSON.parse(route.query.filters) : {}
+    })
+  });
+
+  // Collection-Detail
+  routes.push({
+    path: "/collections/:id",
+    name: "collectionDetail",
+    component: Browse,
+    props: route => ({
+      path: `internal://collections/${route.params.id}`
+    })
+  });
 
   if (!config.catalogUrl) {
     routes.push({
