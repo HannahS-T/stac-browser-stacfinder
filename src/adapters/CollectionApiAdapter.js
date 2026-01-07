@@ -14,6 +14,8 @@ class CollectionApiAdapter {
   /**
    * Fetches all collections
    * @param {Object} filters - Optional filters for the collections
+   * @param {string} filters.q - Free-text search query
+   * @param {string} filters.sortby - Sort parameter (e.g., "title", "+title", "-title", "+title,-id")
    */
   async fetchCollections(filters = {}) {
   try {
@@ -25,6 +27,13 @@ class CollectionApiAdapter {
       params.append('q', filters.q.trim());
     }
     
+    // Add sorting (sortby parameter)
+    if (filters.sortby && typeof filters.sortby === 'string') {
+      params.append('sortby', filters.sortby);
+    }
+    
+    // TODO: Add other filters (bbox, datetime, etc.)
+
     // Build URL with query string
     const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
     
@@ -91,6 +100,9 @@ class CollectionApiAdapter {
 
   /**
    * Creates a catalog for the collections list
+   * @param {Array} collections - Array of STAC collections
+   * @param {number} totalCount - Total number of collections (numberMatched)
+   * @param {Object} filters - Active filters (q, sortby etc.)
    */
   createCatalog(collections, totalCount, filters = {}) {
   const catalogData = {
