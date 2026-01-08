@@ -32,8 +32,10 @@ class CollectionApiAdapter {
    * Fetches all collections
    * @param {Object} filters - Optional filters for the collections (e.g. q, bbox, datetime)
    * @param {string|null} sort - Optional sort parameter (e.g. "+title", "-id") passed separately
+   * @param {number|null} limit - Optional limit for pagination (default: 10)
+   * @param {string|null} token - Optional pagination token for next/prev page
    */
-  async fetchCollections(filters = {}, sort = null) {
+  async fetchCollections(filters = {}, sort = null, limit = null, token = null) {
     try {
       // Build query parameters
       const params = new URLSearchParams();
@@ -45,7 +47,6 @@ class CollectionApiAdapter {
 
       // Add other filters if present (placeholder for bbox, datetime, etc.)
 
-
       // Add sorting (sortby parameter) if provided separately
       if (sort && typeof sort === 'string') {
         const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
@@ -56,6 +57,15 @@ class CollectionApiAdapter {
         }
 
         params.append('sortby', sort);
+      }
+
+      // Add pagination parameters
+      if (limit && typeof limit === 'number' && limit > 0) {
+        params.append('limit', limit.toString());
+      }
+      
+      if (token && typeof token === 'string') {
+        params.append('token', token);
       }
 
       // Build URL with query string
@@ -127,30 +137,30 @@ class CollectionApiAdapter {
    * @param {Array} collections - Array of STAC collections
    * @param {number} totalCount - Total number of collections (numberMatched)
    * @param {Object} filters - Active filters (q, sortby etc.)
+   * @param {string|null} sort - Sort parameter
+   * @param {Array} links - Pagination links from API response
    */
-  createCatalog(collections, totalCount, filters = {}, sort = null) {
+  createCatalog(collections, totalCount, filters = {}, sort = null, links = []) {
     const catalogData = {
       type: 'Catalog',
       id: 'collections',
       title: 'Collections',
       stac_version: '1.0.0',
       links: [
-        { rel: 'self', href: this.syntheticUrl, type: 'application/json' }
+        { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
+        ...links // Include API pagination links
       ]
     };
 
     const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
     catalog._apiCollections = collections;
     catalog._totalCount = totalCount;
-    catalog._filters = filters; // Store filters for reference
-    catalog._sort = sort; // Store sort separately from filters
+    catalog._filters = filters;
+    catalog._sort = sort;
+    catalog._paginationLinks = links; // Store pagination links
 
     return catalog;
   }
 }
 
 export default new CollectionApiAdapter();
-
-
-
-
