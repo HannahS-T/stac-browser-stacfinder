@@ -1021,22 +1021,32 @@ function getStore(config, router) {
           }
         }
       },
-
       /**
-       * Load all collections from the external API and store them as STAC objects.
-       * @param {Object} cx Vuex context
-       * @param {Object} options { show?: boolean, filters?: Object }
-       */
-      async loadExternalCollections(cx, { show = false, filters = {}, sort = null } = {}) {
+ * Load all collections from the external API and store them as STAC objects.
+ * @param {Object} cx Vuex context
+ * @param {Object} options { show?: boolean, filters?: Object, sort?: string, limit?: number, token?: string }
+ */
+      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, token = null } = {}) {
         try {
-          // Fetch collections from the external API with filters and optional sort
-          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(filters, sort);
+          // Fetch collections from the external API with filters, sort, and pagination
+          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(
+            filters,
+            sort,
+            limit,
+            token
+          );
 
           // Convert API collections to STAC Collections
           const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
 
           // Create a synthetic catalog that lists the collections
-          const catalog = collectionAdapter.createCatalog(stacCollections, totalCount, filters, sort);
+          const catalog = collectionAdapter.createCatalog(
+            stacCollections,
+            totalCount,
+            filters,
+            sort,
+            links // Pass pagination links to catalog
+          );
 
           // Save catalog and collections in the Vuex store
           cx.commit('setExternalCollections', {
@@ -1069,7 +1079,6 @@ function getStore(config, router) {
           throw error;
         }
       },
-
       /**
        * Load a single external collection by ID and store it in the Vuex database.
        * @param {Object} cx Vuex context

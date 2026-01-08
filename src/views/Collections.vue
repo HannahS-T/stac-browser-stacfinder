@@ -21,12 +21,12 @@
     <Catalogs 
       :catalogs="catalogs" 
       :collectionsOnly="true"
-      :hasMore="hasMore"
       :count="totalCount"
       :apiFilters="filters"
       :apiSort="serverSort"
+      :pagination="pagination"
       :disableLocalSort="true"
-      @loadMore="loadMoreCollections"
+      @paginate="handlePaginate"
     />
   </div>
 </template>
@@ -36,6 +36,7 @@ import { mapState, mapGetters } from 'vuex';
 import Catalogs from '../components/Catalogs.vue';
 import SortButtons from '../components/SortButtons.vue';
 import { BFormSelect } from 'bootstrap-vue';
+import Utils from '../utils';
 
 export default {
   name: "Collections",
@@ -66,98 +67,137 @@ export default {
       }));
     },
 
-  catalogs() {
-    // Get collections from the synthetic catalog
-    if (this.data?._apiCollections) {
-      return this.data._apiCollections;
-    }
-    return [];
-  },
+    catalogs() {
+      // Get collections from the synthetic catalog
+      if (this.data?._apiCollections) {
+        return this.data._apiCollections;
+      }
+      return [];
+    },
 
-  totalCount() {
-    return this.data?._totalCount || null;
-  },
+    totalCount() {
+      return this.data?._totalCount || null;
+    },
 
-  filters() {
-    return this.data?._filters || {};
-  },
+    filters() {
+      return this.data?._filters || {};
+    },
 
-  // Server-side sort (stored separately from filters)
-  serverSort() {
+    // Server-side sort (stored separately from filters)
+    serverSort() {
     return this.data?._sort || (this.filters ? this.filters.sortby : null);
+    },
+
+    /**
+     * Extract pagination links from API response
+     */
+    pagination() {
+      const links = this.data?._paginationLinks || [];
+      const paginationLinks = {};
+
+      links.forEach(link => {
+        if (link.rel === 'next') {
+          paginationLinks.next = link;
+        } else if (link.rel === 'prev') {
+          paginationLinks.prev = link;
+        }
+      });
+
+      return paginationLinks;
+    }
   },
 
-  hasMore() {
-    // Check if there are more collections to load
-    const total = this.totalCount;
-    const loaded = this.catalogs.length;
-    return total !== null && loaded < total;
-  }
-},
-
-watch: {
-  // Initialize sorting from filters when data loads
-  filters: {
-    immediate: true,
+  watch: {
+    // Initialize sorting from filters when data loads
+    filters: {
+      immediate: true,
       handler(filters) {
-      // Prefer explicit filters.sortby, fall back to server-side _sort if present
-      const sortby = (filters && filters.sortby) ? filters.sortby : (this.data?._sort || null);
-      if (sortby) {
-        this.parseSortby(sortby);
+        // Prefer explicit filters.sortby, fall back to server-side _sort if present
+        const sortby = (filters && filters.sortby) ? filters.sortby : (this.data?._sort || null);
+        if (sortby) {
+          this.parseSortby(sortby);
+        }
       }
     }
-  }
-},
-
-methods: {
-  /**
-   * Parse sortby parameter from filters
-   * @param {string} sortby - e.g., "+title", "-id"
-   */
-  parseSortby(sortby) {
-    if (!sortby || typeof sortby !== 'string') return;
-
-    const direction = sortby.startsWith('-') ? -1 : 1;
-    const field = sortby.replace(/^[+-]/, '');
-
-    this.sortDirection = direction;
-    this.sortField = field;
   },
 
-  /**
-   * Build sortby parameter in STAC API format
-   * @returns {string} sortby parameter (e.g., "+title", "-id")
-   */
-  buildSortbyParameter() {
-    const prefix = this.sortDirection === -1 ? '-' : '+';
-    return `${prefix}${this.sortField}`;
-  },
+  methods: {
+    /**
+     * Parse sortby parameter from filters
+     * @param {string} sortby - e.g., "+title", "-id"
+     */
+    parseSortby(sortby) {
+      if (!sortby || typeof sortby !== 'string') return;
+
+      const direction = sortby.startsWith('-') ? -1 : 1;
+      const field = sortby.replace(/^[+-]/, '');
+
+      this.sortDirection = direction;
+      this.sortField = field;
+    },
+
+    /**
+     * Build sortby parameter in STAC API format
+     * @returns {string} sortby parameter (e.g., "+title", "-id")
+     */
+    buildSortbyParameter() {
+      const prefix = this.sortDirection === -1 ? '-' : '+';
+      return `${prefix}${this.sortField}`;
+    },
 
     /**
      * Reload collections with new sorting
      */
     async updateSorting() {
-    try {
-      // Reload collections with new sorting (sort passed separately)
-      const sortParam = this.buildSortbyParameter();
-      await this.$store.dispatch('loadExternalCollections', {
-        show: true,
-        filters: this.filters,
-        sort: sortParam
-      });
+      try {
+        // Reload collections with new sorting (sort passed separately)
+        const sortParam = this.buildSortbyParameter();
+        await this.$store.dispatch('loadExternalCollections', {
+          show: true,
+          filters: this.filters,
+          sort: sortParam
+        });
 
-    } catch (error) {
-      console.error('Error updating sorting:', error);
-      this.$root.$emit('error', error, 'Failed to update sorting');
+      } catch (error) {
+        console.error('Error updating sorting:', error);
+        this.$root.$emit('error', error, 'Failed to update sorting');
+      }
+    },
+
+    /**
+     * Handle pagination link click
+     * @param {Object} link - Pagination link object from API
+     */
+    async handlePaginate(link) {
+      if (!link || !link.href) {
+        console.error('Invalid pagination link:', link);
+        return;
+      }
+
+      try {
+        // Extract token and limit from pagination link
+        const url = new URL(link.href, window.location.origin);
+        const token = url.searchParams.get('token');
+        const limit = url.searchParams.get('limit');
+
+        // Reload collections with pagination parameters
+        await this.$store.dispatch('loadExternalCollections', {
+          show: true,
+          filters: this.filters,
+          sort: this.buildSortbyParameter(),
+          limit: limit ? parseInt(limit) : null,
+          token: token
+        });
+
+        // Scroll to top of results
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      } catch (error) {
+        console.error('Error handling pagination:', error);
+        this.$root.$emit('error', error, 'Failed to load page');
+      }
     }
-  },
-
-    async loadMoreCollections() {
-    // TODO: Implement pagination for external collections
-    // This would require extending the CollectionApiAdapter
-    console.warn('Pagination not yet implemented for external collections');
   }
-}
 };
 </script>
 
