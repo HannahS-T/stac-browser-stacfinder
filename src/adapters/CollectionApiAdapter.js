@@ -5,10 +5,27 @@ import { createSTAC, processSTAC } from '../models/stac';
 /**
  * Minimal adapter for the Collections API
  */
+
 class CollectionApiAdapter {
   constructor() {
     this.baseUrl = '/collections';
     this.syntheticUrl = 'internal://collections';
+
+    // Whitelisted fields supported by the API for sorting
+    // Must match backend validation exactly
+    this.sortableFields = [
+      'id',
+      'title',
+      'description',
+      'license'
+    ];
+  }
+
+  /**
+   * Returns allowed sortable fields (API whitelist)
+   */
+  getSortableFields() {
+    return [...this.sortableFields];
   }
 
   /**
@@ -27,10 +44,17 @@ class CollectionApiAdapter {
       }
 
       // Add other filters if present (placeholder for bbox, datetime, etc.)
-      // Example: if (filters.bbox) params.append('bbox', filters.bbox);
+
 
       // Add sorting (sortby parameter) if provided separately
       if (sort && typeof sort === 'string') {
+        const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
+        const invalid = fields.find(f => !this.sortableFields.includes(f));
+
+        if (invalid) {
+          throw new BrowserError(`Invalid sort field: ${invalid}`);
+        }
+
         params.append('sortby', sort);
       }
 
@@ -59,7 +83,7 @@ class CollectionApiAdapter {
   async fetchCollection(id) {
     try {
       const response = await axios.get(`${this.baseUrl}/${id}`);
-      
+
       if (!response.data) {
         throw new BrowserError('Collection not found');
       }
@@ -76,7 +100,7 @@ class CollectionApiAdapter {
   transformToStac(collection, index = 0) {
     const collectionId = collection.id || `collection-${index}`;
     const collectionUrl = `${this.syntheticUrl}/${collectionId}`;
-    
+
     const stacCollection = {
       type: 'Collection',
       stac_version: '1.0.0',
@@ -105,24 +129,24 @@ class CollectionApiAdapter {
    * @param {Object} filters - Active filters (q, sortby etc.)
    */
   createCatalog(collections, totalCount, filters = {}, sort = null) {
-  const catalogData = {
-    type: 'Catalog',
-    id: 'collections',
-    title: 'Collections',
-    stac_version: '1.0.0',
-    links: [
-      { rel: 'self', href: this.syntheticUrl, type: 'application/json' }
-    ]
-  };
+    const catalogData = {
+      type: 'Catalog',
+      id: 'collections',
+      title: 'Collections',
+      stac_version: '1.0.0',
+      links: [
+        { rel: 'self', href: this.syntheticUrl, type: 'application/json' }
+      ]
+    };
 
-  const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
-  catalog._apiCollections = collections;
-  catalog._totalCount = totalCount;
-  catalog._filters = filters; // Store filters for reference
-  catalog._sort = sort; // Store sort separately from filters
-  
-  return catalog;
-}
+    const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
+    catalog._apiCollections = collections;
+    catalog._totalCount = totalCount;
+    catalog._filters = filters; // Store filters for reference
+    catalog._sort = sort; // Store sort separately from filters
+
+    return catalog;
+  }
 }
 
 export default new CollectionApiAdapter();

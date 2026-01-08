@@ -117,6 +117,12 @@
     "noProperties": "No properties provided.",
     "title": "Feature | Features"
   },
+  "fields": {
+    "id": "ID",
+    "title": "Title",
+    "description": "Description",
+    "license": "License"
+  },
   "fullscreen": {
     "exit": "Exit fullscreen mode",
     "exitLabel": "✕",

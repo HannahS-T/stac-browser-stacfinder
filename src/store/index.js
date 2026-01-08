@@ -227,6 +227,12 @@ function getStore(config, router) {
       canSearchCollections: (state, getters) => {
         return getters.supportsConformance(TYPES.Collections.BasicFilters);
       },
+      /**
+       * * Sort field options for collection views
+       * */
+      collectionSortableFields: () => {
+        return collectionAdapter.getSortableFields();
+      },
 
       items: state => {
         if (state.apiItems.length > 0) {

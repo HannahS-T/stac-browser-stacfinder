@@ -52,122 +52,112 @@ export default {
   },
   computed: {
     ...mapState(['data']),
-    ...mapGetters(['catalogs']),
+    ...mapGetters(['catalogs', 'collectionSortableFields']),
 
-    // Computed property for sort options with translation fallback
+    /**
+     * Build translated sort field options for the dropdown
+     */
     sortOptions() {
-      return [
-        { 
-          value: 'title', 
-          text: this.$te('fields.title') ? this.$t('fields.title') : 'Title' 
-        },
-        { 
-          value: 'description', 
-          text: this.$te('fields.description') ? this.$t('fields.description') : 'Description' 
-        },
-        { 
-          value: 'id', 
-          text: this.$te('fields.id') ? this.$t('fields.id') : 'ID' 
-        },
-        { 
-          value: 'license', 
-          text: this.$te('fields.license') ? this.$t('fields.license') : 'License' 
-        }
-      ];
-    },
-    
-    catalogs() {
-      // Get collections from the synthetic catalog
-      if (this.data?._apiCollections) {
-        return this.data._apiCollections;
-      }
-      return [];
-    },
-    
-    totalCount() {
-      return this.data?._totalCount || null;
-    },
-    
-    filters() {
-      return this.data?._filters || {};
+      return this.collectionSortableFields.map(field => ({
+        value: field,
+        text: this.$te(`fields.${field}`)
+          ? this.$t(`fields.${field}`)
+          : field.charAt(0).toUpperCase() + field.slice(1)
+      }));
     },
 
-    // Server-side sort (stored separately from filters)
-    serverSort() {
-      return this.data?._sort || (this.filters ? this.filters.sortby : null);
-    },
-    
-    hasMore() {
-      // Check if there are more collections to load
-      const total = this.totalCount;
-      const loaded = this.catalogs.length;
-      return total !== null && loaded < total;
+  catalogs() {
+    // Get collections from the synthetic catalog
+    if (this.data?._apiCollections) {
+      return this.data._apiCollections;
     }
+    return [];
   },
-  
-  watch: {
-    // Initialize sorting from filters when data loads
-    filters: {
-      immediate: true,
+
+  totalCount() {
+    return this.data?._totalCount || null;
+  },
+
+  filters() {
+    return this.data?._filters || {};
+  },
+
+  // Server-side sort (stored separately from filters)
+  serverSort() {
+    return this.data?._sort || (this.filters ? this.filters.sortby : null);
+  },
+
+  hasMore() {
+    // Check if there are more collections to load
+    const total = this.totalCount;
+    const loaded = this.catalogs.length;
+    return total !== null && loaded < total;
+  }
+},
+
+watch: {
+  // Initialize sorting from filters when data loads
+  filters: {
+    immediate: true,
       handler(filters) {
-        // Prefer explicit filters.sortby, fall back to server-side _sort if present
-        const sortby = (filters && filters.sortby) ? filters.sortby : (this.data?._sort || null);
-        if (sortby) {
-          this.parseSortby(sortby);
-        }
+      // Prefer explicit filters.sortby, fall back to server-side _sort if present
+      const sortby = (filters && filters.sortby) ? filters.sortby : (this.data?._sort || null);
+      if (sortby) {
+        this.parseSortby(sortby);
       }
     }
+  }
+},
+
+methods: {
+  /**
+   * Parse sortby parameter from filters
+   * @param {string} sortby - e.g., "+title", "-id"
+   */
+  parseSortby(sortby) {
+    if (!sortby || typeof sortby !== 'string') return;
+
+    const direction = sortby.startsWith('-') ? -1 : 1;
+    const field = sortby.replace(/^[+-]/, '');
+
+    this.sortDirection = direction;
+    this.sortField = field;
   },
-  
-  methods: {
-    /**
-     * Parse sortby parameter from filters
-     * @param {string} sortby - e.g., "+title", "-id"
-     */
-    parseSortby(sortby) {
-      if (!sortby || typeof sortby !== 'string') return;
-      
-      const direction = sortby.startsWith('-') ? -1 : 1;
-      const field = sortby.replace(/^[+-]/, '');
-      
-      this.sortDirection = direction;
-      this.sortField = field;
-    },
-    
-    /**
-     * Build sortby parameter in STAC API format
-     * @returns {string} sortby parameter (e.g., "+title", "-id")
-     */
-    buildSortbyParameter() {
-      const prefix = this.sortDirection === -1 ? '-' : '+';
-      return `${prefix}${this.sortField}`;
-    },
-    
+
+  /**
+   * Build sortby parameter in STAC API format
+   * @returns {string} sortby parameter (e.g., "+title", "-id")
+   */
+  buildSortbyParameter() {
+    const prefix = this.sortDirection === -1 ? '-' : '+';
+    return `${prefix}${this.sortField}`;
+  },
+
     /**
      * Reload collections with new sorting
      */
     async updateSorting() {
-      try {
-        // Reload collections with new sorting (sort passed separately)
-        const sortParam = this.buildSortbyParameter();
-        await this.$store.dispatch('loadExternalCollections', {
-          show: true,
-          filters: this.filters,
-          sort: sortParam
-        });
-        
-      } catch (error) {
-        console.error('Error updating sorting:', error);
-        this.$root.$emit('error', error, 'Failed to update sorting');
-      }
-    },
-    
-    async loadMoreCollections() {
-      // TODO: Implement pagination for external collections
-      // This would require extending the CollectionApiAdapter
-      console.warn('Pagination not yet implemented for external collections');
+    try {
+      // Reload collections with new sorting (sort passed separately)
+      const sortParam = this.buildSortbyParameter();
+      await this.$store.dispatch('loadExternalCollections', {
+        show: true,
+        filters: this.filters,
+        sort: sortParam
+      });
+
+    } catch (error) {
+      console.error('Error updating sorting:', error);
+      this.$root.$emit('error', error, 'Failed to update sorting');
     }
+  },
+
+    async loadMoreCollections() {
+    // TODO: Implement pagination for external collections
+    // This would require extending the CollectionApiAdapter
+    console.warn('Pagination not yet implemented for external collections');
   }
+}
 };
 </script>
 
@@ -184,11 +174,11 @@ export default {
     padding: 1rem;
     background-color: #f8f9fa;
     border-radius: 0.25rem;
-    
+
     label {
       white-space: nowrap;
     }
-    
+
     .sort-field-select {
       min-width: 150px;
       max-width: 250px;
@@ -201,12 +191,15 @@ export default {
       @include media-breakpoint-up(sm) {
         column-count: 2;
       }
+
       @include media-breakpoint-up(lg) {
         column-count: 3;
       }
+
       @include media-breakpoint-up(xxl) {
         column-count: 4;
       }
+
       @include media-breakpoint-up(xxxl) {
         column-count: 6;
       }
