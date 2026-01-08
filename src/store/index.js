@@ -1021,16 +1021,16 @@ function getStore(config, router) {
        * @param {Object} cx Vuex context
        * @param {Object} options { show?: boolean, filters?: Object }
        */
-      async loadExternalCollections(cx, { show = false, filters = {} } = {}) {
+      async loadExternalCollections(cx, { show = false, filters = {}, sort = null } = {}) {
         try {
-          // Fetch collections from the external API with filters
-          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(filters);
+          // Fetch collections from the external API with filters and optional sort
+          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(filters, sort);
 
           // Convert API collections to STAC Collections
           const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
 
           // Create a synthetic catalog that lists the collections
-          const catalog = collectionAdapter.createCatalog(stacCollections, totalCount, filters);
+          const catalog = collectionAdapter.createCatalog(stacCollections, totalCount, filters, sort);
 
           // Save catalog and collections in the Vuex store
           cx.commit('setExternalCollections', {
@@ -1044,10 +1044,12 @@ function getStore(config, router) {
               ? ` matching "${filters.q}"`
               : '';
 
+            const sortDescription = sort ? ` sorted by ${sort}` : '';
+
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
               page: () => ({
-                description: `${totalCount} Collections${filterDescription}`
+                description: `${totalCount} Collections${filterDescription}${sortDescription}`
               })
             });
           }

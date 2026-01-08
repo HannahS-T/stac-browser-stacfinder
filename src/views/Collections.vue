@@ -24,6 +24,7 @@
       :hasMore="hasMore"
       :count="totalCount"
       :apiFilters="filters"
+      :apiSort="serverSort"
       :disableLocalSort="true"
       @loadMore="loadMoreCollections"
     />
@@ -90,6 +91,11 @@ export default {
     filters() {
       return this.data?._filters || {};
     },
+
+    // Server-side sort (stored separately from filters)
+    serverSort() {
+      return this.data?._sort || (this.filters ? this.filters.sortby : null);
+    },
     
     hasMore() {
       // Check if there are more collections to load
@@ -104,8 +110,10 @@ export default {
     filters: {
       immediate: true,
       handler(filters) {
-        if (filters.sortby) {
-          this.parseSortby(filters.sortby);
+        // Prefer explicit filters.sortby, fall back to server-side _sort if present
+        const sortby = (filters && filters.sortby) ? filters.sortby : (this.data?._sort || null);
+        if (sortby) {
+          this.parseSortby(sortby);
         }
       }
     }
@@ -140,16 +148,12 @@ export default {
      */
     async updateSorting() {
       try {
-        // Build new filters with updated sorting
-        const newFilters = {
-          ...this.filters,
-          sortby: this.buildSortbyParameter()
-        };
-        
-        // Reload collections with new sorting
+        // Reload collections with new sorting (sort passed separately)
+        const sortParam = this.buildSortbyParameter();
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
-          filters: newFilters
+          filters: this.filters,
+          sort: sortParam
         });
         
       } catch (error) {

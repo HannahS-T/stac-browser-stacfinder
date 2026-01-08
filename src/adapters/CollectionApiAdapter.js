@@ -13,45 +13,45 @@ class CollectionApiAdapter {
 
   /**
    * Fetches all collections
-   * @param {Object} filters - Optional filters for the collections
-   * @param {string} filters.q - Free-text search query
-   * @param {string} filters.sortby - Sort parameter (e.g., "title", "+title", "-title", "+title,-id")
+   * @param {Object} filters - Optional filters for the collections (e.g. q, bbox, datetime)
+   * @param {string|null} sort - Optional sort parameter (e.g. "+title", "-id") passed separately
    */
-  async fetchCollections(filters = {}) {
-  try {
-    // Build query parameters
-    const params = new URLSearchParams();
-    
-    // Add free-text search (q parameter)
-    if (filters.q && typeof filters.q === 'string') {
-      params.append('q', filters.q.trim());
-    }
-    
-    // Add sorting (sortby parameter)
-    if (filters.sortby && typeof filters.sortby === 'string') {
-      params.append('sortby', filters.sortby);
-    }
-    
-    // TODO: Add other filters (bbox, datetime, etc.)
+  async fetchCollections(filters = {}, sort = null) {
+    try {
+      // Build query parameters
+      const params = new URLSearchParams();
 
-    // Build URL with query string
-    const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
-    
-    const response = await axios.get(url);
-    
-    if (!response.data?.collections || !Array.isArray(response.data.collections)) {
-      throw new BrowserError('Invalid API response');
-    }
+      // Add free-text search (q parameter)
+      if (filters.q && typeof filters.q === 'string') {
+        params.append('q', filters.q.trim());
+      }
 
-    return {
-      collections: response.data.collections,
-      totalCount: response.data.numberMatched || response.data.collections.length,
-      links: response.data.links || []
-    };
-  } catch (error) {
-    throw new BrowserError(`API Error: ${error.message}`);
+      // Add other filters if present (placeholder for bbox, datetime, etc.)
+      // Example: if (filters.bbox) params.append('bbox', filters.bbox);
+
+      // Add sorting (sortby parameter) if provided separately
+      if (sort && typeof sort === 'string') {
+        params.append('sortby', sort);
+      }
+
+      // Build URL with query string
+      const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
+
+      const response = await axios.get(url);
+
+      if (!response.data?.collections || !Array.isArray(response.data.collections)) {
+        throw new BrowserError('Invalid API response');
+      }
+
+      return {
+        collections: response.data.collections,
+        totalCount: response.data.numberMatched || response.data.collections.length,
+        links: response.data.links || []
+      };
+    } catch (error) {
+      throw new BrowserError(`API Error: ${error.message}`);
+    }
   }
-}
 
   /**
    * Fetches a single collection by ID
@@ -104,7 +104,7 @@ class CollectionApiAdapter {
    * @param {number} totalCount - Total number of collections (numberMatched)
    * @param {Object} filters - Active filters (q, sortby etc.)
    */
-  createCatalog(collections, totalCount, filters = {}) {
+  createCatalog(collections, totalCount, filters = {}, sort = null) {
   const catalogData = {
     type: 'Catalog',
     id: 'collections',
@@ -119,6 +119,7 @@ class CollectionApiAdapter {
   catalog._apiCollections = collections;
   catalog._totalCount = totalCount;
   catalog._filters = filters; // Store filters for reference
+  catalog._sort = sort; // Store sort separately from filters
   
   return catalog;
 }

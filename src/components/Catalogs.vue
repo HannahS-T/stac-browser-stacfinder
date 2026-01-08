@@ -79,6 +79,10 @@ export default {
       type: Object,
       default: () => ({})
     },
+    apiSort: {
+      type: String,
+      default: null
+    },
     pagination: {
       type: Object,
       default: () => ({})
@@ -108,7 +112,7 @@ export default {
      * Check if local (client-side) sorting is possible
      */
     canSortLocally() {
-      return this.isComplete && this.catalogs.length > 1 && !this.apiFilters.sortby;
+      return this.isComplete && this.catalogs.length > 1 && !this.apiSort;
     },
     
     catalogCount() {
@@ -180,7 +184,7 @@ export default {
       }
       
       // Sort: Only apply local sorting if not disabled and conditions are met
-      if (!this.disableLocalSort && !this.hasMore && !this.apiFilters.sortby && this.sort !== 0) {
+      if (!this.disableLocalSort && !this.hasMore && !this.apiSort && this.sort !== 0) {
         const collator = new Intl.Collator(this.uiLanguage);
         catalogs = catalogs.slice(0).sort((a,b) => collator.compare(getDisplayTitle(a), getDisplayTitle(b)));
         if (this.sort === -1) {
