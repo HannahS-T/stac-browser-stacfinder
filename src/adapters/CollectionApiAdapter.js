@@ -136,34 +136,36 @@ class CollectionApiAdapter {
   }
 
   /**
-   * Creates a catalog for the collections list
-   * @param {Array} collections - Array of STAC collections
-   * @param {number} totalCount - Total number of collections (numberMatched)
-   * @param {Object} filters - Active filters (q, sortby etc.)
-   * @param {string|null} sort - Sort parameter
-   * @param {Array} links - Pagination links from API response
-   */
-  createCatalog(collections, totalCount, filters = {}, sort = null, links = []) {
-    const catalogData = {
-      type: 'Catalog',
-      id: 'collections',
-      title: 'Collections',
-      stac_version: '1.0.0',
-      links: [
-        { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
-        ...links // Include API pagination links
-      ]
-    };
+ * Creates a catalog for the collections list
+ * @param {Array} collections - Array of STAC collections
+ * @param {number} totalCount - Total number of collections (numberMatched)
+ * @param {Object} filters - Active filters (q, sortby etc.)
+ * @param {string|null} sort - Sort parameter
+ * @param {Array} links - Pagination links from API response
+ * @param {number} offset - Current offset in the result set (default: 0)
+ */
+createCatalog(collections, totalCount, filters = {}, sort = null, links = [], offset = 0) {
+  const catalogData = {
+    type: 'Catalog',
+    id: 'collections',
+    title: 'Collections',
+    stac_version: '1.0.0',
+    links: [
+      { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
+      ...links
+    ]
+  };
 
-    const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
-    catalog._apiCollections = collections;
-    catalog._totalCount = totalCount;
-    catalog._filters = filters;
-    catalog._sort = sort;
-    catalog._paginationLinks = links; // Store pagination links
+  const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
+  catalog._apiCollections = collections;
+  catalog._totalCount = totalCount;
+  catalog._filters = filters;
+  catalog._sort = sort;
+  catalog._paginationLinks = links;
+  catalog._offset = offset;  
 
-    return catalog;
-  }
+  return catalog;
+}
 }
 
 export default new CollectionApiAdapter();

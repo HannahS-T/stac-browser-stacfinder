@@ -1022,13 +1022,49 @@ function getStore(config, router) {
         }
       },
       /**
-   * Load all collections from the external API and store them as STAC objects.
-   * @param {Object} cx Vuex context
-   * @param {Object} options { show?: boolean, filters?: Object, sort?: string, limit?: number, paginationUrl?: string }
-   */
+  * Load all collections from the external API and store them as STAC objects.
+  * @param {Object} cx Vuex context
+  * @param {Object} options { show?: boolean, filters?: Object, sort?: string, limit?: number, paginationUrl?: string }
+  */
       async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, paginationUrl = null } = {}) {
         try {
-          // If using pagination URL, extract filters and sort from it to maintain state
+          // Calculate offset for pagination tracking
+          let offset = 0;
+
+          if (paginationUrl) {
+            // Read previous state from current catalog
+            const currentCatalog = cx.state.data;
+            const prevOffset = currentCatalog?._offset || 0;
+
+            // Determine direction: check if the clicked link is a "prev" link
+            const prevLinks = currentCatalog?._paginationLinks || [];
+            const clickedPrevLink = prevLinks.some(link =>
+              link.rel === 'prev' && link.href === paginationUrl
+            );
+
+            // Extract limit from URL 
+            let pageSize = 10; // Default page size
+            try {
+              const url = new URL(paginationUrl, window.location.origin);
+              const limitParam = url.searchParams.get('limit');
+              if (limitParam) {
+                pageSize = parseInt(limitParam, 10) || 10;
+              }
+            } catch (e) {
+              console.warn('Failed to parse limit from pagination URL:', e);
+            }
+
+            if (clickedPrevLink) {
+              // Going backwards: subtract page size from offset
+              offset = Math.max(0, prevOffset - pageSize);
+            } else {
+              // Going forwards: add page size to offset
+              offset = prevOffset + pageSize;
+            }
+          }
+          // else: Initial load with offset = 0
+
+          // Extract filters and sort from pagination URL if present
           let activeFilters = { ...filters };
           let activeSort = sort;
 
@@ -1081,9 +1117,10 @@ function getStore(config, router) {
           const catalog = collectionAdapter.createCatalog(
             stacCollections,
             totalCount,
-            activeFilters,  // Use extracted filters
-            activeSort,     // Use extracted sort
-            links
+            activeFilters,
+            activeSort,
+            links,
+            offset
           );
 
           // Save catalog and collections in the Vuex store
