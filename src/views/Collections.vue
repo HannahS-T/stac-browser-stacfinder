@@ -85,7 +85,7 @@ export default {
 
     // Server-side sort (stored separately from filters)
     serverSort() {
-    return this.data?._sort || (this.filters ? this.filters.sortby : null);
+      return this.data?._sort || (this.filters ? this.filters.sortby : null);
     },
 
     /**
@@ -150,7 +150,8 @@ export default {
      */
     async updateSorting() {
       try {
-        // Reload collections with new sorting (sort passed separately)
+        // Reload collections with new sorting
+        // Store maintains filters correctly even after pagination
         const sortParam = this.buildSortbyParameter();
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
@@ -175,18 +176,11 @@ export default {
       }
 
       try {
-        // Extract token and limit from pagination link
-        const url = new URL(link.href, window.location.origin);
-        const token = url.searchParams.get('token');
-        const limit = url.searchParams.get('limit');
-
-        // Reload collections with pagination parameters
+        // Use the pagination link href directly 
+        // The API preserves all query parameters (filters, sorting) in the link
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
-          filters: this.filters,
-          sort: this.buildSortbyParameter(),
-          limit: limit ? parseInt(limit) : null,
-          token: token
+          paginationUrl: link.href
         });
 
         // Scroll to top of results

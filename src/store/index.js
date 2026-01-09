@@ -1022,30 +1022,68 @@ function getStore(config, router) {
         }
       },
       /**
- * Load all collections from the external API and store them as STAC objects.
- * @param {Object} cx Vuex context
- * @param {Object} options { show?: boolean, filters?: Object, sort?: string, limit?: number, token?: string }
- */
-      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, token = null } = {}) {
+   * Load all collections from the external API and store them as STAC objects.
+   * @param {Object} cx Vuex context
+   * @param {Object} options { show?: boolean, filters?: Object, sort?: string, limit?: number, paginationUrl?: string }
+   */
+      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, paginationUrl = null } = {}) {
         try {
-          // Fetch collections from the external API with filters, sort, and pagination
+          // If using pagination URL, extract filters and sort from it to maintain state
+          let activeFilters = { ...filters };
+          let activeSort = sort;
+
+          if (paginationUrl) {
+            try {
+              const url = new URL(paginationUrl, window.location.origin);
+
+              // Extract filter parameters from pagination URL
+              const q = url.searchParams.get('q');
+              if (q) {
+                activeFilters.q = q;
+              }
+
+              // Extract datetime filter
+              const datetime = url.searchParams.get('datetime');
+              if (datetime) {
+                activeFilters.datetime = datetime;
+              }
+
+              // Extract bbox filter
+              const bbox = url.searchParams.get('bbox');
+              if (bbox) {
+                activeFilters.bbox = bbox;
+              }
+
+              // Extract sort parameter
+              const sortby = url.searchParams.get('sortby');
+              if (sortby) {
+                activeSort = sortby;
+              }
+            } catch (e) {
+              console.warn('Failed to parse pagination URL:', e);
+            }
+          }
+
+          // Fetch collections from the external API
+          // If paginationUrl is provided, it takes precedence (best practice per API docs)
           const { collections, totalCount, links } = await collectionAdapter.fetchCollections(
-            filters,
-            sort,
+            activeFilters,
+            activeSort,
             limit,
-            token
+            paginationUrl
           );
 
           // Convert API collections to STAC Collections
           const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
 
           // Create a synthetic catalog that lists the collections
+          // Store the active filters and sort for the UI
           const catalog = collectionAdapter.createCatalog(
             stacCollections,
             totalCount,
-            filters,
-            sort,
-            links // Pass pagination links to catalog
+            activeFilters,  // Use extracted filters
+            activeSort,     // Use extracted sort
+            links
           );
 
           // Save catalog and collections in the Vuex store
@@ -1056,11 +1094,11 @@ function getStore(config, router) {
 
           // Optionally show the collections page
           if (show) {
-            const filterDescription = filters.q
-              ? ` matching "${filters.q}"`
+            const filterDescription = activeFilters.q
+              ? ` matching "${activeFilters.q}"`
               : '';
 
-            const sortDescription = sort ? ` sorted by ${sort}` : '';
+            const sortDescription = activeSort ? ` sorted by ${activeSort}` : '';
 
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,

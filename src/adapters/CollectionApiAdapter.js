@@ -33,43 +33,46 @@ class CollectionApiAdapter {
    * @param {Object} filters - Optional filters for the collections (e.g. q, bbox, datetime)
    * @param {string|null} sort - Optional sort parameter (e.g. "+title", "-id") passed separately
    * @param {number|null} limit - Optional limit for pagination (default: 10)
-   * @param {string|null} token - Optional pagination token for next/prev page
+   * @param {string|null} paginationUrl - Optional direct pagination URL from API links (preferred)
    */
-  async fetchCollections(filters = {}, sort = null, limit = null, token = null) {
+  async fetchCollections(filters = {}, sort = null, limit = null, paginationUrl = null) {
     try {
-      // Build query parameters
-      const params = new URLSearchParams();
+      let url;
 
-      // Add free-text search (q parameter)
-      if (filters.q && typeof filters.q === 'string') {
-        params.append('q', filters.q.trim());
-      }
+      // If a direct pagination URL is provided, use it as-is 
+      if (paginationUrl && typeof paginationUrl === 'string') {
+        url = paginationUrl;
+      } else {
+        // Build query parameters for initial request
+        const params = new URLSearchParams();
 
-      // Add other filters if present (placeholder for bbox, datetime, etc.)
-
-      // Add sorting (sortby parameter) if provided separately
-      if (sort && typeof sort === 'string') {
-        const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
-        const invalid = fields.find(f => !this.sortableFields.includes(f));
-
-        if (invalid) {
-          throw new BrowserError(`Invalid sort field: ${invalid}`);
+        // Add free-text search (q parameter)
+        if (filters.q && typeof filters.q === 'string') {
+          params.append('q', filters.q.trim());
         }
 
-        params.append('sortby', sort);
-      }
+        // Add other filters if present (placeholder for bbox, datetime, etc.)
 
-      // Add pagination parameters
-      if (limit && typeof limit === 'number' && limit > 0) {
-        params.append('limit', limit.toString());
-      }
-      
-      if (token && typeof token === 'string') {
-        params.append('token', token);
-      }
+        // Add sorting (sortby parameter) if provided separately
+        if (sort && typeof sort === 'string') {
+          const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
+          const invalid = fields.find(f => !this.sortableFields.includes(f));
 
-      // Build URL with query string
-      const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
+          if (invalid) {
+            throw new BrowserError(`Invalid sort field: ${invalid}`);
+          }
+
+          params.append('sortby', sort);
+        }
+
+        // Add pagination limit
+        if (limit && typeof limit === 'number' && limit > 0) {
+          params.append('limit', limit.toString());
+        }
+
+        // Build URL with query string
+        url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
+      }
 
       const response = await axios.get(url);
 
