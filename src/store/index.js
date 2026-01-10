@@ -1072,7 +1072,7 @@ function getStore(config, router) {
 
           // Fetch collections from API
           // API preserves all filters/sort in pagination URLs, so we pass them through
-          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(
+          const { collections, links } = await collectionAdapter.fetchCollections(
             filters,
             sort,
             limit,
