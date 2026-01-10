@@ -1087,7 +1087,6 @@ function getStore(config, router) {
           // Create catalog with first link
           const catalog = collectionAdapter.createCatalog(
             stacCollections,
-            totalCount,
             filters,
             sort,
             links,
@@ -1105,7 +1104,7 @@ function getStore(config, router) {
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
               page: () => ({
-                description: `${totalCount} Collections`
+                description: `Collections`
               })
             });
           }

@@ -21,7 +21,6 @@
     <Catalogs 
       :catalogs="catalogs" 
       :collectionsOnly="true"
-      :count="totalCount"
       :apiFilters="filters"
       :apiSort="serverSort"
       :pagination="pagination"
@@ -73,10 +72,6 @@ export default {
         return this.data._apiCollections;
       }
       return [];
-    },
-
-    totalCount() {
-      return this.data?._totalCount || null;
     },
 
     filters() {
