@@ -1028,119 +1028,84 @@ function getStore(config, router) {
   */
       async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, paginationUrl = null } = {}) {
         try {
-          // Calculate offset for pagination tracking
           let offset = 0;
 
+          // Calculate offset only when using pagination URL
           if (paginationUrl) {
-            // Read previous state from current catalog
             const currentCatalog = cx.state.data;
             const prevOffset = currentCatalog?._offset || 0;
-
-            // Determine direction: check if the clicked link is a "prev" link
             const prevLinks = currentCatalog?._paginationLinks || [];
-            const clickedPrevLink = prevLinks.some(link =>
-              link.rel === 'prev' && link.href === paginationUrl
-            );
 
-            // Extract limit from URL 
-            let pageSize = 10; // Default page size
+            // Parse URL once to extract all info
+            let pageSize = 10;
+            let hasToken = false;
+
             try {
               const url = new URL(paginationUrl, window.location.origin);
               const limitParam = url.searchParams.get('limit');
-              if (limitParam) {
-                pageSize = parseInt(limitParam, 10) || 10;
-              }
-            } catch (e) {
-              console.warn('Failed to parse limit from pagination URL:', e);
-            }
+              const tokenParam = url.searchParams.get('token');
 
-            if (clickedPrevLink) {
-              // Going backwards: subtract page size from offset
-              offset = Math.max(0, prevOffset - pageSize);
-            } else {
-              // Going forwards: add page size to offset
-              offset = prevOffset + pageSize;
-            }
-          }
-          // else: Initial load with offset = 0
-
-          // Extract filters and sort from pagination URL if present
-          let activeFilters = { ...filters };
-          let activeSort = sort;
-
-          if (paginationUrl) {
-            try {
-              const url = new URL(paginationUrl, window.location.origin);
-
-              // Extract filter parameters from pagination URL
-              const q = url.searchParams.get('q');
-              if (q) {
-                activeFilters.q = q;
-              }
-
-              // Extract datetime filter
-              const datetime = url.searchParams.get('datetime');
-              if (datetime) {
-                activeFilters.datetime = datetime;
-              }
-
-              // Extract bbox filter
-              const bbox = url.searchParams.get('bbox');
-              if (bbox) {
-                activeFilters.bbox = bbox;
-              }
-
-              // Extract sort parameter
-              const sortby = url.searchParams.get('sortby');
-              if (sortby) {
-                activeSort = sortby;
-              }
+              if (limitParam) pageSize = parseInt(limitParam, 10) || 10;
+              hasToken = tokenParam !== null && tokenParam !== '';
             } catch (e) {
               console.warn('Failed to parse pagination URL:', e);
             }
+
+            // Determine offset based on link type
+            if (!hasToken) {
+              // First page: no token parameter (per API spec)
+              offset = 0;
+            } else {
+              // Check if it's a prev link
+              const isPrevLink = prevLinks.some(link =>
+                link.rel === 'prev' && link.href === paginationUrl
+              );
+
+              if (isPrevLink) {
+                offset = Math.max(0, prevOffset - pageSize);
+              } else {
+                // Next link (default)
+                offset = prevOffset + pageSize;
+              }
+            }
           }
 
-          // Fetch collections from the external API
-          // If paginationUrl is provided, it takes precedence (best practice per API docs)
+          // Fetch collections from API
+          // API preserves all filters/sort in pagination URLs, so we pass them through
           const { collections, totalCount, links } = await collectionAdapter.fetchCollections(
-            activeFilters,
-            activeSort,
+            filters,
+            sort,
             limit,
             paginationUrl
           );
 
-          // Convert API collections to STAC Collections
-          const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
+          // Convert to STAC
+          const stacCollections = collections.map((col, i) =>
+            collectionAdapter.transformToStac(col, i)
+          );
 
-          // Create a synthetic catalog that lists the collections
-          // Store the active filters and sort for the UI
+          // Create catalog with first link
           const catalog = collectionAdapter.createCatalog(
             stacCollections,
             totalCount,
-            activeFilters,
-            activeSort,
+            filters,
+            sort,
             links,
             offset
           );
 
-          // Save catalog and collections in the Vuex store
+          // Store in Vuex
           cx.commit('setExternalCollections', {
             catalog: processSTAC(cx.state, catalog),
             collections: stacCollections
           });
 
-          // Optionally show the collections page
+          // Show page if requested
           if (show) {
-            const filterDescription = activeFilters.q
-              ? ` matching "${activeFilters.q}"`
-              : '';
-
-            const sortDescription = activeSort ? ` sorted by ${activeSort}` : '';
-
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
               page: () => ({
-                description: `${totalCount} Collections${filterDescription}${sortDescription}`
+                description: `${totalCount} Collections`
               })
             });
           }

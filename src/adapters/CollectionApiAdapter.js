@@ -136,36 +136,83 @@ class CollectionApiAdapter {
   }
 
   /**
- * Creates a catalog for the collections list
- * @param {Array} collections - Array of STAC collections
- * @param {number} totalCount - Total number of collections (numberMatched)
- * @param {Object} filters - Active filters (q, sortby etc.)
- * @param {string|null} sort - Sort parameter
- * @param {Array} links - Pagination links from API response
- * @param {number} offset - Current offset in the result set (default: 0)
- */
-createCatalog(collections, totalCount, filters = {}, sort = null, links = [], offset = 0) {
-  const catalogData = {
-    type: 'Catalog',
-    id: 'collections',
-    title: 'Collections',
-    stac_version: '1.0.0',
-    links: [
-      { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
-      ...links
-    ]
-  };
+   * Build URL for the first page (without token parameter)
+   * @param {Object} filters - Active filters (q, datetime, bbox)
+   * @param {string|null} sort - Sort parameter
+   * @param {number} limit - Page size
+   * @returns {string} URL for first page
+   */
+  _buildFirstPageUrl(filters = {}, sort = null, limit = 10) {
+    const params = new URLSearchParams();
 
-  const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
-  catalog._apiCollections = collections;
-  catalog._totalCount = totalCount;
-  catalog._filters = filters;
-  catalog._sort = sort;
-  catalog._paginationLinks = links;
-  catalog._offset = offset;  
+    if (filters.q) params.append('q', filters.q);
+    if (filters.datetime) params.append('datetime', filters.datetime);
+    if (filters.bbox) params.append('bbox', filters.bbox);
+    if (sort) params.append('sortby', sort);
+    if (limit) params.append('limit', limit);
 
-  return catalog;
-}
+    const qs = params.toString();
+    return qs ? `${this.baseUrl}?${qs}` : this.baseUrl;
+  }
+
+  /**
+   * Creates a catalog for the collections list
+   * @param {Array} collections - Array of STAC collections
+   * @param {number} totalCount - Total number of collections (numberMatched)
+   * @param {Object} filters - Active filters (q, sortby etc.)
+   * @param {string|null} sort - Sort parameter
+   * @param {Array} links - Pagination links from API response
+   * @param {number} offset - Current offset in the result set (default: 0)
+   */
+  createCatalog(collections, totalCount, filters = {}, sort = null, links = [], offset = 0) {
+    const catalogData = {
+      type: 'Catalog',
+      id: 'collections',
+      title: 'Collections',
+      stac_version: '1.0.0',
+      links: [
+        { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
+        ...links
+      ]
+    };
+
+    const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
+    catalog._apiCollections = collections;
+    catalog._totalCount = totalCount;
+    catalog._filters = filters;
+    catalog._sort = sort;
+    catalog._offset = offset;
+
+    // --- Generate 'first' link if not provided by API ---
+    const paginationLinks = [...links];
+    
+    if (!paginationLinks.find(l => l.rel === 'first')) {
+      // Extract limit from existing pagination links (next/prev)
+      let pageSize = 10; // Default
+      const someLink = paginationLinks.find(l => l.href);
+      if (someLink) {
+        try {
+          const url = new URL(someLink.href, window.location.origin);
+          const limitParam = url.searchParams.get('limit');
+          if (limitParam) {
+            pageSize = parseInt(limitParam, 10) || 10;
+          }
+        } catch (e) {
+          console.warn('Failed to parse limit for first page:', e);
+        }
+      }
+
+      paginationLinks.push({
+        rel: 'first',
+        href: this._buildFirstPageUrl(filters, sort, pageSize),
+        type: 'application/json'
+      });
+    }
+
+    catalog._paginationLinks = paginationLinks;
+
+    return catalog;
+  }
 }
 
 export default new CollectionApiAdapter();

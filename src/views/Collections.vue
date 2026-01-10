@@ -88,9 +88,9 @@ export default {
       return this.data?._sort || (this.filters ? this.filters.sortby : null);
     },
 
-    /**
-     * Extract pagination links from API response
-     */
+/**
+ * Extract pagination links from API response
+ */
     pagination() {
       const links = this.data?._paginationLinks || [];
       const paginationLinks = {};
@@ -100,6 +100,10 @@ export default {
           paginationLinks.next = link;
         } else if (link.rel === 'prev') {
           paginationLinks.prev = link;
+        } else if (link.rel === 'first') {
+          paginationLinks.first = link;
+        } else if (link.rel === 'last') {
+          paginationLinks.last = link;
         }
       });
 
