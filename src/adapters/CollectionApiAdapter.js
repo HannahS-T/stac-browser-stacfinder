@@ -141,7 +141,7 @@ class CollectionApiAdapter {
    * @param {number} limit - Page size
    * @returns {string} URL for first page
    */
-  _buildFirstPageUrl(filters = {}, sort = null, limit = 10) {
+  _buildFirstPageUrl(filters = {}, sort = null, limit) {
     const params = new URLSearchParams();
 
     if (filters.q) params.append('q', filters.q);
@@ -150,8 +150,9 @@ class CollectionApiAdapter {
     if (sort) params.append('sortby', sort);
     if (limit) params.append('limit', limit);
 
-    const qs = params.toString();
-    return qs ? `${this.baseUrl}?${qs}` : this.baseUrl;
+    return params.toString()
+      ? `${this.baseUrl}?${params.toString()}`
+      : this.baseUrl;
   }
 
   /**
@@ -161,8 +162,9 @@ class CollectionApiAdapter {
    * @param {string|null} sort - Sort parameter
    * @param {Array} links - Pagination links from API response
    * @param {number} offset - Current offset in the result set (default: 0)
+    * @param {number|null} pageSize - Page size used for pagination
    */
-  createCatalog(collections, filters = {}, sort = null, links = [], offset = 0) {
+  createCatalog(collections, filters = {}, sort = null, links = [], offset = 0, pageSize = null) {
     const catalogData = {
       type: 'Catalog',
       id: 'collections',
@@ -180,25 +182,11 @@ class CollectionApiAdapter {
     catalog._sort = sort;
     catalog._offset = offset;
 
-    // --- Generate 'first' link if not provided by API ---
+    // Generate pagination links
     const paginationLinks = [...links];
-    
-    if (!paginationLinks.find(l => l.rel === 'first')) {
-      // Extract limit from existing pagination links (next/prev)
-      let pageSize = 10; // Default
-      const someLink = paginationLinks.find(l => l.href);
-      if (someLink) {
-        try {
-          const url = new URL(someLink.href, window.location.origin);
-          const limitParam = url.searchParams.get('limit');
-          if (limitParam) {
-            pageSize = parseInt(limitParam, 10) || 10;
-          }
-        } catch (e) {
-          console.warn('Failed to parse limit for first page:', e);
-        }
-      }
 
+    // Add first link only if we know the page size
+    if (pageSize && !paginationLinks.some(l => l.rel === 'first')) {
       paginationLinks.push({
         rel: 'first',
         href: this._buildFirstPageUrl(filters, sort, pageSize),

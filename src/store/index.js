@@ -1029,6 +1029,7 @@ function getStore(config, router) {
       async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, paginationUrl = null } = {}) {
         try {
           let offset = 0;
+          let pageSize = limit || null; 
 
           // Calculate offset only when using pagination URL
           if (paginationUrl) {
@@ -1036,46 +1037,32 @@ function getStore(config, router) {
             const prevOffset = currentCatalog?._offset || 0;
             const prevLinks = currentCatalog?._paginationLinks || [];
 
-            // Parse URL once to extract all info
-            let pageSize = 10;
-            let hasToken = false;
-
             try {
               const url = new URL(paginationUrl, window.location.origin);
               const limitParam = url.searchParams.get('limit');
               const tokenParam = url.searchParams.get('token');
 
-              if (limitParam) pageSize = parseInt(limitParam, 10) || 10;
-              hasToken = tokenParam !== null && tokenParam !== '';
+              if (limitParam) pageSize = parseInt(limitParam, 10); // limit from URL
+              const hasToken = tokenParam !== null && tokenParam !== '';
+
+              if (!hasToken) {
+                offset = 0; // No token means first page
+              } else {
+                const isPrevLink = prevLinks.some(link =>
+                  link.rel === 'prev' && link.href === paginationUrl
+                );
+                offset = pageSize ? (isPrevLink ? Math.max(0, prevOffset - pageSize) : prevOffset + pageSize) : prevOffset;
+              }
             } catch (e) {
               console.warn('Failed to parse pagination URL:', e);
             }
-
-            // Determine offset based on link type
-            if (!hasToken) {
-              // First page: no token parameter (per API spec)
-              offset = 0;
-            } else {
-              // Check if it's a prev link
-              const isPrevLink = prevLinks.some(link =>
-                link.rel === 'prev' && link.href === paginationUrl
-              );
-
-              if (isPrevLink) {
-                offset = Math.max(0, prevOffset - pageSize);
-              } else {
-                // Next link (default)
-                offset = prevOffset + pageSize;
-              }
-            }
           }
 
-          // Fetch collections from API
-          // API preserves all filters/sort in pagination URLs, so we pass them through
+          // Fetch collections
           const { collections, links } = await collectionAdapter.fetchCollections(
             filters,
             sort,
-            limit,
+            pageSize,
             paginationUrl
           );
 
@@ -1084,13 +1071,14 @@ function getStore(config, router) {
             collectionAdapter.transformToStac(col, i)
           );
 
-          // Create catalog with first link
+          // Create catalog
           const catalog = collectionAdapter.createCatalog(
             stacCollections,
             filters,
             sort,
             links,
-            offset
+            offset,
+            pageSize
           );
 
           // Store in Vuex
@@ -1103,9 +1091,7 @@ function getStore(config, router) {
           if (show) {
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
-              page: () => ({
-                description: `Collections`
-              })
+              page: () => ({ description: `Collections` })
             });
           }
 
