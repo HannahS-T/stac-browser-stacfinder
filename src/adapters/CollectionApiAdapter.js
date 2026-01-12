@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { BrowserError } from '../utils';
-import { createSTAC, processSTAC } from '../models/stac';
+import { createSTAC } from '../models/stac';
 
 /**
  * Minimal adapter for the Collections API
