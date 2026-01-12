@@ -112,7 +112,6 @@ class CollectionApiAdapter {
   );
 }
 
-
   /**
    * Build URL for the first page (without token parameter)
    * @param {Object} filters - Active filters (q, datetime, bbox)

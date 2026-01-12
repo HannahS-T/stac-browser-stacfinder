@@ -1020,7 +1020,7 @@ function getStore(config, router) {
             errorFn(error);
           }
         }
-      }, 
+      },
       /**
   * Load all collections from the external API and store them as STAC objects.
   * @param {Object} cx Vuex context
@@ -1035,7 +1035,7 @@ function getStore(config, router) {
           const currentCatalog = cx.state.data;
 
           if (paginationUrl && currentCatalog) {
-            
+
             // Get previous pagination state
             const prevOffset = currentCatalog._offset || 0;
             const prevLinks = currentCatalog._paginationLinks || [];
@@ -1057,9 +1057,16 @@ function getStore(config, router) {
                 offset = 0;
               } else {
                 // Determine navigation direction (prev / next)
-                const isPrevLink = prevLinks.some(
-                  link => link.rel === 'prev' && link.href === paginationUrl
-                );
+                const isPrevLink = prevLinks.some(link => {
+                  if (link.rel !== 'prev') return false;
+                  try {
+                    // normalize URLs to absolute strings for comparison
+                    return new URL(link.href, window.location.origin).toString() ===
+                      new URL(paginationUrl, window.location.origin).toString();
+                  } catch {
+                    return false;
+                  }
+                });
 
                 offset = pageSize
                   ? (isPrevLink
@@ -1067,7 +1074,6 @@ function getStore(config, router) {
                     : prevOffset + pageSize)
                   : prevOffset;
               }
-
             } catch (e) {
               console.warn('Failed to parse pagination URL:', e);
             }
