@@ -1020,7 +1020,7 @@ function getStore(config, router) {
             errorFn(error);
           }
         }
-      },
+      }, 
       /**
   * Load all collections from the external API and store them as STAC objects.
   * @param {Object} cx Vuex context
@@ -1082,7 +1082,7 @@ function getStore(config, router) {
 
           // Convert to STAC
           const stacCollections = collections.map((col, i) =>
-            collectionAdapter.transformToStac(col, i)
+            collectionAdapter.wrapCollection(col, i)
           );
 
           // Create catalog
@@ -1131,7 +1131,7 @@ function getStore(config, router) {
           const collection = await collectionAdapter.fetchCollection(id);
 
           // Convert to a STAC Collection
-          const stacCollection = collectionAdapter.transformToStac(collection);
+          const stacCollection = collectionAdapter.wrapCollection(collection);
 
           // Save the collection in the Vuex store
           cx.commit('setExternalCollection', stacCollection);

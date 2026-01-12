@@ -98,33 +98,20 @@ class CollectionApiAdapter {
     }
   }
 
-  /**
-   * Transforms a collection into STAC Collection format
-   */
-  transformToStac(collection, index = 0) {
-    const collectionId = collection.id || `collection-${index}`;
-    const collectionUrl = `${this.syntheticUrl}/${collectionId}`;
+/**
+ * Prepares a STAC Collection from the API for use in the browser
+ * Does not modify the API data; only adds internal browser metadata (href, path)
+ */
+  wrapCollection(collection) {
+  const collectionUrl = `${this.syntheticUrl}/${collection.id}`;
 
-    const stacCollection = {
-      type: 'Collection',
-      stac_version: '1.0.0',
-      id: collectionId,
-      title: collection.title || collectionId,
-      description: collection.description || '',
-      license: collection.license || 'proprietary',
-      extent: collection.extent || {
-        spatial: { bbox: [[]] },
-        temporal: { interval: [[null, null]] }
-      },
-      links: [
-        { rel: 'self', href: collectionUrl, type: 'application/json' },
-        { rel: 'root', href: this.syntheticUrl, type: 'application/json' }
-      ],
-      ...collection
-    };
+  return createSTAC(
+    collection,
+    collectionUrl,               
+    `/collections/${collection.id }` 
+  );
+}
 
-    return createSTAC(stacCollection, collectionUrl, `/collections/${collectionId}`);
-  }
 
   /**
    * Build URL for the first page (without token parameter)
