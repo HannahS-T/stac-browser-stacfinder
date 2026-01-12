@@ -1024,13 +1024,13 @@ function getStore(config, router) {
       /**
   * Load all collections from the external API and store them as STAC objects.
   * @param {Object} cx Vuex context
-  * @param {Object} options { show?: boolean, filters?: Object, sort?: string, limit?: number, paginationUrl?: string }
+  * @param {Object} options { show?: boolean, filters?: Object, sort?: string, paginationUrl?: string }
   */
-      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, paginationUrl = null } = {}) {
+      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, paginationUrl = null } = {}) {
         try {
 
           let offset = 0;
-          let pageSize = limit || null;
+          let pageSize = null;
 
           const currentCatalog = cx.state.data;
 
@@ -1080,7 +1080,6 @@ function getStore(config, router) {
           const { collections, links } = await collectionAdapter.fetchCollections(
             filters,
             sort,
-            pageSize,
             paginationUrl
           );
 

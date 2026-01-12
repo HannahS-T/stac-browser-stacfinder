@@ -32,10 +32,9 @@ class CollectionApiAdapter {
    * Fetches all collections
    * @param {Object} filters - Optional filters for the collections (e.g. q, bbox, datetime)
    * @param {string|null} sort - Optional sort parameter (e.g. "+title", "-id") passed separately
-   * @param {number|null} limit - Optional limit for pagination (default: 10)
    * @param {string|null} paginationUrl - Optional direct pagination URL from API links (preferred)
    */
-  async fetchCollections(filters = {}, sort = null, limit = null, paginationUrl = null) {
+  async fetchCollections(filters = {}, sort = null, paginationUrl = null) {
     try {
       let url;
 
@@ -57,17 +56,10 @@ class CollectionApiAdapter {
         if (sort && typeof sort === 'string') {
           const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
           const invalid = fields.find(f => !this.sortableFields.includes(f));
-
           if (invalid) {
             throw new BrowserError(`Invalid sort field: ${invalid}`);
           }
-
           params.append('sortby', sort);
-        }
-
-        // Add pagination limit
-        if (limit && typeof limit === 'number' && limit > 0) {
-          params.append('limit', limit.toString());
         }
 
         // Build URL with query string
@@ -138,17 +130,17 @@ class CollectionApiAdapter {
    * Build URL for the first page (without token parameter)
    * @param {Object} filters - Active filters (q, datetime, bbox)
    * @param {string|null} sort - Sort parameter
-   * @param {number} limit - Page size
+   * @param {number} pageSize - Page size used for pagination
    * @returns {string} URL for first page
    */
-  _buildFirstPageUrl(filters = {}, sort = null, limit) {
+  _buildFirstPageUrl(filters = {}, sort = null, pageSize) {
     const params = new URLSearchParams();
 
     if (filters.q) params.append('q', filters.q);
     if (filters.datetime) params.append('datetime', filters.datetime);
     if (filters.bbox) params.append('bbox', filters.bbox);
     if (sort) params.append('sortby', sort);
-    if (limit) params.append('limit', limit);
+    if (pageSize) params.append('limit', pageSize);
 
     return params.toString()
       ? `${this.baseUrl}?${params.toString()}`
