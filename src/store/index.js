@@ -1028,31 +1028,49 @@ function getStore(config, router) {
   */
       async loadExternalCollections(cx, { show = false, filters = {}, sort = null, limit = null, paginationUrl = null } = {}) {
         try {
-          let offset = 0;
-          let pageSize = limit || null; 
 
-          // Calculate offset only when using pagination URL
-          if (paginationUrl) {
-            const currentCatalog = cx.state.data;
-            const prevOffset = currentCatalog?._offset || 0;
-            const prevLinks = currentCatalog?._paginationLinks || [];
+          let offset = 0;
+          let pageSize = limit || null;
+
+          const currentCatalog = cx.state.data;
+
+          if (paginationUrl && currentCatalog) {
+
+            // Restore filter & sort state from current catalog
+            filters = currentCatalog._filters || {};
+            sort = currentCatalog._sort || null;
+
+            const prevOffset = currentCatalog._offset || 0;
+            const prevLinks = currentCatalog._paginationLinks || [];
 
             try {
+              // Parse pagination parameters from API link
               const url = new URL(paginationUrl, window.location.origin);
               const limitParam = url.searchParams.get('limit');
               const tokenParam = url.searchParams.get('token');
 
-              if (limitParam) pageSize = parseInt(limitParam, 10); // limit from URL
+              if (limitParam) {
+                pageSize = parseInt(limitParam, 10);
+              }
+
               const hasToken = tokenParam !== null && tokenParam !== '';
 
+              // First page (no token)
               if (!hasToken) {
-                offset = 0; // No token means first page
+                offset = 0;
               } else {
-                const isPrevLink = prevLinks.some(link =>
-                  link.rel === 'prev' && link.href === paginationUrl
+                // Determine navigation direction (prev / next)
+                const isPrevLink = prevLinks.some(
+                  link => link.rel === 'prev' && link.href === paginationUrl
                 );
-                offset = pageSize ? (isPrevLink ? Math.max(0, prevOffset - pageSize) : prevOffset + pageSize) : prevOffset;
+
+                offset = pageSize
+                  ? (isPrevLink
+                    ? Math.max(0, prevOffset - pageSize)
+                    : prevOffset + pageSize)
+                  : prevOffset;
               }
+
             } catch (e) {
               console.warn('Failed to parse pagination URL:', e);
             }
