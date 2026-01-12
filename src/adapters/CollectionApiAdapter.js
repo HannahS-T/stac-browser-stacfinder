@@ -158,7 +158,7 @@ class CollectionApiAdapter {
   /**
    * Creates a catalog for the collections list
    * @param {Array} collections - Array of STAC collections
-   * @param {Object} filters - Active filters (q, sortby etc.)
+   * @param {Object} filters - Active filters (q, datetime etc.)
    * @param {string|null} sort - Sort parameter
    * @param {Array} links - Pagination links from API response
    * @param {number} offset - Current offset in the result set (default: 0)
