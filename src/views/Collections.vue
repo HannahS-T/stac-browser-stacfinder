@@ -78,14 +78,14 @@ export default {
       return this.data?._filters || {};
     },
 
-    // Server-side sort (stored separately from filters)
+    // Server-side sort parameter from store data
     serverSort() {
-      return this.data?._sort || (this.filters ? this.filters.sortby : null);
+      return this.data?._sort || null;
     },
 
-/**
- * Extract pagination links from API response
- */
+    /**
+     * Extract pagination links from API response
+     */
     pagination() {
       const links = this.data?._paginationLinks || [];
       const paginationLinks = {};
@@ -106,13 +106,11 @@ export default {
     }
   },
 
+  // Watch for changes in serverSort to update local sortField and sortDirection
   watch: {
-    // Initialize sorting from filters when data loads
-    filters: {
+    serverSort: {
       immediate: true,
-      handler(filters) {
-        // Prefer explicit filters.sortby, fall back to server-side _sort if present
-        const sortby = (filters && filters.sortby) ? filters.sortby : (this.data?._sort || null);
+      handler(sortby) {
         if (sortby) {
           this.parseSortby(sortby);
         }
