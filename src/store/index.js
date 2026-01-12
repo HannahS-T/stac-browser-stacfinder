@@ -1035,11 +1035,8 @@ function getStore(config, router) {
           const currentCatalog = cx.state.data;
 
           if (paginationUrl && currentCatalog) {
-
-            // Restore filter & sort state from current catalog
-            filters = currentCatalog._filters || {};
-            sort = currentCatalog._sort || null;
-
+            
+            // Get previous pagination state
             const prevOffset = currentCatalog._offset || 0;
             const prevLinks = currentCatalog._paginationLinks || [];
 
