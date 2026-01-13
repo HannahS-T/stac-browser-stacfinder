@@ -80,9 +80,14 @@ export default {
         if (path === 'internal://collections') {
           // Use filters from props if not explicitly provided
           const effectiveFilters = Object.keys(filters).length > 0 ? filters : this.filters;
+          
+          // Check if we're returning from a detail page and should restore state
+          const hasSavedState = this.$store.state.collectionsPaginationState !== null;
+          
           await this.$store.dispatch('loadExternalCollections', { 
             show: true, 
-            filters: effectiveFilters 
+            filters: effectiveFilters,
+            restoreState: hasSavedState
           });
         }
         // Load a single collection by ID

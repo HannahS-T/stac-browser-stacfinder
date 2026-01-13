@@ -51,7 +51,9 @@ function getStore(config, router) {
     apiCollections: [],
     apiItemsLoading: {},
     nextCollectionsLink: null,
-    externalCollectionsLoaded: false
+    externalCollectionsLoaded: false,
+    // Saved collection pagination state
+    collectionsPaginationState: null
   });
 
   return new Vuex.Store({
@@ -623,6 +625,15 @@ function getStore(config, router) {
       setExternalCollection(state, collection) {
         const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
         Vue.set(state.database, url, processSTAC(state, collection));
+      },
+      
+      // Save pagination state when navigating away from collections list
+      saveCollectionsPaginationState(state, paginationState) {
+        state.collectionsPaginationState = paginationState;
+      },
+      
+      clearCollectionsPaginationState(state) {
+        state.collectionsPaginationState = null;
       }
     },
     actions: {
@@ -1024,9 +1035,9 @@ function getStore(config, router) {
       /**
   * Load all collections from the external API and store them as STAC objects.
   * @param {Object} cx Vuex context
-  * @param {Object} options { show?: boolean, filters?: Object, sort?: string, paginationUrl?: string }
+  * @param {Object} options { show?: boolean, filters?: Object, sort?: string, paginationUrl?: string, restoreState?: boolean }
   */
-      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, paginationUrl = null } = {}) {
+      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, paginationUrl = null, restoreState = false } = {}) {
         try {
 
           let offset = 0;
@@ -1034,7 +1045,30 @@ function getStore(config, router) {
 
           const currentCatalog = cx.state.data;
 
-          if (paginationUrl && currentCatalog) {
+          // Restore saved state if requested and available
+          if (restoreState && cx.state.collectionsPaginationState) {
+            const savedState = cx.state.collectionsPaginationState;
+            filters = savedState.filters || filters;
+            sort = savedState.sort || sort;
+            paginationUrl = savedState.paginationUrl || paginationUrl;
+            offset = savedState.offset || 0;
+            pageSize = savedState.pageSize || null;
+            
+            // If pageSize wasn't saved, try to extract it from paginationUrl
+            if (!pageSize && paginationUrl) {
+              try {
+                const url = new URL(paginationUrl, window.location.origin);
+                const limitParam = url.searchParams.get('limit');
+                if (limitParam) {
+                  pageSize = parseInt(limitParam, 10);
+                }
+              } catch (e) {
+                console.warn('Failed to extract pageSize from URL:', e);
+              }
+            }
+          }
+
+          if (paginationUrl && currentCatalog && !restoreState) {
 
             // Get previous pagination state
             const prevOffset = currentCatalog._offset || 0;
@@ -1105,6 +1139,15 @@ function getStore(config, router) {
           cx.commit('setExternalCollections', {
             catalog: processSTAC(cx.state, catalog),
             collections: stacCollections
+          });
+
+          // Save current pagination state
+          cx.commit('saveCollectionsPaginationState', {
+            filters,
+            sort,
+            paginationUrl,
+            offset,
+            pageSize
           });
 
           // Show page if requested
