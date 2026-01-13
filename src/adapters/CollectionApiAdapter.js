@@ -24,10 +24,51 @@ class CollectionApiAdapter {
     if (filters.q && typeof filters.q === 'string') {
       params.append('q', filters.q.trim());
     }
+
+    // Add datetime filter
+    if (filters.datetime) {
+      // Helper to convert Date objects or parseable strings to ISO 8601 UTC
+      const toIso = (val) => {
+        if (val == null) return null;
+        if (val instanceof Date) return val.toISOString();
+        if (typeof val === 'string') {
+          const trimmed = val.trim();
+          const parsed = Date.parse(trimmed);
+          if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+          return trimmed;
+        }
+        return String(val);
+      };
+
+      // Support either an array [start, end] or a single string
+      if (Array.isArray(filters.datetime)) {
+        const [start = null, end = null] = filters.datetime;
+        // If both are null/undefined, don't add a filter
+        if (!(start == null && end == null)) {
+          const s = toIso(start);
+          const e = toIso(end);
+
+          if (s != null && e != null && s === e) {
+            params.append('datetime', s);
+          } else if (s == null && e != null) {
+            params.append('datetime', `../${e}`);
+          } else if (s != null && e == null) {
+            params.append('datetime', `${s}/..`);
+          } else {
+            params.append('datetime', `${s}/${e}`);
+          }
+        }
+      } else if (typeof filters.datetime === 'string' && filters.datetime.trim() !== '') {
+        // single instant or ISO interval string
+        params.append('datetime', toIso(filters.datetime));
+      }
+    }
+    
     
     // Build URL with query string
     const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
     
+    console.debug('CollectionApiAdapter.fetchCollections url:', url);
     const response = await axios.get(url);
     
     if (!response.data?.collections || !Array.isArray(response.data.collections)) {
@@ -40,7 +81,10 @@ class CollectionApiAdapter {
       links: response.data.links || []
     };
   } catch (error) {
-    throw new BrowserError(`API Error: ${error.message}`);
+    const status = error.response?.status;
+    const data = error.response?.data;
+    const details = data ? (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
+    throw new BrowserError(`API Error: ${status ? status + ' ' : ''}${error.message}${details ? ' - ' + details : ''}`);
   }
 }
 
