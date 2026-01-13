@@ -125,14 +125,16 @@ export default {
         // Build filter object for API
         const apiFilters = {};
 
-        // Add free-text search (only implemented filter so far)
+        // Add free-text search
         if (filters.q) {
           apiFilters.q = filters.q;
         }
 
+        // Add datetime filter
+        if (filters.datetime) apiFilters.datetime = filters.datetime;
+
         // TODO: Add other filters when API supports them
         // if (filters.bbox) apiFilters.bbox = filters.bbox;
-        // if (filters.datetime) apiFilters.datetime = filters.datetime;
 
         // Load collections with filters via Vuex action
         await this.$store.dispatch('loadExternalCollections', {
