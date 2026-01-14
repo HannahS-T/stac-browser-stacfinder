@@ -25,6 +25,7 @@
       :apiSort="serverSort"
       :pagination="pagination"
       :disableLocalSort="true"
+      :hideFirstButton="true"
       @paginate="handlePaginate"
     />
   </div>

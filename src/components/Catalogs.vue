@@ -21,7 +21,7 @@
         :limitText="limitText"
       />
     </section>
-    <Pagination v-if="showPagination" ref="topPagination" class="mb-3" :pagination="pagination" placement="top" @paginate="paginate" />
+    <Pagination v-if="showPagination" ref="topPagination" class="mb-3" :pagination="pagination" :hideFirst="hideFirstButton" placement="top" @paginate="paginate" />
     <b-alert v-if="hasSearchCritera && catalogView.length === 0" variant="warning" class="mt-2" show>{{ $t('catalogs.noMatches') }}</b-alert>
     <section class="list">
       <Loading v-if="loading" fill top />
@@ -33,7 +33,7 @@
         </Catalog>
       </component>
     </section>
-    <Pagination v-if="showPagination" class="mb-3" :pagination="pagination" @paginate="paginate" />
+    <Pagination v-if="showPagination" class="mb-3" :pagination="pagination" :hideFirst="hideFirstButton" @paginate="paginate" />
     <b-button v-else-if="hasMore" @click="loadMore" variant="primary" v-b-visible.300="loadMore">{{ $t('catalogs.loadMore') }}</b-button>
   </section>
 </template>
@@ -93,6 +93,11 @@ export default {
     },
     // Prop to disable local sorting (when parent handles sorting via API)
     disableLocalSort: {
+      type: Boolean,
+      default: false
+    },
+    // Prop to hide the first pagination button (for external APIs that don't provide first link)
+    hideFirstButton: {
       type: Boolean,
       default: false
     }
