@@ -51,7 +51,9 @@ function getStore(config, router) {
     apiCollections: [],
     apiItemsLoading: {},
     nextCollectionsLink: null,
-    externalCollectionsLoaded: false
+    externalCollectionsLoaded: false,
+    // Saved collection pagination state
+    collectionsPaginationState: null
   });
 
   return new Vuex.Store({
@@ -226,6 +228,12 @@ function getStore(config, router) {
       },
       canSearchCollections: (state, getters) => {
         return getters.supportsConformance(TYPES.Collections.BasicFilters);
+      },
+      /**
+       * * Sort field options for collection views
+       * */
+      collectionSortableFields: () => {
+        return collectionAdapter.getSortableFields();
       },
 
       items: state => {
@@ -617,6 +625,15 @@ function getStore(config, router) {
       setExternalCollection(state, collection) {
         const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
         Vue.set(state.database, url, processSTAC(state, collection));
+      },
+      
+      // Save pagination state when navigating away from collections list
+      saveCollectionsPaginationState(state, paginationState) {
+        state.collectionsPaginationState = paginationState;
+      },
+      
+      clearCollectionsPaginationState(state) {
+        state.collectionsPaginationState = null;
       }
     },
     actions: {
@@ -1015,40 +1032,129 @@ function getStore(config, router) {
           }
         }
       },
-
       /**
-       * Load all collections from the external API and store them as STAC objects.
-       * @param {Object} cx Vuex context
-       * @param {Object} options { show?: boolean, filters?: Object }
-       */
-      async loadExternalCollections(cx, { show = false, filters = {} } = {}) {
+  * Load all collections from the external API and store them as STAC objects.
+  * @param {Object} cx Vuex context
+  * @param {Object} options { show?: boolean, filters?: Object, sort?: string, paginationUrl?: string, restoreState?: boolean }
+  */
+      async loadExternalCollections(cx, { show = false, filters = {}, sort = null, paginationUrl = null, restoreState = false } = {}) {
         try {
-          // Fetch collections from the external API with filters
-          const { collections, totalCount, links } = await collectionAdapter.fetchCollections(filters);
 
-          // Convert API collections to STAC Collections
-          const stacCollections = collections.map((col, i) => collectionAdapter.transformToStac(col, i));
+          let offset = 0;
+          let pageSize = null;
 
-          // Create a synthetic catalog that lists the collections
-          const catalog = collectionAdapter.createCatalog(stacCollections, totalCount, filters);
+          const currentCatalog = cx.state.data;
 
-          // Save catalog and collections in the Vuex store
+          // Restore saved state if requested and available
+          if (restoreState && cx.state.collectionsPaginationState) {
+            const savedState = cx.state.collectionsPaginationState;
+            filters = savedState.filters || filters;
+            sort = savedState.sort || sort;
+            paginationUrl = savedState.paginationUrl || paginationUrl;
+            offset = savedState.offset || 0;
+            pageSize = savedState.pageSize || null;
+            
+            // If pageSize wasn't saved, try to extract it from paginationUrl
+            if (!pageSize && paginationUrl) {
+              try {
+                const url = new URL(paginationUrl, window.location.origin);
+                const limitParam = url.searchParams.get('limit');
+                if (limitParam) {
+                  pageSize = parseInt(limitParam, 10);
+                }
+              } catch (e) {
+                console.warn('Failed to extract pageSize from URL:', e);
+              }
+            }
+          }
+
+          if (paginationUrl && currentCatalog && !restoreState) {
+
+            // Get previous pagination state
+            const prevOffset = currentCatalog._offset || 0;
+            const prevLinks = currentCatalog._paginationLinks || [];
+
+            try {
+              // Parse pagination parameters from API link
+              const url = new URL(paginationUrl, window.location.origin);
+              const limitParam = url.searchParams.get('limit');
+              const tokenParam = url.searchParams.get('token');
+
+              if (limitParam) {
+                pageSize = parseInt(limitParam, 10);
+              }
+
+              const hasToken = tokenParam !== null && tokenParam !== '';
+
+              // First page (no token)
+              if (!hasToken) {
+                offset = 0;
+              } else {
+                // Determine navigation direction (prev / next)
+                const isPrevLink = prevLinks.some(link => {
+                  if (link.rel !== 'prev') return false;
+                  try {
+                    // normalize URLs to absolute strings for comparison
+                    return new URL(link.href, window.location.origin).toString() ===
+                      new URL(paginationUrl, window.location.origin).toString();
+                  } catch {
+                    return false;
+                  }
+                });
+
+                offset = pageSize
+                  ? (isPrevLink
+                    ? Math.max(0, prevOffset - pageSize)
+                    : prevOffset + pageSize)
+                  : prevOffset;
+              }
+            } catch (e) {
+              console.warn('Failed to parse pagination URL:', e);
+            }
+          }
+
+          // Fetch collections
+          const { collections, links } = await collectionAdapter.fetchCollections(
+            filters,
+            sort,
+            paginationUrl
+          );
+
+          // Convert to STAC
+          const stacCollections = collections.map((col, i) =>
+            collectionAdapter.wrapCollection(col, i)
+          );
+
+          // Create catalog
+          const catalog = collectionAdapter.createCatalog(
+            stacCollections,
+            filters,
+            sort,
+            links,
+            offset,
+            pageSize
+          );
+
+          // Store in Vuex
           cx.commit('setExternalCollections', {
             catalog: processSTAC(cx.state, catalog),
             collections: stacCollections
           });
 
-          // Optionally show the collections page
-          if (show) {
-            const filterDescription = filters.q
-              ? ` matching "${filters.q}"`
-              : '';
+          // Save current pagination state
+          cx.commit('saveCollectionsPaginationState', {
+            filters,
+            sort,
+            paginationUrl,
+            offset,
+            pageSize
+          });
 
+          // Show page if requested
+          if (show) {
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
-              page: () => ({
-                description: `${totalCount} Collections${filterDescription}`
-              })
+              page: () => ({ description: `Collections` })
             });
           }
 
@@ -1061,7 +1167,6 @@ function getStore(config, router) {
           throw error;
         }
       },
-
       /**
        * Load a single external collection by ID and store it in the Vuex database.
        * @param {Object} cx Vuex context
@@ -1075,7 +1180,7 @@ function getStore(config, router) {
           const collection = await collectionAdapter.fetchCollection(id);
 
           // Convert to a STAC Collection
-          const stacCollection = collectionAdapter.transformToStac(collection);
+          const stacCollection = collectionAdapter.wrapCollection(collection);
 
           // Save the collection in the Vuex store
           cx.commit('setExternalCollection', stacCollection);

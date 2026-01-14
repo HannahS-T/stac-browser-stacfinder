@@ -1,31 +1,56 @@
 import axios from 'axios';
 import { BrowserError } from '../utils';
-import { createSTAC, processSTAC } from '../models/stac';
+import { createSTAC } from '../models/stac';
 
 /**
  * Minimal adapter for the Collections API
  */
+
 class CollectionApiAdapter {
   constructor() {
     this.baseUrl = '/collections';
     this.syntheticUrl = 'internal://collections';
+
+    // Whitelisted fields supported by the API for sorting
+    // Must match backend validation exactly
+    this.sortableFields = [
+      'id',
+      'title',
+      'description',
+      'license'
+    ];
+  }
+
+  /**
+   * Returns allowed sortable fields (API whitelist)
+   */
+  getSortableFields() {
+    return [...this.sortableFields];
   }
 
   /**
    * Fetches all collections
-   * @param {Object} filters - Optional filters for the collections
+   * @param {Object} filters - Optional filters for the collections (e.g. q, bbox, datetime)
+   * @param {string|null} sort - Optional sort parameter (e.g. "+title", "-id") passed separately
+   * @param {string|null} paginationUrl - Optional direct pagination URL from API links (preferred)
    */
-  async fetchCollections(filters = {}) {
-  try {
-    // Build query parameters
-    const params = new URLSearchParams();
-    
-    // Add free-text search (q parameter)
-    if (filters.q && typeof filters.q === 'string') {
-      params.append('q', filters.q.trim());
-    }
+  async fetchCollections(filters = {}, sort = null, paginationUrl = null) {
+    try {
+      let url;
 
-    // Add datetime filter
+      // If a direct pagination URL is provided, use it as-is 
+      if (paginationUrl && typeof paginationUrl === 'string') {
+        url = paginationUrl;
+      } else {
+        // Build query parameters for initial request
+        const params = new URLSearchParams();
+
+        // Add free-text search (q parameter)
+        if (filters.q && typeof filters.q === 'string') {
+          params.append('q', filters.q.trim());
+        }
+        
+         // Add datetime filter
     if (filters.datetime) {
       // Helper to convert Date objects or parseable strings to ISO 8601 UTC
       const toIso = (val) => {
@@ -63,30 +88,40 @@ class CollectionApiAdapter {
         params.append('datetime', toIso(filters.datetime));
       }
     }
-    
-    
-    // Build URL with query string
-    const url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
-    
-    console.debug('CollectionApiAdapter.fetchCollections url:', url);
-    const response = await axios.get(url);
-    
-    if (!response.data?.collections || !Array.isArray(response.data.collections)) {
-      throw new BrowserError('Invalid API response');
-    }
 
-    return {
-      collections: response.data.collections,
-      totalCount: response.data.numberMatched || response.data.collections.length,
-      links: response.data.links || []
-    };
-  } catch (error) {
-    const status = error.response?.status;
+        // Add other filters if present (placeholder for bbox etc.)
+
+        // Add sorting (sortby parameter) if provided separately
+        if (sort && typeof sort === 'string') {
+          const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
+          const invalid = fields.find(f => !this.sortableFields.includes(f));
+          if (invalid) {
+            throw new BrowserError(`Invalid sort field: ${invalid}`);
+          }
+          params.append('sortby', sort);
+        }
+
+        // Build URL with query string
+        url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
+      }
+
+      const response = await axios.get(url);
+
+      if (!response.data?.collections || !Array.isArray(response.data.collections)) {
+        throw new BrowserError('Invalid API response');
+      }
+
+      return {
+        collections: response.data.collections,
+        links: response.data.links || []
+      };
+    } catch (error) {
+     const status = error.response?.status;
     const data = error.response?.data;
     const details = data ? (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
     throw new BrowserError(`API Error: ${status ? status + ' ' : ''}${error.message}${details ? ' - ' + details : ''}`);
+    }
   }
-}
 
   /**
    * Fetches a single collection by ID
@@ -94,7 +129,7 @@ class CollectionApiAdapter {
   async fetchCollection(id) {
     try {
       const response = await axios.get(`${this.baseUrl}/${id}`);
-      
+
       if (!response.data) {
         throw new BrowserError('Collection not found');
       }
@@ -105,59 +140,84 @@ class CollectionApiAdapter {
     }
   }
 
-  /**
-   * Transforms a collection into STAC Collection format
-   */
-  transformToStac(collection, index = 0) {
-    const collectionId = collection.id || `collection-${index}`;
-    const collectionUrl = `${this.syntheticUrl}/${collectionId}`;
-    
-    const stacCollection = {
-      type: 'Collection',
-      stac_version: '1.0.0',
-      id: collectionId,
-      title: collection.title || collectionId,
-      description: collection.description || '',
-      license: collection.license || 'proprietary',
-      extent: collection.extent || {
-        spatial: { bbox: [[]] },
-        temporal: { interval: [[null, null]] }
-      },
-      links: [
-        { rel: 'self', href: collectionUrl, type: 'application/json' },
-        { rel: 'root', href: this.syntheticUrl, type: 'application/json' }
-      ],
-      ...collection
-    };
+/**
+ * Prepares a STAC Collection from the API for use in the browser
+ * Does not modify the API data; only adds internal browser metadata (href, path)
+ */
+  wrapCollection(collection) {
+  const collectionUrl = `${this.syntheticUrl}/${collection.id}`;
 
-    return createSTAC(stacCollection, collectionUrl, `/collections/${collectionId}`);
+  return createSTAC(
+    collection,
+    collectionUrl,               
+    `/collections/${collection.id }` 
+  );
+}
+
+  /**
+   * Build URL for the first page (without token parameter)
+   * @param {Object} filters - Active filters (q, datetime, bbox)
+   * @param {string|null} sort - Sort parameter
+   * @param {number} pageSize - Page size used for pagination
+   * @returns {string} URL for first page
+   */
+  _buildFirstPageUrl(filters = {}, sort = null, pageSize) {
+    const params = new URLSearchParams();
+
+    if (filters.q) params.append('q', filters.q);
+    if (filters.datetime) params.append('datetime', filters.datetime);
+    if (filters.bbox) params.append('bbox', filters.bbox);
+    if (sort) params.append('sortby', sort);
+    if (pageSize) params.append('limit', pageSize);
+
+    return params.toString()
+      ? `${this.baseUrl}?${params.toString()}`
+      : this.baseUrl;
   }
 
   /**
    * Creates a catalog for the collections list
+   * @param {Array} collections - Array of STAC collections
+   * @param {Object} filters - Active filters (q, datetime etc.)
+   * @param {string|null} sort - Sort parameter
+   * @param {Array} links - Pagination links from API response
+   * @param {number} offset - Current offset in the result set (default: 0)
+    * @param {number|null} pageSize - Page size used for pagination
    */
-  createCatalog(collections, totalCount, filters = {}) {
-  const catalogData = {
-    type: 'Catalog',
-    id: 'collections',
-    title: 'Collections',
-    stac_version: '1.0.0',
-    links: [
-      { rel: 'self', href: this.syntheticUrl, type: 'application/json' }
-    ]
-  };
+  createCatalog(collections, filters = {}, sort = null, links = [], offset = 0, pageSize = null) {
+    const catalogData = {
+      type: 'Catalog',
+      id: 'collections',
+      title: 'Collections',
+      stac_version: '1.0.0',
+      links: [
+        { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
+        ...links
+      ]
+    };
 
-  const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
-  catalog._apiCollections = collections;
-  catalog._totalCount = totalCount;
-  catalog._filters = filters; // Store filters for reference
-  
-  return catalog;
-}
+    const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
+    catalog._apiCollections = collections;
+    catalog._filters = filters;
+    catalog._sort = sort;
+    catalog._offset = offset;
+
+    // Generate pagination links
+    const paginationLinks = [...links];
+
+    // Add first link only if we know the page size
+    if (pageSize && !paginationLinks.some(l => l.rel === 'first')) {
+      paginationLinks.push({
+        rel: 'first',
+        href: this._buildFirstPageUrl(filters, sort, pageSize),
+        type: 'application/json'
+      });
+    }
+
+    catalog._paginationLinks = paginationLinks;
+
+    return catalog;
+  }
 }
 
 export default new CollectionApiAdapter();
-
-
-
-
