@@ -45,6 +45,13 @@ export default {
     SortButtons,
     BFormSelect
   },
+  props: {
+   // receives filters set in the filter panel from the route via Browse.vue
+    activeFilters: {
+      type: Object,
+      default: () => ({})
+    }
+  },
   data() {
     return {
       sortField: 'title',
@@ -75,8 +82,18 @@ export default {
       return [];
     },
 
+    /**
+     * Combine filters from two sources
+     * Priority: activeFilters (from route/props) > store filters
+     * This ensures route filters are never lost
+     */
     filters() {
-      return this.data?._filters || {};
+      const storeFilters = this.data?._filters || {};
+      // Merge: activeFilters take precedence over storeFilters
+      return {
+        ...storeFilters,
+        ...this.activeFilters
+      };
     },
 
     // Server-side sort parameter from store data
@@ -148,13 +165,18 @@ export default {
      */
     async updateSorting() {
       try {
-        // Reload collections with new sorting
-        // Store maintains filters correctly even after pagination
         const sortParam = this.buildSortbyParameter();
+        
+        const currentFilters = JSON.parse(JSON.stringify(this.filters));
+        
+        console.log('updateSorting - Using filters:', currentFilters);
+        
+        // Reload collections with new sorting and existing filters
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
-          filters: this.filters,
-          sort: sortParam
+          filters: currentFilters,  
+          sort: sortParam,
+          resetPagination: true  // Reset to first page when sorting changes
         });
 
       } catch (error) {

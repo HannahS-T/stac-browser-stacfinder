@@ -3,7 +3,7 @@
     <b-alert v-if="!allowExternalAccess && isExternal" show>{{ $t('errors.noExternalAccess') }}</b-alert>
     <ErrorAlert v-else-if="error" :url="url" :description="errorDescription" :id="errorId" />
     <Loading v-else-if="loading" stretch />
-    <component v-else :is="component" />
+    <component v-else :is="component" :activeFilters="filters" />
   </main>
 </template>
 
