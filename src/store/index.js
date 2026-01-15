@@ -41,7 +41,7 @@ function getStore(config, router) {
     apiItemsNumberMatched: null,
   });
 
-    const catalogDefaults = () => ({
+  const catalogDefaults = () => ({
     queue: [],
     privateQueryParameters: {},
     authActions: [],
@@ -52,11 +52,11 @@ function getStore(config, router) {
     apiItemsLoading: {},
     nextCollectionsLink: null,
     externalCollectionsLoaded: false,
-    
+
     // Central state for external collection filters/sort/pagination
-    collectionsFilters: {},           
-    collectionsSort: null,            
-    collectionsPaginationUrl: null   
+    collectionsFilters: {},
+    collectionsSort: null,
+    collectionsPaginationUrl: null
   });
 
   return new Vuex.Store({
@@ -629,22 +629,22 @@ function getStore(config, router) {
         const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
         Vue.set(state.database, url, processSTAC(state, collection));
       },
-      
+
       // Set collection filters
       setCollectionsFilters(state, filters) {
         state.collectionsFilters = filters || {};
       },
-      
+
       // Set collection sort
       setCollectionsSort(state, sort) {
         state.collectionsSort = sort;
       },
-      
+
       // Set pagination URL
       setCollectionsPaginationUrl(state, url) {
         state.collectionsPaginationUrl = url;
       },
-      
+
       // Reset all collection states
       resetCollectionsState(state) {
         state.collectionsFilters = {};
@@ -1054,86 +1054,45 @@ function getStore(config, router) {
        * @param {Object} cx Vuex context
        * @param {Object} options
        */
-      async loadExternalCollections(cx, { 
-        show = false, 
-        filters = null,        
-        sort = null,           
-        paginationUrl = null,  
-        resetPagination = false 
+      async loadExternalCollections(cx, {
+        show = false,
+        filters = null,
+        sort = null,
+        paginationUrl = null,
+        resetPagination = false
       } = {}) {
         try {
           // Use stored values if not explicitly provided
-          const effectiveFilters = filters !== null ? filters : cx.state.collectionsFilters;
-          const effectiveSort = sort !== null ? sort : cx.state.collectionsSort;
-          const effectiveUrl = resetPagination ? null : (paginationUrl || cx.state.collectionsPaginationUrl);
-          
-          let offset = 0;
-          let pageSize = null;
-
-          // Parse pagination parameters from URL
-          if (effectiveUrl && !resetPagination) {
-            try {
-              const url = new URL(effectiveUrl, window.location.origin);
-              const limitParam = url.searchParams.get('limit');
-              if (limitParam) {
-                pageSize = parseInt(limitParam, 10);
-              }
-              
-              // Determine offset
-              const tokenParam = url.searchParams.get('token');
-              if (!tokenParam) {
-                offset = 0;
-              } else {
-                const prevOffset = cx.state.data?._offset || 0;
-                const prevLinks = cx.state.data?._paginationLinks || [];
-                
-                const isPrevLink = prevLinks.some(link => {
-                  if (link.rel !== 'prev') return false;
-                  try {
-                    return new URL(link.href, window.location.origin).toString() ===
-                           new URL(effectiveUrl, window.location.origin).toString();
-                  } catch {
-                    return false;
-                  }
-                });
-                
-                offset = pageSize
-                  ? (isPrevLink ? Math.max(0, prevOffset - pageSize) : prevOffset + pageSize)
-                  : prevOffset;
-              }
-            } catch (e) {
-              console.warn('Failed to parse pagination URL:', e);
-            }
-          }
+          const activeFilters = filters !== null ? filters : cx.state.collectionsFilters;
+          const activeSort = sort !== null ? sort : cx.state.collectionsSort;
+          const activePaginationUrl = resetPagination ? null : (paginationUrl || cx.state.collectionsPaginationUrl);
 
           // Store current state in Vuex before fetching
-          cx.commit('setCollectionsFilters', effectiveFilters);
-          cx.commit('setCollectionsSort', effectiveSort);
-          cx.commit('setCollectionsPaginationUrl', effectiveUrl);
+          cx.commit('setCollectionsFilters', activeFilters);
+          cx.commit('setCollectionsSort', activeSort);
+          cx.commit('setCollectionsPaginationUrl', activePaginationUrl);
 
-          // Fetch collections
-          const { collections, links } = await collectionAdapter.fetchCollections(
-            effectiveFilters,
-            effectiveSort,
-            effectiveUrl
+          // Fetch collections from API
+          const { collections, paginationLinks } = await collectionAdapter.fetchCollections(
+            activeFilters,
+            activeSort,
+            activePaginationUrl
           );
 
-          // Convert to STAC
-          const stacCollections = collections.map(col => 
+          // Convert to Stac Browser kompatible STAC Collections
+          const stacCollections = collections.map(col =>
             collectionAdapter.wrapCollection(col)
           );
 
-          // Create catalog
+          // Create catalog with collections and pagination links
           const catalog = collectionAdapter.createCatalog(
             stacCollections,
-            effectiveFilters,
-            effectiveSort,
-            links,
-            offset,
-            pageSize
+            activeFilters,
+            activeSort,
+            paginationLinks
           );
 
-          // Store in Vuex
+          // Store in Vuex database
           cx.commit('setExternalCollections', {
             catalog: processSTAC(cx.state, catalog),
             collections: stacCollections

@@ -36,11 +36,11 @@ class CollectionApiAdapter {
    */
   async fetchCollections(filters = {}, sort = null, paginationUrl = null) {
     try {
-      let url;
+      let requestUrl;
 
       // If a direct pagination URL is provided, use it as-is 
       if (paginationUrl && typeof paginationUrl === 'string') {
-        url = paginationUrl;
+        requestUrl = paginationUrl;
       } else {
         // Build query parameters for initial request
         const params = new URLSearchParams();
@@ -50,44 +50,44 @@ class CollectionApiAdapter {
           params.append('q', filters.q.trim());
         }
         
-         // Add datetime filter
-    if (filters.datetime) {
-      // Helper to convert Date objects or parseable strings to ISO 8601 UTC
-      const toIso = (val) => {
-        if (val == null) return null;
-        if (val instanceof Date) return val.toISOString();
-        if (typeof val === 'string') {
-          const trimmed = val.trim();
-          const parsed = Date.parse(trimmed);
-          if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
-          return trimmed;
-        }
-        return String(val);
-      };
+        // Add datetime filter
+        if (filters.datetime) {
+          // Helper to convert Date objects or parseable strings to ISO 8601 UTC
+          const toIso = (val) => {
+            if (val == null) return null;
+            if (val instanceof Date) return val.toISOString();
+            if (typeof val === 'string') {
+              const trimmed = val.trim();
+              const parsed = Date.parse(trimmed);
+              if (!Number.isNaN(parsed)) return new Date(parsed).toISOString();
+              return trimmed;
+            }
+            return String(val);
+          };
 
-      // Support either an array [start, end] or a single string
-      if (Array.isArray(filters.datetime)) {
-        const [start = null, end = null] = filters.datetime;
-        // If both are null/undefined, don't add a filter
-        if (!(start == null && end == null)) {
-          const s = toIso(start);
-          const e = toIso(end);
+          // Support either an array [start, end] or a single string
+          if (Array.isArray(filters.datetime)) {
+            const [start = null, end = null] = filters.datetime;
+            // If both are null/undefined, don't add a filter
+            if (!(start == null && end == null)) {
+              const s = toIso(start);
+              const e = toIso(end);
 
-          if (s != null && e != null && s === e) {
-            params.append('datetime', s);
-          } else if (s == null && e != null) {
-            params.append('datetime', `../${e}`);
-          } else if (s != null && e == null) {
-            params.append('datetime', `${s}/..`);
-          } else {
-            params.append('datetime', `${s}/${e}`);
+              if (s != null && e != null && s === e) {
+                params.append('datetime', s);
+              } else if (s == null && e != null) {
+                params.append('datetime', `../${e}`);
+              } else if (s != null && e == null) {
+                params.append('datetime', `${s}/..`);
+              } else {
+                params.append('datetime', `${s}/${e}`);
+              }
+            }
+          } else if (typeof filters.datetime === 'string' && filters.datetime.trim() !== '') {
+            // single instant or ISO interval string
+            params.append('datetime', toIso(filters.datetime));
           }
         }
-      } else if (typeof filters.datetime === 'string' && filters.datetime.trim() !== '') {
-        // single instant or ISO interval string
-        params.append('datetime', toIso(filters.datetime));
-      }
-    }
 
         // Add other filters if present (placeholder for bbox etc.)
 
@@ -102,10 +102,10 @@ class CollectionApiAdapter {
         }
 
         // Build URL with query string
-        url = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
+        requestUrl = params.toString() ? `${this.baseUrl}?${params.toString()}` : this.baseUrl;
       }
 
-      const response = await axios.get(url);
+      const response = await axios.get(requestUrl);
 
       if (!response.data?.collections || !Array.isArray(response.data.collections)) {
         throw new BrowserError('Invalid API response');
@@ -113,13 +113,13 @@ class CollectionApiAdapter {
 
       return {
         collections: response.data.collections,
-        links: response.data.links || []
+        paginationLinks: response.data.links || []
       };
     } catch (error) {
-     const status = error.response?.status;
-    const data = error.response?.data;
-    const details = data ? (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
-    throw new BrowserError(`API Error: ${status ? status + ' ' : ''}${error.message}${details ? ' - ' + details : ''}`);
+      const status = error.response?.status;
+      const data = error.response?.data;
+      const details = data ? (typeof data === 'object' ? JSON.stringify(data) : String(data)) : '';
+      throw new BrowserError(`API Error: ${status ? status + ' ' : ''}${error.message}${details ? ' - ' + details : ''}`);
     }
   }
 
@@ -140,39 +140,18 @@ class CollectionApiAdapter {
     }
   }
 
-/**
- * Prepares a STAC Collection from the API for use in the browser
- * Does not modify the API data; only adds internal browser metadata (href, path)
- */
-  wrapCollection(collection) {
-  const collectionUrl = `${this.syntheticUrl}/${collection.id}`;
-
-  return createSTAC(
-    collection,
-    collectionUrl,               
-    `/collections/${collection.id }` 
-  );
-}
-
   /**
-   * Build URL for the first page (without token parameter)
-   * @param {Object} filters - Active filters (q, datetime, bbox)
-   * @param {string|null} sort - Sort parameter
-   * @param {number} pageSize - Page size used for pagination
-   * @returns {string} URL for first page
+   * Prepares a STAC Collection from the API for use in the browser
+   * Does not modify the API data; only adds internal browser metadata (href, path)
    */
-  _buildFirstPageUrl(filters = {}, sort = null, pageSize) {
-    const params = new URLSearchParams();
+  wrapCollection(collection) {
+    const collectionUrl = `${this.syntheticUrl}/${collection.id}`;
 
-    if (filters.q) params.append('q', filters.q);
-    if (filters.datetime) params.append('datetime', filters.datetime);
-    if (filters.bbox) params.append('bbox', filters.bbox);
-    if (sort) params.append('sortby', sort);
-    if (pageSize) params.append('limit', pageSize);
-
-    return params.toString()
-      ? `${this.baseUrl}?${params.toString()}`
-      : this.baseUrl;
+    return createSTAC(
+      collection,
+      collectionUrl,               
+    `/collections/${collection.id }` 
+    );
   }
 
   /**
@@ -180,11 +159,9 @@ class CollectionApiAdapter {
    * @param {Array} collections - Array of STAC collections
    * @param {Object} filters - Active filters (q, datetime etc.)
    * @param {string|null} sort - Sort parameter
-   * @param {Array} links - Pagination links from API response
-   * @param {number} offset - Current offset in the result set (default: 0)
-    * @param {number|null} pageSize - Page size used for pagination
+   * @param {Array} paginationLinks - Pagination links from API response (self, next, prev, last)
    */
-  createCatalog(collections, filters = {}, sort = null, links = [], offset = 0, pageSize = null) {
+  createCatalog(collections, filters = {}, sort = null, paginationLinks = []) {
     const catalogData = {
       type: 'Catalog',
       id: 'collections',
@@ -192,7 +169,7 @@ class CollectionApiAdapter {
       stac_version: '1.0.0',
       links: [
         { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
-        ...links
+        ...paginationLinks
       ]
     };
 
@@ -200,21 +177,7 @@ class CollectionApiAdapter {
     catalog._apiCollections = collections;
     catalog._filters = filters;
     catalog._sort = sort;
-    catalog._offset = offset;
-
-    // Generate pagination links
-    const paginationLinks = [...links];
-
-    // Add first link only if we know the page size
-    if (pageSize && !paginationLinks.some(l => l.rel === 'first')) {
-      paginationLinks.push({
-        rel: 'first',
-        href: this._buildFirstPageUrl(filters, sort, pageSize),
-        type: 'application/json'
-      });
-    }
-
-    catalog._paginationLinks = paginationLinks;
+    catalog._paginationLinks = [...paginationLinks];
 
     return catalog;
   }
