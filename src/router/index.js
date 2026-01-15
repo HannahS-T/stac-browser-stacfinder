@@ -18,8 +18,6 @@ function getRoutes(config) {
     component: Browse,
     props: route => ({
       path: 'internal://collections',
-      // Optional: parse filters from query parameters
-      filters: route.query && route.query.filters ? JSON.parse(route.query.filters) : {}
     })
   });
 
