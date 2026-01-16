@@ -5,10 +5,8 @@
       <b-badge v-if="catalogCount !== null" pill variant="secondary" class="mr-4">{{ catalogCount }}</b-badge>
       <ViewButtons class="mr-2" v-model="view" />
       <!-- Only show SortButtons when local sorting is enabled and possible -->
-      <SortButtons 
-        v-if="!disableLocalSort && canSortLocally" 
-        v-model="sort" 
-      />
+      <SortButtons v-if="!disableLocalSort && isComplete && catalogs.length > 1" 
+        v-model="sort" />
     </header>
     <section v-if="!collectionsOnly && isComplete && catalogs.length > 1" class="catalog-filter mb-2">
       <SearchBox v-model="searchTerm" :placeholder="filterPlaceholder" />
@@ -79,10 +77,6 @@ export default {
       type: Object,
       default: () => ({})
     },
-    apiSort: {
-      type: String,
-      default: null
-    },
     pagination: {
       type: Object,
       default: () => ({})
@@ -113,21 +107,21 @@ export default {
     ...mapState(['cardViewSort', 'uiLanguage']),
     ...mapGetters(['getStac']),
 
-    /**
-     * Check if local (client-side) sorting is possible
-     */
-    canSortLocally() {
-      return this.isComplete && this.catalogs.length > 1 && !this.apiSort;
-    },
-    catalogCount() {
-      // For external collections with pagination: Show "start-end"
-      if (this.showPagination && this.catalogs.length > 0) {
-        // Read offset from the current data object (catalog)
-        const offset = this.$store.state.data?._offset ?? 0;
-        const start = offset + 1;
-        const end = offset + this.catalogs.length;
 
-        return `${start}-${end}`;
+    catalogCount() {
+      // For external collections with pagination: Show contextual information
+      if (this.showPagination && this.catalogs.length > 0) {
+        const hasNext = !!this.pagination.next;
+        const hasPrev = !!this.pagination.prev;
+        
+        // Show page indicators with arrows
+        if (hasPrev && hasNext) {
+          return `← ${this.catalogs.length} →`; // Middle page
+        } else if (hasNext) {
+          return `${this.catalogs.length} →`; // First page
+        } else if (hasPrev) {
+          return `← ${this.catalogs.length}`; // Last page
+        }
       }
 
       // Original logic for other cases
@@ -198,10 +192,10 @@ export default {
         });
       }
 
-      // Sort: Only apply local sorting if not disabled and conditions are met
-      if (!this.disableLocalSort && !this.hasMore && !this.apiSort && this.sort !== 0) {
+      // Sorting is only applied when disableLocalSort = false
+      if (!this.disableLocalSort && !this.hasMore && this.sort !== 0) {
         const collator = new Intl.Collator(this.uiLanguage);
-        catalogs = catalogs.slice(0).sort((a,b) => collator.compare(getDisplayTitle(a), getDisplayTitle(b)));
+        catalogs = catalogs.slice(0).sort((a, b) => collator.compare(getDisplayTitle(a), getDisplayTitle(b)));
         if (this.sort === -1) {
           catalogs = catalogs.reverse();
         }

@@ -15,7 +15,7 @@
       </b-card-body>
     </b-card>
 
-    <!-- Filter Collections Section: To Do: parent und value? -->
+    <!-- Filter Collections Section -->
     <CollectionFilterPanel @submit="browseCollections" />
 
     <!-- STAC Index Section -->
@@ -50,14 +50,11 @@
 
 <script>
 import { BForm, BFormGroup, BFormInput, BListGroup, BListGroupItem, BCard, BCardHeader, BCardBody } from 'bootstrap-vue';
-import { mapGetters, mapState } from "vuex";
+import { mapGetters } from "vuex";
 import Description from '../components/Description.vue';
 import Utils from '../utils';
 import axios from "axios";
 import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
-import { STAC } from 'stac-js';
-import { getErrorCode, getErrorMessage, processSTAC, stacRequest } from '../store/utils';
-import { getDisplayTitle, createSTAC, ItemCollection } from '../models/stac';
 
 export default {
   name: "SelectDataSource",
@@ -97,7 +94,7 @@ export default {
           return this.$t('index.urlMissingHost');
         }
         return null;
-      } catch (errot) {
+      } catch (error) {
         return this.$t('index.urlInvalid');
       }
     }
@@ -131,22 +128,22 @@ export default {
         }
 
         // Add datetime filter
-        if (filters.datetime) apiFilters.datetime = filters.datetime;
+        if (filters.datetime) {
+          apiFilters.datetime = filters.datetime;
+        }
 
         // TODO: Add other filters when API supports them
         // if (filters.bbox) apiFilters.bbox = filters.bbox;
 
-        // Load collections with filters via Vuex action
+        // Load collections with filters
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
-          filters: apiFilters
+          filters: apiFilters,
+          resetPagination: true  // Start from first page
         });
 
-        // Navigate to collections route and include filters in the query
-        this.$router.push({
-          name: 'collections',
-          query: { filters: JSON.stringify(apiFilters) }
-        });
+        // Navigate to collections view
+        this.$router.push({ name: 'collections' });
 
       } catch (error) {
         console.error('Error loading filtered collections:', error);

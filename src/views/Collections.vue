@@ -21,8 +21,6 @@
     <Catalogs 
       :catalogs="catalogs" 
       :collectionsOnly="true"
-      :apiFilters="filters"
-      :apiSort="serverSort"
       :pagination="pagination"
       :disableLocalSort="true"
       :hideFirstButton="true"
@@ -36,7 +34,6 @@ import { mapState, mapGetters } from 'vuex';
 import Catalogs from '../components/Catalogs.vue';
 import SortButtons from '../components/SortButtons.vue';
 import { BFormSelect } from 'bootstrap-vue';
-import Utils from '../utils';
 
 export default {
   name: "Collections",
@@ -45,13 +42,6 @@ export default {
     SortButtons,
     BFormSelect
   },
-  props: {
-   // receives filters set in the filter panel from the route via Browse.vue
-    activeFilters: {
-      type: Object,
-      default: () => ({})
-    }
-  },
   data() {
     return {
       sortField: 'title',
@@ -59,7 +49,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(['data']),
+    ...mapState(['data', 'collectionsSort', 'collectionsFilters']),
     ...mapGetters(['catalogs', 'collectionSortableFields']),
 
     /**
@@ -82,24 +72,6 @@ export default {
       return [];
     },
 
-    /**
-     * Combine filters from two sources
-     * Priority: activeFilters (from route/props) > store filters
-     * This ensures route filters are never lost
-     */
-    filters() {
-      const storeFilters = this.data?._filters || {};
-      // Merge: activeFilters take precedence over storeFilters
-      return {
-        ...storeFilters,
-        ...this.activeFilters
-      };
-    },
-
-    // Server-side sort parameter from store data
-    serverSort() {
-      return this.data?._sort || null;
-    },
 
     /**
      * Extract pagination links from API response
@@ -109,24 +81,16 @@ export default {
       const paginationLinks = {};
 
       links.forEach(link => {
-        if (link.rel === 'next') {
-          paginationLinks.next = link;
-        } else if (link.rel === 'prev') {
-          paginationLinks.prev = link;
-        } else if (link.rel === 'first') {
-          paginationLinks.first = link;
-        } else if (link.rel === 'last') {
-          paginationLinks.last = link;
+        if (['next', 'prev', 'first', 'last'].includes(link.rel)) {
+          paginationLinks[link.rel] = link;
         }
       });
 
       return paginationLinks;
     }
   },
-
-  // Watch for changes in serverSort to update local sortField and sortDirection
   watch: {
-    serverSort: {
+    collectionsSort: {
       immediate: true,
       handler(sortby) {
         if (sortby) {
@@ -138,7 +102,7 @@ export default {
 
   methods: {
     /**
-     * Parse sortby parameter from filters
+     * Parse sortby parameter from store
      * @param {string} sortby - e.g., "+title", "-id"
      */
     parseSortby(sortby) {
@@ -167,14 +131,9 @@ export default {
       try {
         const sortParam = this.buildSortbyParameter();
         
-        const currentFilters = JSON.parse(JSON.stringify(this.filters));
-        
-        console.log('updateSorting - Using filters:', currentFilters);
-        
-        // Reload collections with new sorting and existing filters
+        // Reload collections with new sorting 
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
-          filters: currentFilters,  
           sort: sortParam,
           resetPagination: true  // Reset to first page when sorting changes
         });
@@ -196,8 +155,7 @@ export default {
       }
 
       try {
-        // Use the pagination link href directly 
-        // The API preserves all query parameters (filters, sorting) in the link
+        // Load collections for the selected page
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
           paginationUrl: link.href
