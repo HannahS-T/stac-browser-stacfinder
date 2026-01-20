@@ -26,6 +26,10 @@ export default {
     },
     isExternal() {
       return URI(this.path).is("absolute");
+    },
+    //Check if path is a collections API URL (internal:// protocol)
+    isCollectionsApiUrl() {
+      return this.path && this.path.startsWith('internal://collections');
     }
   },
   watch: {
@@ -36,18 +40,19 @@ export default {
         if (path === oldPath) {
           return;
         }
+
         // Block external access if not allowed
-        else if (!this.allowExternalAccess && this.isExternal) {
+        if (!this.allowExternalAccess && this.isExternal) {
           return;
         }
 
-        // Handle external collections via internal protocol
-        if (path.startsWith('internal://collections')) {
+        // Handle external collections from API
+        if (this.isCollectionsApiUrl) {
           await this.loadExternalCollections(path);
           return;
         }
 
-        // Default behavior: resolve path and load data 
+        // Default behavior
         let url = this.fromBrowserPath(path || '/');
         this.$store.dispatch("load", { url, show: true });
       }
@@ -60,20 +65,25 @@ export default {
      */
     async loadExternalCollections(path) {
       try {
-        // Load list of collections
-        if (path === 'internal://collections') {
-        
-          await this.$store.dispatch('loadExternalCollections', { 
+        // Parse the internal:// URL
+        const withoutProtocol = path.replace('internal://collections', '');
+
+        // Collections list (with or without query params)
+        if (withoutProtocol === '' || withoutProtocol.startsWith('?')) {
+          await this.$store.dispatch('loadExternalCollections', {
+            show: true,
+            paginationUrl: withoutProtocol ? path : null  // Pass full URL if has query params
+          });
+        }
+        // Single collection
+        else if (withoutProtocol.startsWith('/')) {
+          const id = withoutProtocol.split('/')[1].split('?')[0];  
+          await this.$store.dispatch('loadExternalCollection', {
+            id,
             show: true
           });
         }
-        // Load a single collection by ID
-        else {
-          const id = path.split('/').pop();
-          await this.$store.dispatch('loadExternalCollection', { id, show: true });
-        }
       } catch (error) {
-        // Log loading errors
         console.error('Error loading collections:', error);
       }
     }

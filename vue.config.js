@@ -36,9 +36,13 @@ const vueConfig = {
 
   // Proxy collection API calls to avoid CORS issues (only in dev mode)
   devServer: {
+    host: '0.0.0.0',  
+    port: 8080,
+    hot: true,
     proxy: {
       '/collections': {
-        target: 'http://localhost:4000', // Docker: API on port 4000 | npm run dev: port 3000
+        target: 'http://api:3000',  
+        changeOrigin: true,
       }
     }
   },
@@ -58,6 +62,11 @@ const vueConfig = {
     });
   },
   configureWebpack: {
+     watchOptions: { 
+      poll: 1000, 
+      aggregateTimeout: 300, 
+      ignored: /node_modules/ 
+    },
     resolve: {
       fallback: {
         'fs/promises': false
