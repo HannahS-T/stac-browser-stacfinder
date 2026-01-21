@@ -20,14 +20,39 @@
         :label="$t('search.temporalExtent')"
         :description="$t('search.dateDescription')"
       >
+        <b-form-group
+          class="mb-6"
+          :label="$t('search.startDate')">
         <DatePicker
-          range
           type="datetime"
-          v-model="datetimeRange"
+          v-model="start"
+          :get-classes="getRangeClasses"
           input-class="form-control mx-input"
           :lang="datepickerLang"
           :format="dateTimeFormat"
+          :default-value="end || new Date()"
+          :disabled-date="disabledStartDate"
+          :disabled-time="disabledStartTime"
+          :label="$t('search.startDate')"
         />
+        </b-form-group>
+        
+        <b-form-group
+          class="mb-6"
+          :label="$t('search.endDate')">
+          <DatePicker
+            type="datetime"
+            v-model="end"
+            :get-classes="getRangeClasses"
+            input-class="form-control mx-input"
+            :lang="datepickerLang"
+            :format="dateTimeFormat"
+            :default-value="end || new Date()"
+            :disabled-date="disabledEndDate"
+            :disabled-time="disabledEndTime"
+        />
+          
+        </b-form-group>
       </b-form-group>
 
       <!-- Map filter -->
@@ -169,8 +194,9 @@ export default {
         q: ''
       },
 
-      // Temporal filter as Date objects [start, end]
-      datetimeRange: null,
+      // Temporal filter as Date objects start and end
+      start: null,
+      end: null,
 
       // Spatial filter as bounding box [minX, minY, maxX, maxY]
       bbox: null,
@@ -229,6 +255,46 @@ export default {
 
   methods: {
     /**
+     * datetime filter helper methods
+     */
+
+    getRangeClasses(cellDate, currentDates, classnames) {
+      const classes = [];
+      const start = this.start && new Date(this.start).setHours(0, 0, 0, 0);
+      const end = this.end && new Date(this.end).setHours(0, 0, 0, 0);
+      if (
+        !/disabled|active|not-current-month/.test(classnames) &&
+        start &&
+        end &&
+        cellDate.getTime() >= start &&
+        cellDate.getTime() <= end
+      ) {
+        classes.push("in-range");
+      }
+      return classes;
+    },
+    disabledStartDate(date) {
+      return (
+        this.end &&
+        new Date(date).setHours(0, 0, 0, 0) >
+          new Date(this.end).setHours(0, 0, 0, 0)
+      );
+    },
+    disabledEndDate(date) {
+      return (
+        this.start &&
+        new Date(date).setHours(0, 0, 0, 0) <
+          new Date(this.start).setHours(0, 0, 0, 0)
+      );
+    },
+    disabledStartTime(date) {
+      return this.end && date > this.end;
+    },
+    disabledEndTime(date) {
+      return this.start && date < this.start;
+    },
+
+    /**
      * Add a new metadata filter row.
      */
     addMetadataFilter(meta) {
@@ -256,8 +322,8 @@ export default {
           ? this.query.q.trim()
           : null,
 
-        datetime: Array.isArray(this.datetimeRange)
-          ? this.datetimeRange.map(d => d ? Utils.dateToUTC(d) : null)
+        datetime: Array.isArray([this.start, this.end])
+          ? [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null)
           : null,
 
         bbox: Array.isArray(this.bbox) && this.bbox.length === 4
