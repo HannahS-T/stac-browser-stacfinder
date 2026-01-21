@@ -253,6 +253,7 @@
     "addSearchTerm": "Suchbegriff hinzufügen mittels Enter-Taste",
     "additionalFilters": "Weitere Filter",
     "dateDescription": "Alle Zeiten in koordinierter Weltzeit (UTC).",
+    "endDate": "Enddatum",
     "enterCollections": "Gebe Katalog-Identifikationsnummern ein...",
     "enterItemIds": "Gebe Element-Identifikationsnummern ein...",
     "enterSearchTerms": "Gebe Suchbegriffe ein...",
@@ -288,6 +289,7 @@
     "selectCollections": "Wähle Kataloge...",
     "selectForItemSearch": "Markiere für Elementsuche",
     "spatialExtent": "Räumliche Ausdehnung",
+    "startDate": "Startdatum",
     "tabs": {
       "collections": "Kataloge durchsuchen",
       "items": "Elemente durchsuchen"

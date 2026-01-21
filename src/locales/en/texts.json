@@ -253,6 +253,7 @@
     "addSearchTerm": "Press enter to add a search term",
     "additionalFilters": "Additional filters",
     "dateDescription": "All times in Coordinated Universal Time (UTC).",
+    "endDate": "End date",
     "enterCollections": "Enter one or more Collection IDs...",
     "enterItemIds": "Enter one or more Item IDs...",
     "enterSearchTerms": "Enter one or more search terms...",
@@ -288,6 +289,7 @@
     "selectCollections": "Select one or multiple collections...",
     "selectForItemSearch": "Select for Item Search",
     "spatialExtent": "Spatial Extent",
+    "startDate": "Start date",
     "tabs": {
       "collections": "Search for Collections",
       "items": "Search for Items"
