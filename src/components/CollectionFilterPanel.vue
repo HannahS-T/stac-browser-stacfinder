@@ -60,10 +60,22 @@
         <MapSelect v-model="bbox" :stac="resolvedStac" />
       </b-form-group>
 
+      <!-- ==================== CQL2 METADATA FILTERS (NEU) ==================== -->
+      
+      <!-- Loading State -->
+      <div v-if="!queryablesLoaded" class="text-center py-3">
+        <b-spinner small></b-spinner>
+        <span class="ml-2">{{ $t('search.loadingFilters') }}</span>
+      </div>
+
+      <!-- Error State -->
+      <b-alert v-if="queryablesError" variant="warning" show dismissible @dismissed="queryablesError = null">
+        {{ queryablesError }}
+      </b-alert>
+
       <!-- Additional metadata filters -->
-      <!-- Available fields are currently static, later loaded from /queryables -->
       <b-form-group
-        v-if="allMetadataOptions.length > 0"
+        v-if="queryablesLoaded && queryables.length > 0"
         class="additional-filters"
         :label="$t('search.additionalFilters')"
       >
@@ -72,48 +84,28 @@
           block
           variant="primary"
           :text="$t('search.addFilter')"
+          :disabled="availableQueryables.length === 0"
           class="metadata-filters mt-2 mb-3"
         >
           <b-dropdown-item-button
-            v-for="meta in availableMetadataOptions"
-            :key="meta.id"
-            @click="addMetadataFilter(meta)"
+            v-for="queryable in availableQueryables"
+            :key="queryable.id"
+            @click="addMetadataFilter(queryable)"
           >
-            {{ meta.title }}
-            <b-badge variant="dark" class="ml-2">{{ meta.id }}</b-badge>
+            {{ queryable.title }}
+            <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
           </b-dropdown-item-button>
         </b-dropdown>
 
         <!-- Render active metadata filters -->
-        <div
+        <CollectionMetadataFilter
           v-for="(filter, index) in metadataFilters"
-          :key="`${filter.id}-${index}`"
-          class="metadata-filter-row mt-3"
-        >
-          <b-row class="align-items-center">
-            <b-col md="4" class="font-weight-bold">
-              {{ filter.title }}
-            </b-col>
-
-            <b-col md="6">
-              <b-form-input
-                v-model="filter.value"
-                size="sm"
-                :placeholder="`Enter ${filter.title}`"
-              />
-            </b-col>
-
-            <b-col md="2" class="text-right">
-              <b-button
-                size="sm"
-                variant="danger"
-                @click="removeMetadataFilter(index)"
-              >
-                <b-icon-x-circle-fill />
-              </b-button>
-            </b-col>
-          </b-row>
-        </div>
+          :key="`filter-${filter.queryable.id}-${index}`"
+          :filter="filter"
+          :index="index"
+          @update="updateFilter"
+          @remove="removeFilter"
+        />
       </b-form-group>
 
       <!-- Submit button -->
@@ -142,12 +134,19 @@ import {
   BRow,
   BFormInput,
   BBadge,
-  BIconXCircleFill
+  BIconXCircleFill,
+  BSpinner,
+  BAlert
 } from 'bootstrap-vue';
 
 import DatePickerMixin from './DatePickerMixin';
 import Utils from '../utils';
 import { mapGetters } from 'vuex';
+import { stacRequest } from '../store/utils';
+
+// Import CQL2 classes
+import CollectionCql from '../models/cql2/collectionCql';
+import CollectionQueryable from '../models/cql2/collectionQueryable';
 
 export default {
   name: 'CollectionFilterPanel',
@@ -165,9 +164,12 @@ export default {
     BFormInput,
     BBadge,
     BIconXCircleFill,
+    BSpinner,
+    BAlert,
     DatePicker: () => import('vue2-datepicker'),
     SearchBox: () => import('./SearchBox.vue'),
-    MapSelect: () => import('./maps/MapSelect.vue')
+    MapSelect: () => import('./maps/MapSelect.vue'),
+    CollectionMetadataFilter: () => import('./CollectionMetadataFilter.vue')
   },
 
   mixins: [DatePickerMixin],
@@ -201,16 +203,14 @@ export default {
       // Spatial filter as bounding box [minX, minY, maxX, maxY]
       bbox: null,
 
-      // Active metadata filters selected by the user
+      // Active metadata filters (CQL2)
+      // Each filter: { queryable: CollectionQueryable, operator: string, value: string }
       metadataFilters: [],
 
-      // Available metadata fields (later fetched from /queryables)
-      allMetadataOptions: [
-        { id: 'title', title: 'Title' },
-        { id: 'description', title: 'Description' },
-        { id: 'license', title: 'License' },
-        { id: 'keywords', title: 'Keywords' }
-      ]
+      // Available queryables from API
+      queryables: [],
+      queryablesLoaded: false,
+      queryablesError: null
     };
   },
 
@@ -218,11 +218,11 @@ export default {
     ...mapGetters(['getStac', 'root']),
 
     /**
-     * Metadata fields that are not yet active.
+     * Queryables that are not yet in active filters
      */
-    availableMetadataOptions() {
-      const used = this.metadataFilters.map(f => f.id);
-      return this.allMetadataOptions.filter(m => !used.includes(m.id));
+    availableQueryables() {
+      const activeIds = this.metadataFilters.map(f => f.queryable.id);
+      return this.queryables.filter(q => !activeIds.includes(q.id));
     },
 
     /**
@@ -253,11 +253,110 @@ export default {
     }
   },
 
+  async mounted() {
+    await this.loadQueryables();
+  },
+
   methods: {
+    /**
+     * Load queryables from /collections/queryables API
+     */
+    async loadQueryables() {
+      try {
+        const link = { href: '/collections/queryables' };
+        const response = await stacRequest(this.$store, link);
+        
+        if (response.data?.properties) {
+          // Parse queryables from API
+          this.queryables = Object.entries(response.data.properties)
+            .map(([id, schema]) => new CollectionQueryable(id, schema))
+            .filter(q => q.supported);
+          
+          this.queryablesLoaded = true;
+        } else {
+          throw new Error('Invalid queryables response');
+        }
+      } catch (error) {
+        console.error('Failed to load queryables:', error);
+        this.queryablesError = this.$t('errors.loadQueryables');
+        this.queryablesLoaded = true;
+      }
+    },
+
+    /**
+     * Add a new metadata filter
+     */
+    addMetadataFilter(queryable) {
+      const operators = queryable.getOperators();
+      if (operators.length === 0) {
+        console.warn(`No operators for ${queryable.id}`);
+        return;
+      }
+
+      this.metadataFilters.push({
+        queryable,
+        operator: operators[0].value,
+        value: queryable.defaultValue
+      });
+    },
+
+    /**
+     * Update filter properties
+     */
+    updateFilter({ index, operator, value }) {
+      if (!this.metadataFilters[index]) return;
+      
+      const filter = this.metadataFilters[index];
+      
+      if (operator !== undefined) {
+        filter.operator = operator;
+      }
+      if (value !== undefined) {
+        filter.value = value;
+      }
+    },
+
+    /**
+     * Remove a filter
+     */
+    removeFilter(index) {
+      if (index >= 0 && index < this.metadataFilters.length) {
+        this.metadataFilters.splice(index, 1);
+      }
+    },
+
+    /**
+     * Build CQL2 filter string from active metadata filters
+     */
+    buildCql2Filter() {
+      if (this.metadataFilters.length === 0) {
+        return null;
+      }
+
+      const cql = new CollectionCql();
+
+      for (const filter of this.metadataFilters) {
+        const { queryable, operator, value } = filter;
+
+        try {
+          // Only add filters with non-empty values
+          if (value !== null && value !== undefined && value !== '') {
+            const trimmedValue = String(value).trim();
+            if (trimmedValue) {
+              cql.addComparison(queryable.id, operator, trimmedValue);
+            }
+          }
+        } catch (error) {
+          console.error('Error building CQL for filter:', filter, error);
+        }
+      }
+
+      return cql.hasFilters() ? cql.toText() : null;
+    },
+
     /**
      * datetime filter helper methods
      */
-
     getRangeClasses(cellDate, currentDates, classnames) {
       const classes = [];
       const start = this.start && new Date(this.start).setHours(0, 0, 0, 0);
@@ -295,28 +394,12 @@ export default {
     },
 
     /**
-     * Add a new metadata filter row.
-     */
-    addMetadataFilter(meta) {
-      this.metadataFilters.push({
-        id: meta.id,
-        title: meta.title,
-        value: ''
-      });
-    },
-
-    /**
-     * Remove a metadata filter row.
-     */
-    removeMetadataFilter(index) {
-      this.metadataFilters.splice(index, 1);
-    },
-
-    /**
      * Collect all filter values and emit them to the parent component.
      * The parent is responsible for mapping these values to API parameters.
      */
     submitFilters() {
+      const cql2Filter = this.buildCql2Filter();
+
       const filters = {
         q: Utils.hasText(this.query.q)
           ? this.query.q.trim()
@@ -330,12 +413,8 @@ export default {
           ? [...this.bbox]
           : null,
 
-        metadata: this.metadataFilters.reduce((acc, f) => {
-          if (Utils.hasText(f.value)) {
-            acc[f.id] = f.value;
-          }
-          return acc;
-        }, {})
+        // CQL2 metadata filter
+        cql2: cql2Filter
       };
 
       this.$emit('submit', filters);
