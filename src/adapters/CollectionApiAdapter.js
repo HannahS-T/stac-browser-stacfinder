@@ -124,7 +124,7 @@ class CollectionApiAdapter {
 
           if (s != null && e != null && s === e) {
             params.append('datetime', s);
-          } else if (s == null && e != null) {
+      } else if (s == null && e != null) {
             params.append('datetime', `../${e}`);
           } else if (s != null && e == null) {
             params.append('datetime', `${s}/..`);
@@ -139,6 +139,15 @@ class CollectionApiAdapter {
     }
 
     // Add other filters if present (placeholder for bbox etc.)
+
+    // Add CQL2 filter 
+    if (filters.cql2 && typeof filters.cql2 === 'string') {
+      const trimmed = filters.cql2.trim();
+      if (trimmed) {
+        params.append('filter', trimmed);
+        params.append('filter-lang', 'cql2-text');
+      }
+    }
 
     // Add sorting (sortby parameter)
     if (sort && typeof sort === 'string') {
