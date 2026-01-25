@@ -104,6 +104,7 @@
     "loadApiItemsFailed": "The API Items could not be loaded.",
     "loadFilteredItems": "Sorry, loading a filtered list of Items failed.",
     "loadItems": "Sorry, loading the list of STAC Items failed.",
+    "loadQueryables": "Could not load filter fields from API",
     "networkError": "This issue may occur when servers don't allow external access via web browsers (e.g., when CORS headers are not present). @:errors.contactProvider",
     "noExternalAccess": "Accessing external catalogs is not allowed!",
     "notFound": "The requested resource does not exist. @:errors.contactProvider",
@@ -245,6 +246,7 @@
     "less": "Read less",
     "more": "Read more"
   },
+  "remove": "Remove",
   "reset": "Reset",
   "search": {
     "addCollections": "Press enter to add a collection",
@@ -256,7 +258,9 @@
     "endDate": "End date",
     "enterCollections": "Enter one or more Collection IDs...",
     "enterItemIds": "Enter one or more Item IDs...",
+    "enterPattern": "Enter pattern for {field}",
     "enterSearchTerms": "Enter one or more search terms...",
+    "enterValue": "Enter value for {field}",
     "equalTo": "equal to",
     "filterBySpatialExtent": "Filter by spatial extent",
     "filterCollection": "Filter Collection",
@@ -271,6 +275,7 @@
     "lessThan": "less than",
     "lessThanEqual": "less than or equal to",
     "likeOperatorDescription": "You can use wildcard characters. `_` matches a single character, `%` matches any number of characters. To search for a wildcard character specifically, you need to add a `\\` in front of the character.",
+    "loadingFilters": "Loading filter fields...",
     "logical": {
       "and": "Match all filters (and)",
       "or": "Match any filters (or)"
