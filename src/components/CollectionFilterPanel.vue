@@ -317,8 +317,8 @@ export default {
     },
 
     /**
-     * Build CQL2 filter string from active metadata filters
-     */
+ * Build CQL2 filter string from active metadata filters
+ */
     buildCql2Filter() {
       if (this.metadataFilters.length === 0) {
         return null;
@@ -330,13 +330,32 @@ export default {
         const { queryable, operator, value } = filter;
 
         try {
-          // Only add filters with non-empty values
-          if (value !== null && value !== undefined && value !== '') {
-            const trimmedValue = String(value).trim();
-            if (trimmedValue) {
-              cql.addComparison(queryable.id, operator, trimmedValue);
+          // Text fields: comparison operators
+          if (queryable.isText && (operator === '=' || operator === '!=' || operator === 'LIKE')) {
+            // Only add filters with non-empty values
+            if (value !== null && value !== undefined && value !== '') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cql.addComparison(queryable.id, operator, trimmedValue);
+              }
             }
           }
+
+          // Array fields: IN operator
+          else if (queryable.isTextArray && operator === 'IN') {
+            // Value should be an array for IN operator
+            if (Array.isArray(value) && value.length > 0) {
+              // Filter out empty values and trim
+              const cleanedValues = value
+                .map(v => String(v).trim())
+                .filter(v => v !== '');
+
+              if (cleanedValues.length > 0) {
+                cql.addIn(queryable.id, cleanedValues);
+              }
+            }
+          }
+
         } catch (error) {
           console.error('Error building CQL for filter:', filter, error);
         }
@@ -344,6 +363,7 @@ export default {
 
       return cql.hasFilters() ? cql.toText() : null;
     },
+
 
     /**
      * datetime filter helper methods

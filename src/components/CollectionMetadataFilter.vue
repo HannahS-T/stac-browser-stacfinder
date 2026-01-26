@@ -24,9 +24,35 @@
         />
       </b-col>
 
-      <!-- Value Input (Text only for now) -->
+      <!-- Value Input -->
       <b-col md="6" class="value-col">
+        
+        <!-- Multi-Select for Array Fields (IN operator) -->
+        <multiselect
+          v-if="isMultiValue"
+          :value="filter.value"
+          @input="onValueChange"
+          :options="[]"
+          :multiple="true"
+          :taggable="true"
+          :close-on-select="false"
+          :clear-on-select="false"
+          :preserve-search="true"
+          tag-placeholder="Enter drücken um hinzuzufügen"
+          placeholder="Werte eingeben..."
+          @tag="addTag"
+          select-label=""
+          deselect-label="×"
+          :allow-empty="true"
+        >
+          <template slot="noResult">
+            <span>Enter drücken um Wert hinzuzufügen</span>
+          </template>
+        </multiselect>
+
+        <!-- Text Input for Text Fields -->
         <b-form-input
+          v-else
           :value="filter.value"
           @input="onValueChange"
           size="sm"
@@ -62,12 +88,15 @@ import {
   BButton,
   BIconXCircleFill
 } from 'bootstrap-vue';
+import Multiselect from 'vue-multiselect';
 
 /**
  * CollectionMetadataFilter - Single filter row component
  * 
  * Displays one CQL2 filter with field, operator, and value input.
- * Currently supports text fields only - will be extended for arrays and timestamps.
+ * Supports:
+ * - Text fields: text input
+ * - Array fields: multi-select with tagging
  * 
  * @emits update - When filter properties change
  * @emits remove - When filter should be removed
@@ -81,7 +110,8 @@ export default {
     BFormSelect,
     BFormInput,
     BButton,
-    BIconXCircleFill
+    BIconXCircleFill,
+    Multiselect
   },
 
   props: {
@@ -90,7 +120,7 @@ export default {
      * @type {Object}
      * @property {CollectionQueryable} queryable - Field definition
      * @property {string} operator - Selected operator
-     * @property {string} value - Filter value 
+     * @property {string|Array} value - Filter value
      */
     filter: {
       type: Object,
@@ -102,7 +132,6 @@ export default {
 
     /**
      * Filter index in parent array
-     * Used for update events
      */
     index: {
       type: Number,
@@ -113,7 +142,6 @@ export default {
   computed: {
     /**
      * Format operators for b-form-select
-     * @returns {Array<Object>} Options with value and text
      */
     operatorOptions() {
       return this.filter.queryable.getOperators().map(op => ({
@@ -121,6 +149,13 @@ export default {
         text: `${op.label} ${op.description}`,
         title: op.description
       }));
+    },
+
+    /**
+     * Check if this filter uses multi-value input
+     */
+    isMultiValue() {
+      return this.filter.queryable.isMultiValue && this.filter.operator === 'IN';
     }
   },
 
@@ -129,9 +164,19 @@ export default {
      * Handle operator change
      */
     onOperatorChange(operator) {
+      // When switching to/from IN operator, reset value to correct type
+      let newValue = this.filter.value;
+      
+      if (operator === 'IN' && !Array.isArray(newValue)) {
+        newValue = newValue ? [newValue] : [];
+      } else if (operator !== 'IN' && Array.isArray(newValue)) {
+        newValue = newValue.length > 0 ? newValue[0] : '';
+      }
+
       this.$emit('update', { 
         index: this.index, 
-        operator 
+        operator,
+        value: newValue
       });
     },
 
@@ -146,8 +191,22 @@ export default {
     },
 
     /**
+     * Add new tag to multiselect
+     */
+    addTag(newTag) {
+      const trimmed = newTag.trim();
+      if (!trimmed) return;
+
+      const currentValues = Array.isArray(this.filter.value) ? this.filter.value : [];
+      
+      // Avoid duplicates
+      if (!currentValues.includes(trimmed)) {
+        this.onValueChange([...currentValues, trimmed]);
+      }
+    },
+
+    /**
      * Get contextual placeholder text
-     * @returns {string} Placeholder text
      */
     getPlaceholder() {
       const title = this.filter.queryable.title;
