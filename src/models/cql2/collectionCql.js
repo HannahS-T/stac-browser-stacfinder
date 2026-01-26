@@ -2,8 +2,9 @@
  * CQL2 Builder for Collections API
  * 
  * Builds CQL2-Text filter expressions compatible with the backend parser.
- * Currently supports text fields with comparison operators.
- * Will be extended for array fields (IN) and timestamps (BETWEEN).
+ * Supports:
+ * - Text fields: =, !=, LIKE
+ * - Array fields: IN (field IN ('value1', 'value2'))
  */
 
 export default class CollectionCql {
@@ -39,6 +40,30 @@ export default class CollectionCql {
   }
 
   /**
+   * Add an IN filter for array fields
+   * 
+   * Backend expects: field IN ('value1', 'value2', 'value3')
+   * Backend converts to: field && ARRAY['value1', 'value2', 'value3']
+   * 
+   * @param {string} field - Array field name from queryables
+   * @param {Array<string>} values - Array of values to match
+   * @returns {CollectionCql} this (for chaining)
+   */
+  addIn(field, values) {
+    if (!Array.isArray(values) || values.length === 0) {
+      console.warn(`addIn called with empty or non-array values for field ${field}`);
+      return this;
+    }
+
+    this.filters.push({
+      type: 'in',
+      field,
+      values: values.filter(v => v !== null && v !== undefined && v !== '')
+    });
+    return this;
+  }
+
+  /**
    * Build CQL2-Text expression
    * 
    * Combines all filters with AND operator.
@@ -54,7 +79,12 @@ export default class CollectionCql {
 
     // Build individual filter expressions
     const expressions = this.filters.map(filter => {
-      return this._buildComparison(filter);
+      if (filter.type === 'comparison') {
+        return this._buildComparison(filter);
+      } else if (filter.type === 'in') {
+        return this._buildIn(filter);
+      }
+      throw new Error(`Unknown filter type: ${filter.type}`);
     });
 
     // Single filter: no parentheses needed
@@ -81,6 +111,29 @@ export default class CollectionCql {
 
     // Standard comparison: field operator 'value'
     return `${field} ${operator} '${escapedValue}'`;
+  }
+
+  /**
+   * Build IN expression for array fields
+   * 
+   * CQL2-Text format: field IN ('value1', 'value2', 'value3')
+   * Backend parses and converts to: field && ARRAY['value1', 'value2', 'value3']
+   */
+  _buildIn(filter) {
+    const { field, values } = filter;
+
+    if (values.length === 0) {
+      return '';
+    }
+
+    // Escape and quote each value
+    const quotedValues = values.map(value => {
+      const escapedValue = this._escapeValue(value);
+      return `'${escapedValue}'`;
+    });
+
+    // Format: field IN ('value1', 'value2', 'value3')
+    return `${field} IN (${quotedValues.join(', ')})`;
   }
 
   /**

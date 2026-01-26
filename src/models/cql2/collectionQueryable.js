@@ -9,7 +9,7 @@ export default class CollectionQueryable {
   /**
    * Create a queryable field
    * 
-   * @param {string} id - Field identifier (e.g., 'title', 'license')
+   * @param {string} id - Field identifier (e.g., 'title', 'keywords')
    * @param {Object} schema - JSON Schema definition from API
    */
   constructor(id, schema) {
@@ -20,11 +20,11 @@ export default class CollectionQueryable {
   /**
    * Detect field type from JSON Schema
    * 
-   * Currently supported types:
+   * Supported types:
    * - string → text field
-   * 
-   * Future types (will be added):
    * - array + items.type=string → text_array
+   * 
+   * Future types:
    * - string + format=date-time → timestamp
    * 
    * @returns {string} Field type
@@ -35,6 +35,11 @@ export default class CollectionQueryable {
     // Text field
     if (schemaType === 'string') {
       return 'text';
+    }
+    
+    // Array of strings (text_array)
+    if (schemaType === 'array' && this.schema.items?.type === 'string') {
+      return 'text_array';
     }
     
     // Unknown/unsupported type
@@ -48,6 +53,15 @@ export default class CollectionQueryable {
    */
   get isText() {
     return this.type === 'text';
+  }
+
+  /**
+   * Check if field is a text array field
+   * 
+   * @returns {boolean}
+   */
+  get isTextArray() {
+    return this.type === 'text_array';
   }
 
   /**
@@ -68,6 +82,12 @@ export default class CollectionQueryable {
         { value: '=', label: '=', description: 'Gleich' },
         { value: '!=', label: '≠', description: 'Nicht gleich' },
         { value: 'LIKE', label: '~', description: 'Enthält' }
+      );
+    }
+
+    if (this.isTextArray) {
+      operators.push(
+        { value: 'IN', label: '∈', description: 'Enthält eines von' }
       );
     }
 
@@ -126,7 +146,18 @@ export default class CollectionQueryable {
     if (this.isText) {
       return '';
     }
+    if (this.isTextArray) {
+      return [];
+    }
     return null;
+  }
+
+  /**
+   * Check if this field requires multi-value input (array)
+   * @returns {boolean} True if field expects array of values
+   */
+  get isMultiValue() {
+    return this.isTextArray;
   }
 
   /**
@@ -141,6 +172,7 @@ export default class CollectionQueryable {
       description: this.description,
       supported: this.supported,
       operators: this.getOperators(),
+      isMultiValue: this.isMultiValue,
       schema: this.schema
     };
   }
