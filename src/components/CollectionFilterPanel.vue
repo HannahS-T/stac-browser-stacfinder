@@ -36,7 +36,7 @@
           :label="$t('search.startDate')"
         />
         </b-form-group>
-        
+
         <b-form-group
           class="mb-6"
           :label="$t('search.endDate')">
@@ -51,7 +51,7 @@
             :disabled-date="disabledEndDate"
             :disabled-time="disabledEndTime"
         />
-          
+
         </b-form-group>
       </b-form-group>
 
@@ -60,8 +60,8 @@
         <MapSelect v-model="bbox" :stac="resolvedStac" />
       </b-form-group>
 
-      <!-- ==================== CQL2 METADATA FILTERS (NEU) ==================== -->
-      
+      <!--CQL2 METADATA FILTERS -->
+
       <!-- Loading State -->
       <div v-if="!queryablesLoaded" class="text-center py-3">
         <b-spinner small></b-spinner>
@@ -142,7 +142,8 @@ import {
 import DatePickerMixin from './DatePickerMixin';
 import Utils from '../utils';
 import { mapGetters } from 'vuex';
-import { stacRequest } from '../store/utils';
+import collectionAdapter from '../adapters/CollectionApiAdapter';
+
 
 // Import CQL2 classes
 import CollectionCql from '../models/cql2/collectionCql';
@@ -259,23 +260,13 @@ export default {
 
   methods: {
     /**
-     * Load queryables from /collections/queryables API
+     * Load queryables from Collections API via adapter
      */
     async loadQueryables() {
       try {
-        const link = { href: '/collections/queryables' };
-        const response = await stacRequest(this.$store, link);
-        
-        if (response.data?.properties) {
-          // Parse queryables from API
-          this.queryables = Object.entries(response.data.properties)
-            .map(([id, schema]) => new CollectionQueryable(id, schema))
-            .filter(q => q.supported);
-          
-          this.queryablesLoaded = true;
-        } else {
-          throw new Error('Invalid queryables response');
-        }
+        // Fetch queryables from collection adapter
+        this.queryables = await collectionAdapter.fetchQueryables();
+        this.queryablesLoaded = true;
       } catch (error) {
         console.error('Failed to load queryables:', error);
         this.queryablesError = this.$t('errors.loadQueryables');
@@ -305,9 +296,9 @@ export default {
      */
     updateFilter({ index, operator, value }) {
       if (!this.metadataFilters[index]) return;
-      
+
       const filter = this.metadataFilters[index];
-      
+
       if (operator !== undefined) {
         filter.operator = operator;
       }
@@ -376,14 +367,14 @@ export default {
       return (
         this.end &&
         new Date(date).setHours(0, 0, 0, 0) >
-          new Date(this.end).setHours(0, 0, 0, 0)
+        new Date(this.end).setHours(0, 0, 0, 0)
       );
     },
     disabledEndDate(date) {
       return (
         this.start &&
         new Date(date).setHours(0, 0, 0, 0) <
-          new Date(this.start).setHours(0, 0, 0, 0)
+        new Date(this.start).setHours(0, 0, 0, 0)
       );
     },
     disabledStartTime(date) {

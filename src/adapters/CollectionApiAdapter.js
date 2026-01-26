@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { BrowserError } from '../utils';
 import { createSTAC } from '../models/stac';
+import CollectionQueryable from '../models/cql2/collectionQueryable';
 
 /**
  * Adapter for the Collections API
@@ -20,6 +21,9 @@ class CollectionApiAdapter {
       'description',
       'license'
     ];
+
+    // Cache for queryables
+    this.queryablesCache = null;
   }
 
   /**
@@ -27,6 +31,37 @@ class CollectionApiAdapter {
    */
   getSortableFields() {
     return [...this.sortableFields];
+  }
+
+  /**
+   * Fetch queryables from API (with caching)
+   */
+  async fetchQueryables() {
+    // Return cached version if available
+    if (this.queryablesCache) {
+      return this.queryablesCache;
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/queryables`);
+
+      if (!response.data?.properties) {
+        throw new BrowserError('Invalid queryables response');
+      }
+
+      // Parse to CollectionQueryable objects
+      const queryables = Object.entries(response.data.properties)
+        .map(([id, schema]) => new CollectionQueryable(id, schema))
+        .filter(q => q.supported);
+
+      // Cache result
+      this.queryablesCache = queryables;
+
+      return queryables;
+
+    } catch (error) {
+      throw new BrowserError(`Failed to load queryables: ${error.message}`);
+    }
   }
 
   /**
@@ -124,7 +159,7 @@ class CollectionApiAdapter {
 
           if (s != null && e != null && s === e) {
             params.append('datetime', s);
-      } else if (s == null && e != null) {
+          } else if (s == null && e != null) {
             params.append('datetime', `../${e}`);
           } else if (s != null && e == null) {
             params.append('datetime', `${s}/..`);
