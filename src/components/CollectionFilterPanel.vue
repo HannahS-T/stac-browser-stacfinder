@@ -330,7 +330,7 @@ export default {
         const { queryable, operator, value } = filter;
 
         try {
-          // Text fields: comparison operators
+          // Text fields: comparison operators (=, !=, LIKE)
           if (queryable.isText && (operator === '=' || operator === '!=' || operator === 'LIKE')) {
             // Only add filters with non-empty values
             if (value !== null && value !== undefined && value !== '') {
@@ -356,6 +356,30 @@ export default {
             }
           }
 
+          // Timestamp fields: BETWEEN operator
+          else if (queryable.isTimestamp && operator === 'BETWEEN') {
+            // Value should be object with { start, end } for BETWEEN
+            if (value && typeof value === 'object' && !Array.isArray(value)) {
+              const { start, end } = value;
+
+              // Both start and end must be present
+              if (start && end) {
+                cql.addBetween(queryable.id, start, end);
+              }
+            }
+          }
+
+          // Timestamp fields: comparison operators (<, >)
+          else if (queryable.isTimestamp && (operator === '<' || operator === '>')) {
+            // Value should be a single date string
+            if (value !== null && value !== undefined && value !== '') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cql.addComparison(queryable.id, operator, trimmedValue);
+              }
+            }
+          }
+
         } catch (error) {
           console.error('Error building CQL for filter:', filter, error);
         }
@@ -363,7 +387,6 @@ export default {
 
       return cql.hasFilters() ? cql.toText() : null;
     },
-
 
     /**
      * datetime filter helper methods

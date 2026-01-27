@@ -27,9 +27,36 @@
       <!-- Value Input -->
       <b-col md="6" class="value-col">
         
+        <!-- Date Range Picker for BETWEEN operator -->
+        <div v-if="isTimestampRange" class="date-range-wrapper">
+          <DatePicker
+            v-model="dateRange"
+            type="datetime"
+            range
+            format="YYYY-MM-DD HH:mm:ss"
+            value-type="format"
+            :placeholder="$t('search.selectDateRange') || 'Zeitraum auswählen...'"
+            input-class="form-control form-control-sm"
+            @input="onDateRangeChange"
+          />
+        </div>
+
+        <!-- Single Date Picker for <, > operators -->
+        <div v-else-if="isTimestampSingle" class="date-single-wrapper">
+          <DatePicker
+            v-model="singleDate"
+            type="datetime"
+            format="YYYY-MM-DD HH:mm:ss"
+            value-type="format"
+            :placeholder="getDatePlaceholder()"
+            input-class="form-control form-control-sm"
+            @input="onSingleDateChange"
+          />
+        </div>
+
         <!-- Multi-Select for Array Fields (IN operator) -->
         <multiselect
-          v-if="isMultiValue"
+          v-else-if="isMultiSelect"
           :value="filter.value"
           @input="onValueChange"
           :options="[]"
@@ -89,6 +116,7 @@ import {
   BIconXCircleFill
 } from 'bootstrap-vue';
 import Multiselect from 'vue-multiselect';
+import DatePicker from 'vue2-datepicker';
 
 /**
  * CollectionMetadataFilter - Single filter row component
@@ -97,6 +125,7 @@ import Multiselect from 'vue-multiselect';
  * Supports:
  * - Text fields: text input
  * - Array fields: multi-select with tagging
+ * - Timestamp fields: single date picker (<, >) or date-range picker (BETWEEN)
  * 
  * @emits update - When filter properties change
  * @emits remove - When filter should be removed
@@ -111,7 +140,8 @@ export default {
     BFormInput,
     BButton,
     BIconXCircleFill,
-    Multiselect
+    Multiselect,
+    DatePicker
   },
 
   props: {
@@ -120,7 +150,7 @@ export default {
      * @type {Object}
      * @property {CollectionQueryable} queryable - Field definition
      * @property {string} operator - Selected operator
-     * @property {string|Array} value - Filter value
+     * @property {string|Array|Object} value - Filter value
      */
     filter: {
       type: Object,
@@ -152,10 +182,66 @@ export default {
     },
 
     /**
-     * Check if this filter uses multi-value input
+     * Check if this filter uses multi-select input
      */
-    isMultiValue() {
-      return this.filter.queryable.isMultiValue && this.filter.operator === 'IN';
+    isMultiSelect() {
+      return this.filter.queryable.isTextArray && this.filter.operator === 'IN';
+    },
+
+    /**
+     * Check if this filter uses date-range input (BETWEEN)
+     */
+    isTimestampRange() {
+      return this.filter.queryable.isTimestamp && this.filter.operator === 'BETWEEN';
+    },
+
+    /**
+     * Check if this filter uses single date input (<, >)
+     */
+    isTimestampSingle() {
+      return this.filter.queryable.isTimestamp && 
+             (this.filter.operator === '<' || this.filter.operator === '>');
+    },
+
+    /**
+     * Date range for BETWEEN operator (two-way binding helper)
+     */
+    dateRange: {
+      get() {
+        if (!this.isTimestampRange || !this.filter.value) {
+          return null;
+        }
+        // Value is { start: '...', end: '...' }
+        const { start, end } = this.filter.value;
+        if (!start || !end) {
+          return null;
+        }
+        // DatePicker expects [start, end] array
+        return [start, end];
+      },
+      set(range) {
+        // DatePicker returns [start, end] array
+        if (!range || !Array.isArray(range) || range.length !== 2) {
+          this.onValueChange({ start: null, end: null });
+        } else {
+          this.onValueChange({ start: range[0], end: range[1] });
+        }
+      }
+    },
+
+    /**
+     * Single date for <, > operators (two-way binding helper)
+     */
+    singleDate: {
+      get() {
+        if (!this.isTimestampSingle) {
+          return null;
+        }
+        return this.filter.value;
+      },
+      set(date) {
+        this.onValueChange(date);
+      }
     }
   },
 
@@ -164,13 +250,25 @@ export default {
      * Handle operator change
      */
     onOperatorChange(operator) {
-      // When switching to/from IN operator, reset value to correct type
+      // When switching operators, reset value to correct type
       let newValue = this.filter.value;
       
+      // Switching to IN: convert to array
       if (operator === 'IN' && !Array.isArray(newValue)) {
         newValue = newValue ? [newValue] : [];
-      } else if (operator !== 'IN' && Array.isArray(newValue)) {
-        newValue = newValue.length > 0 ? newValue[0] : '';
+      } 
+      // Switching to BETWEEN: convert to object with start/end
+      else if (operator === 'BETWEEN' && (typeof newValue !== 'object' || Array.isArray(newValue))) {
+        newValue = { start: null, end: null };
+      } 
+      // Switching to <, >: convert to single value
+      else if ((operator === '<' || operator === '>') && typeof newValue === 'object' && !Array.isArray(newValue)) {
+        newValue = null;
+      }
+      // Switching to other operators: convert to string
+      else if (operator !== 'IN' && operator !== 'BETWEEN' && operator !== '<' && operator !== '>' && 
+               (Array.isArray(newValue) || typeof newValue === 'object')) {
+        newValue = '';
       }
 
       this.$emit('update', { 
@@ -191,6 +289,25 @@ export default {
     },
 
     /**
+     * Handle date range change (BETWEEN)
+     */
+    onDateRangeChange(range) {
+      // DatePicker emits [start, end] or null
+      if (!range || !Array.isArray(range) || range.length !== 2) {
+        this.onValueChange({ start: null, end: null });
+      } else {
+        this.onValueChange({ start: range[0], end: range[1] });
+      }
+    },
+
+    /**
+     * Handle single date change (<, >)
+     */
+    onSingleDateChange(date) {
+      this.onValueChange(date);
+    },
+
+    /**
      * Add new tag to multiselect
      */
     addTag(newTag) {
@@ -206,16 +323,29 @@ export default {
     },
 
     /**
-     * Get contextual placeholder text
+     * Get contextual placeholder text for text fields
      */
     getPlaceholder() {
       const title = this.filter.queryable.title;
       
       if (this.filter.operator === 'LIKE') {
-        return this.$t('search.enterPattern', { field: title });
+        return this.$t('search.enterPattern', { field: title }) || `Suchmuster für ${title}`;
       }
       
-      return this.$t('search.enterValue', { field: title });
+      return this.$t('search.enterValue', { field: title }) || `Wert für ${title}`;
+    },
+
+    /**
+     * Get contextual placeholder for date picker
+     */
+    getDatePlaceholder() {
+      if (this.filter.operator === '<') {
+        return this.$t('search.selectDateBefore') || 'Datum wählen (vor)';
+      }
+      if (this.filter.operator === '>') {
+        return this.$t('search.selectDateAfter') || 'Datum wählen (nach)';
+      }
+      return this.$t('search.selectDate') || 'Datum wählen';
     }
   }
 };
@@ -253,6 +383,11 @@ export default {
 
   .value-input {
     font-size: 0.875rem;
+  }
+
+  .date-range-wrapper,
+  .date-single-wrapper {
+    width: 100%;
   }
 
   .remove-col {
