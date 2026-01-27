@@ -1,9 +1,9 @@
 <template>
     <div class="collection-metadata-filter">
-        <b-row class="align-items-center filter-row">
+        <b-row class="align-items-center filter-row no-gutters">
 
             <!-- Field Label -->
-            <b-col md="3" class="field-info">
+            <b-col md="3" class="field-info pr-2">
                 <span class="field-title font-weight-bold">
                     {{ filter.queryable.getLocalizedTitle($i18n) }}
                 </span>
@@ -14,13 +14,13 @@
             </b-col>
 
             <!-- Operator Dropdown -->
-            <b-col md="2" class="operator-col">
+            <b-col md="2" class="operator-col px-2">
                 <b-form-select :value="filter.operator" :options="operatorOptions" size="sm" @change="onOperatorChange"
                     class="operator-select" />
             </b-col>
 
             <!-- Value Input -->
-            <b-col md="6" class="value-col">
+            <b-col md="6" class="value-col px-2">
 
                 <!-- Date Range Picker for BETWEEN operator -->
                 <div v-if="isTimestampRange" class="date-range-wrapper">
@@ -53,7 +53,7 @@
             </b-col>
 
             <!-- Remove Button -->
-            <b-col md="1" class="text-right remove-col">
+            <b-col md="1" class="remove-col pl-2">
                 <b-button size="sm" variant="danger" @click="$emit('remove', index)" :title="$t('remove') || 'Remove'"
                     class="remove-btn">
                     <b-icon-x-circle-fill aria-hidden="true" />
@@ -326,7 +326,7 @@ export default {
     }
 
     .filter-row {
-        gap: 0.5rem;
+        width: 100%;
     }
 
     .field-info {
@@ -363,6 +363,7 @@ export default {
 
     .remove-btn {
         padding: 0.25rem 0.5rem;
+        white-space: nowrap;
     }
 }
 
