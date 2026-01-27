@@ -35,6 +35,10 @@ class CollectionApiAdapter {
 
   /**
    * Fetch queryables from API (with caching)
+   * 
+   * NOTE: Temporarily adds temporal_start and temporal_end fields manually
+   * until backend /queryables endpoint is updated. These fields exist in
+   * queryableMap.js and are supported by the CQL2 parser.
    */
   async fetchQueryables() {
     // Return cached version if available
@@ -50,9 +54,40 @@ class CollectionApiAdapter {
       }
 
       // Parse to CollectionQueryable objects
-      const queryables = Object.entries(response.data.properties)
+      let queryables = Object.entries(response.data.properties)
         .map(([id, schema]) => new CollectionQueryable(id, schema))
         .filter(q => q.supported);
+
+      // ============================================================
+      // TEMPORARY: Add timestamp fields manually until backend updates
+      // ============================================================
+      
+      // Check if fields already exist (for future-proofing)
+      const hasTemporalStart = queryables.some(q => q.id === 'temporal_start');
+      const hasTemporalEnd = queryables.some(q => q.id === 'temporal_end');
+
+      // Add temporal_start if not present
+      if (!hasTemporalStart) {
+        queryables.push(new CollectionQueryable('temporal_start', {
+          type: 'string',
+          format: 'date-time',
+          title: 'Zeitbeginn',
+          description: 'Startdatum der Collection (ISO 8601)'
+        }));
+      }
+
+      // Add temporal_end if not present
+      if (!hasTemporalEnd) {
+        queryables.push(new CollectionQueryable('temporal_end', {
+          type: 'string',
+          format: 'date-time',
+          title: 'Zeitende',
+          description: 'Enddatum der Collection (ISO 8601)'
+        }));
+      }
+      // ============================================================
+      // TEMPORARY: Add timestamp fields manually until backend updates
+      // ============================================================
 
       // Cache result
       this.queryablesCache = queryables;
