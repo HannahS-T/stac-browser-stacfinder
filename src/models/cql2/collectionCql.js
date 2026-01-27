@@ -4,7 +4,8 @@
  * Builds CQL2-Text filter expressions compatible with the backend parser.
  * Supports:
  * - Text fields: =, !=, LIKE
- * - Array fields: IN (field IN ('value1', 'value2'))
+ * - Array fields: IN
+ * - Timestamp fields: <, >, BETWEEN
  */
 
 export default class CollectionCql {
@@ -17,12 +18,18 @@ export default class CollectionCql {
   }
 
   /**
-   * Add a comparison filter for text fields
+   * Add a comparison filter for text or timestamp fields
    * 
-   * Supported operators:
+   * Text fields - Supported operators:
    * - '=' : Exact match
    * - '!=' : Not equal
    * - 'LIKE' : Pattern match (case-insensitive, adds wildcards)
+   * 
+   * Timestamp fields - Supported operators:
+   * - '<' : Before date
+   * - '>' : After date
+   * - '=' : Exact date (not implemented)
+   * - '!=' : Not equal to date (not implemented)
    * 
    * @param {string} field - Field name from queryables
    * @param {string} operator - Comparison operator
@@ -64,6 +71,32 @@ export default class CollectionCql {
   }
 
   /**
+   * Add a BETWEEN filter for timestamp fields
+   * 
+   * Backend expects: field BETWEEN 'low' AND 'high'
+   * Backend converts to: field BETWEEN 'low'::timestamptz AND 'high'::timestamptz
+   * 
+   * @param {string} field - Timestamp field name (temporal_start, temporal_end)
+   * @param {string} low - ISO 8601 datetime string (start of range)
+   * @param {string} high - ISO 8601 datetime string (end of range)
+   * @returns {CollectionCql} this (for chaining)
+   */
+  addBetween(field, low, high) {
+    if (!low || !high) {
+      console.warn(`addBetween called with empty low or high value for field ${field}`);
+      return this;
+    }
+
+    this.filters.push({
+      type: 'between',
+      field,
+      low,
+      high
+    });
+    return this;
+  }
+
+  /**
    * Build CQL2-Text expression
    * 
    * Combines all filters with AND operator.
@@ -83,6 +116,8 @@ export default class CollectionCql {
         return this._buildComparison(filter);
       } else if (filter.type === 'in') {
         return this._buildIn(filter);
+      } else if (filter.type === 'between') {
+        return this._buildBetween(filter);
       }
       throw new Error(`Unknown filter type: ${filter.type}`);
     });
@@ -98,6 +133,7 @@ export default class CollectionCql {
 
   /**
    * Build comparison expression
+   * @private
    */
   _buildComparison(filter) {
     const { field, operator, value } = filter;
@@ -118,6 +154,8 @@ export default class CollectionCql {
    * 
    * CQL2-Text format: field IN ('value1', 'value2', 'value3')
    * Backend parses and converts to: field && ARRAY['value1', 'value2', 'value3']
+   * 
+   * @private
    */
   _buildIn(filter) {
     const { field, values } = filter;
@@ -134,6 +172,25 @@ export default class CollectionCql {
 
     // Format: field IN ('value1', 'value2', 'value3')
     return `${field} IN (${quotedValues.join(', ')})`;
+  }
+
+  /**
+   * Build BETWEEN expression for timestamp fields
+   * 
+   * CQL2-Text format: field BETWEEN 'low' AND 'high'
+   * Backend parses and converts to: field BETWEEN 'low'::timestamptz AND 'high'::timestamptz
+   * 
+   * @private
+   */
+  _buildBetween(filter) {
+    const { field, low, high } = filter;
+
+    // Escape values (though ISO 8601 shouldn't have quotes)
+    const escapedLow = this._escapeValue(low);
+    const escapedHigh = this._escapeValue(high);
+
+    // Format: field BETWEEN 'low' AND 'high'
+    return `${field} BETWEEN '${escapedLow}' AND '${escapedHigh}'`;
   }
 
   /**

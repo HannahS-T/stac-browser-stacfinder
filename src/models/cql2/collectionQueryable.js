@@ -9,7 +9,7 @@ export default class CollectionQueryable {
   /**
    * Create a queryable field
    * 
-   * @param {string} id - Field identifier (e.g., 'title', 'keywords')
+   * @param {string} id - Field identifier (e.g., 'title', 'keywords', 'temporal_start')
    * @param {Object} schema - JSON Schema definition from API
    */
   constructor(id, schema) {
@@ -23,14 +23,17 @@ export default class CollectionQueryable {
    * Supported types:
    * - string → text field
    * - array + items.type=string → text_array
-   * 
-   * Future types:
    * - string + format=date-time → timestamp
    * 
    * @returns {string} Field type
    */
   get type() {
     const schemaType = this.schema.type;
+    
+    // Timestamp field: string with format=date-time
+    if (schemaType === 'string' && this.schema.format === 'date-time') {
+      return 'timestamp';
+    }
     
     // Text field
     if (schemaType === 'string') {
@@ -65,6 +68,15 @@ export default class CollectionQueryable {
   }
 
   /**
+   * Check if field is a timestamp field
+   * 
+   * @returns {boolean}
+   */
+  get isTimestamp() {
+    return this.type === 'timestamp';
+  }
+
+  /**
    * Get supported operators for this field type
    * 
    * Returns array of operator objects with:
@@ -88,6 +100,14 @@ export default class CollectionQueryable {
     if (this.isTextArray) {
       operators.push(
         { value: 'IN', label: '∈', description: 'Enthält eines von' }
+      );
+    }
+
+    if (this.isTimestamp) {
+      operators.push(
+        { value: '<', label: '<', description: 'Vor' },
+        { value: '>', label: '>', description: 'Nach' },
+        { value: 'BETWEEN', label: '⇔', description: 'Zwischen' }
       );
     }
 
@@ -149,15 +169,26 @@ export default class CollectionQueryable {
     if (this.isTextArray) {
       return [];
     }
+    if (this.isTimestamp) {
+      return null; // Will be single date or { start, end } depending on operator
+    }
     return null;
   }
 
   /**
-   * Check if this field requires multi-value input (array)
-   * @returns {boolean} True if field expects array of values
+   * Check if this field requires multi-value input
+   * @returns {boolean} True if field expects array or range
    */
   get isMultiValue() {
     return this.isTextArray;
+  }
+
+  /**
+   * Check if this filter value type changes based on operator
+   * @returns {boolean} True if operator affects input type
+   */
+  get isOperatorDependent() {
+    return this.isTimestamp;
   }
 
   /**
@@ -173,6 +204,7 @@ export default class CollectionQueryable {
       supported: this.supported,
       operators: this.getOperators(),
       isMultiValue: this.isMultiValue,
+      isOperatorDependent: this.isOperatorDependent,
       schema: this.schema
     };
   }
