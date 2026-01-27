@@ -8,49 +8,22 @@
 
       <!-- Free-text search -->
       <b-form-group :label="$t('search.enterSearchTerms')">
-        <SearchBox
-          v-model="query.q"
-          :placeholder="$t('search.enterSearchTerms')"
-        />
+        <SearchBox v-model="query.q" :placeholder="$t('search.enterSearchTerms')" />
       </b-form-group>
 
       <!-- Temporal filter: start / end datetime -->
-      <b-form-group
-        class="filter-datetime"
-        :label="$t('search.temporalExtent')"
-        :description="$t('search.dateDescription')"
-      >
-        <b-form-group
-          class="mb-6"
-          :label="$t('search.startDate')">
-        <DatePicker
-          type="datetime"
-          v-model="start"
-          :get-classes="getRangeClasses"
-          input-class="form-control mx-input"
-          :lang="datepickerLang"
-          :format="dateTimeFormat"
-          :default-value="end || new Date()"
-          :disabled-date="disabledStartDate"
-          :disabled-time="disabledStartTime"
-          :label="$t('search.startDate')"
-        />
+      <b-form-group class="filter-datetime" :label="$t('search.temporalExtent')"
+        :description="$t('search.dateDescription')">
+        <b-form-group class="mb-6" :label="$t('search.startDate')">
+          <DatePicker type="datetime" v-model="start" :get-classes="getRangeClasses" input-class="form-control mx-input"
+            :lang="datepickerLang" :format="dateTimeFormat" :default-value="end || new Date()"
+            :disabled-date="disabledStartDate" :disabled-time="disabledStartTime" :label="$t('search.startDate')" />
         </b-form-group>
 
-        <b-form-group
-          class="mb-6"
-          :label="$t('search.endDate')">
-          <DatePicker
-            type="datetime"
-            v-model="end"
-            :get-classes="getRangeClasses"
-            input-class="form-control mx-input"
-            :lang="datepickerLang"
-            :format="dateTimeFormat"
-            :default-value="end || new Date()"
-            :disabled-date="disabledEndDate"
-            :disabled-time="disabledEndTime"
-        />
+        <b-form-group class="mb-6" :label="$t('search.endDate')">
+          <DatePicker type="datetime" v-model="end" :get-classes="getRangeClasses" input-class="form-control mx-input"
+            :lang="datepickerLang" :format="dateTimeFormat" :default-value="end || new Date()"
+            :disabled-date="disabledEndDate" :disabled-time="disabledEndTime" />
 
         </b-form-group>
       </b-form-group>
@@ -74,46 +47,31 @@
       </b-alert>
 
       <!-- Additional metadata filters -->
-      <b-form-group
-        v-if="queryablesLoaded && queryables.length > 0"
-        class="additional-filters"
-        :label="$t('search.additionalFilters')"
-      >
-        <b-dropdown
-          size="sm"
-          block
-          variant="primary"
-          :text="$t('search.addFilter')"
-          :disabled="availableQueryables.length === 0"
-          class="metadata-filters mt-2 mb-3"
-        >
-          <b-dropdown-item-button
-            v-for="queryable in availableQueryables"
-            :key="queryable.id"
-            @click="addMetadataFilter(queryable)"
-          >
-            {{ queryable.title }}
-            <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
+      <b-form-group v-if="queryablesLoaded && queryables.length > 0" class="additional-filters"
+        :label="$t('search.additionalFilters')">
+        <b-dropdown size="sm" block variant="primary" :text="$t('search.addFilter')"
+          :disabled="availableQueryables.length === 0" class="metadata-filters mt-2 mb-3">
+          <!-- Queryable Items -->
+          <b-dropdown-item-button v-for="queryable in availableQueryables" :key="queryable.id"
+            @click="addMetadataFilter(queryable)" class="queryable-item">
+            <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
+            <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
           </b-dropdown-item-button>
+
+          <!-- Empty State -->
+          <b-dropdown-text v-if="availableQueryables.length === 0" class="text-muted">
+            {{ $t('search.allFiltersActive') }}
+          </b-dropdown-text>
         </b-dropdown>
 
         <!-- Render active metadata filters -->
-        <CollectionMetadataFilter
-          v-for="(filter, index) in metadataFilters"
-          :key="`filter-${filter.queryable.id}-${index}`"
-          :filter="filter"
-          :index="index"
-          @update="updateFilter"
-          @remove="removeFilter"
-        />
+        <CollectionMetadataFilter v-for="(filter, index) in metadataFilters"
+          :key="`filter-${filter.queryable.id}-${index}`" :filter="filter" :index="index" @update="updateFilter"
+          @remove="removeFilter" />
       </b-form-group>
 
       <!-- Submit button -->
-      <b-button
-        variant="primary"
-        class="mt-3"
-        @click="submitFilters"
-      >
+      <b-button variant="primary" class="mt-3" @click="submitFilters">
         {{ $t('submit') }}
       </b-button>
 
@@ -472,11 +430,11 @@ $primary-color: map-get($theme-colors, "primary");
   }
 
   .form-group {
-    > div {
+    >div {
       margin-left: 1em;
     }
 
-    > label {
+    >label {
       font-weight: 600;
     }
   }
@@ -489,12 +447,12 @@ $primary-color: map-get($theme-colors, "primary");
   .additional-filters {
     margin-top: 1.5em;
     padding-top: 1.5em;
-    border-top: 1px solid rgba(0,0,0,.125);
+    border-top: 1px solid rgba(0, 0, 0, .125);
   }
 
   .metadata-filter-row {
     padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(0,0,0,.05);
+    border-bottom: 1px solid rgba(0, 0, 0, .05);
 
     &:last-child {
       border-bottom: none;
@@ -503,6 +461,47 @@ $primary-color: map-get($theme-colors, "primary");
     .text-right {
       text-align: right;
     }
+  }
+}
+
+// dropdown styling
+.metadata-filters {
+  ::v-deep .dropdown-menu {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  ::v-deep .queryable-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+
+    &:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+
+    .queryable-title {
+      flex: 1;
+      font-weight: 500;
+    }
+
+    .queryable-badge {
+      font-size: 0.7rem;
+      font-family: 'Courier New', monospace;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+    }
+
+    &:hover .queryable-badge {
+      opacity: 1;
+    }
+  }
+
+  ::v-deep .dropdown-text {
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-style: italic;
   }
 }
 </style>

@@ -82,7 +82,7 @@ export default class CollectionQueryable {
    * Returns array of operator objects with:
    * - value: CQL2 operator string
    * - label: Short display label (symbol)
-   * - description: User-friendly description
+   * - description: i18n key for description
    * 
    * @returns {Array<Object>} Array of operator definitions
    */
@@ -91,23 +91,23 @@ export default class CollectionQueryable {
 
     if (this.isText) {
       operators.push(
-        { value: '=', label: '=', description: 'Gleich' },
-        { value: '!=', label: '≠', description: 'Nicht gleich' },
-        { value: 'LIKE', label: '~', description: 'Enthält' }
+        { value: '=', label: '=', description: 'operators.equals' },
+        { value: '!=', label: '≠', description: 'operators.notEquals' },
+        { value: 'LIKE', label: '~', description: 'operators.contains' }
       );
     }
 
     if (this.isTextArray) {
       operators.push(
-        { value: 'IN', label: '∈', description: 'Enthält eines von' }
+        { value: 'IN', label: '∈', description: 'operators.containsOneOf' }
       );
     }
 
     if (this.isTimestamp) {
       operators.push(
-        { value: '<', label: '<', description: 'Vor' },
-        { value: '>', label: '>', description: 'Nach' },
-        { value: 'BETWEEN', label: '⇔', description: 'Zwischen' }
+        { value: '<', label: '<', description: 'operators.before' },
+        { value: '>', label: '>', description: 'operators.after' },
+        { value: 'BETWEEN', label: '⇔', description: 'operators.between' }
       );
     }
 
@@ -125,8 +125,9 @@ export default class CollectionQueryable {
   }
 
   /**
-   * Get title for UI display
+   * Get title for UI display (fallback without i18n)
    * Uses schema.title if available, otherwise formats the field ID
+   * 
    * @returns {string} Display title
    */
   get title() {
@@ -139,6 +140,23 @@ export default class CollectionQueryable {
       .split('_')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
+  }
+
+  /**
+   * Get localized title for UI display
+   * Prefers i18n translation, falls back to schema.title, then formatted ID
+   * 
+   * @param {Object} i18n - Vue i18n instance ($i18n)
+   * @returns {string} Localized display title
+   */
+  getLocalizedTitle(i18n) {
+    // Try i18n translation first
+    if (i18n && i18n.te(`fields.${this.id}`)) {
+      return i18n.t(`fields.${this.id}`);
+    }
+    
+    // Fallback to schema.title or formatted ID
+    return this.title;
   }
 
   /**
