@@ -132,14 +132,20 @@ export default {
           apiFilters.datetime = filters.datetime;
         }
 
-        // TODO: Add other filters when API supports them
-        
         // Add bbox filter
-        if (filters.bbox) { 
+        if (filters.bbox) {
           apiFilters.bbox = filters.bbox;
         }
 
-        // Load collections with filters
+        // Add CQL2 filter 
+        if (filters.cql2) {
+          apiFilters.cql2 = filters.cql2;
+        }
+
+        // Log filters for debugging
+        console.log('Submitting collection filters:', apiFilters);
+
+        // Load collections with filters via Vuex action
         await this.$store.dispatch('loadExternalCollections', {
           show: true,
           filters: apiFilters,

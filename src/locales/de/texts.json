@@ -104,6 +104,7 @@
     "loadApiItemsFailed": "Die Elemente des Dienstanbieters konnten nicht geladen werden.",
     "loadFilteredItems": "Das Laden einer gefilterten Liste von Elementen ist leider fehlgeschlagen.",
     "loadItems": "Das Laden der Liste der Elemente ist leider fehlgeschlagen.",
+    "loadQueryables": "Filter-Felder konnten nicht von der API geladen werden",
     "networkError": "Dieses Problem kann auftreten, wenn Server den externen Zugriff über Webbrowser nicht zulassen (bspw. wenn keine CORS-Kopfzeilen vorhanden sind). @:errors.contactProvider",
     "noExternalAccess": "Der Zugriff auf externe Kataloge ist nicht erlaubt!",
     "notFound": "Die angeforderte Seite existiert nicht. @:errors.contactProvider",
@@ -121,7 +122,22 @@
     "id": "ID",
     "title": "Titel",
     "description": "Beschreibung",
-    "license": "Lizenz"
+    "license": "Lizenz",
+    "keywords": "Schlagworte",
+    "platform_summary": "Plattformen",
+    "constellation_summary": "Konstellationen",
+    "processing_level_summary": "Verarbeitungslevel",
+    "temporal_start": "Zeitbeginn",
+    "temporal_end": "Zeitende"
+  },
+  "operators": {
+    "equals": "Gleich",
+    "notEquals": "Nicht gleich",
+    "contains": "Enthält",
+    "containsOneOf": "Enthält eines von",
+    "before": "Vor",
+    "after": "Nach",
+    "between": "Zwischen"
   },
   "fullscreen": {
     "exit": "Verlasse den Vollbild-Modus",
@@ -245,6 +261,7 @@
     "less": "Zeige weniger",
     "more": "Zeige mehr"
   },
+  "remove": "Entfernen",
   "reset": "Zurücksetzen",
   "search": {
     "addCollections": "Hinzufügen mittels Enter-Taste",
@@ -252,11 +269,14 @@
     "addItemIds": "Element-Identifikationsnummern hinzufügen mittels Enter-Taste",
     "addSearchTerm": "Suchbegriff hinzufügen mittels Enter-Taste",
     "additionalFilters": "Weitere Filter",
+    "allFiltersActive": "Alle Filter sind bereits aktiv",
     "dateDescription": "Alle Zeiten in koordinierter Weltzeit (UTC).",
     "endDate": "Enddatum",
     "enterCollections": "Gebe Katalog-Identifikationsnummern ein...",
     "enterItemIds": "Gebe Element-Identifikationsnummern ein...",
+    "enterPattern": "Muster für {field} eingeben",
     "enterSearchTerms": "Gebe Suchbegriffe ein...",
+    "enterValue": "Wert für {field} eingeben",
     "equalTo": "entspricht genau",
     "filterBySpatialExtent": "Filtern nach räumlicher Ausdehnung",
     "filterCollection": "Im Katalog filtern",
@@ -271,6 +291,7 @@
     "lessThan": "kleiner als",
     "lessThanEqual": "kleiner als oder entspricht",
     "likeOperatorDescription": "Platzhalterzeichen können verwendet werden. `_` entspricht einem einzelnen Zeichen, `%` entspricht einer beliebigen Anzahl an Zeichen. Um nach einem Platzhalterzeichen selber zu suchen, müssen ein `\\` vor das Zeichen gesetzt werden.",
+    "loadingFilters": "Lade Filter-Felder...",
     "logical": {
       "and": "Berücksichtige alle Filter (und)",
       "or": "Berücksichtige mindestens einen der Filter (oder)"
@@ -278,6 +299,7 @@
     "matches": "enthält etwa",
     "metaDescription": "Durchsuche die angebotenen Daten von {title}.",
     "modifyCriteria": "Bitte die Suchkriterien ändern.",
+    "noFiltersAvailable": "Keine Filter verfügbar",
     "noFurtherItemsFound": "Keine weiteren Elemente verfügbar.",
     "noItemsFound": "Keine Elemente gefunden für die angegebenen Filter.",
     "noOptions": "Noch nichts eingegeben",
@@ -287,6 +309,10 @@
     "placeholder": "Suchen...",
     "searchCollections": "Collections durchsuchen",
     "selectCollections": "Wähle Kataloge...",
+    "selectDate": "Datum wählen",
+    "selectDateAfter": "Datum wählen (nach)",
+    "selectDateBefore": "Datum wählen (vor)",
+    "selectDateRange": "Zeitraum auswählen",
     "selectForItemSearch": "Markiere für Elementsuche",
     "spatialExtent": "Räumliche Ausdehnung",
     "startDate": "Startdatum",

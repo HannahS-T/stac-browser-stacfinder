@@ -104,6 +104,7 @@
     "loadApiItemsFailed": "The API Items could not be loaded.",
     "loadFilteredItems": "Sorry, loading a filtered list of Items failed.",
     "loadItems": "Sorry, loading the list of STAC Items failed.",
+    "loadQueryables": "Could not load filter fields from API",
     "networkError": "This issue may occur when servers don't allow external access via web browsers (e.g., when CORS headers are not present). @:errors.contactProvider",
     "noExternalAccess": "Accessing external catalogs is not allowed!",
     "notFound": "The requested resource does not exist. @:errors.contactProvider",
@@ -121,7 +122,22 @@
     "id": "ID",
     "title": "Title",
     "description": "Description",
-    "license": "License"
+    "license": "License",
+    "keywords": "Keywords",
+    "platform_summary": "Platforms",
+    "constellation_summary": "Constellations",
+    "processing_level_summary": "Processing Levels",
+    "temporal_start": "Start Date",
+    "temporal_end": "End Date"
+  },
+  "operators": {
+    "equals": "Equals",
+    "notEquals": "Not equals",
+    "contains": "Contains",
+    "containsOneOf": "Contains one of",
+    "before": "Before",
+    "after": "After",
+    "between": "Between"
   },
   "fullscreen": {
     "exit": "Exit fullscreen mode",
@@ -245,6 +261,7 @@
     "less": "Read less",
     "more": "Read more"
   },
+  "remove": "Remove",
   "reset": "Reset",
   "search": {
     "addCollections": "Press enter to add a collection",
@@ -252,11 +269,14 @@
     "addItemIds": "Press enter to add an Item ID",
     "addSearchTerm": "Press enter to add a search term",
     "additionalFilters": "Additional filters",
+    "allFiltersActive": "All filters are already active",
     "dateDescription": "All times in Coordinated Universal Time (UTC).",
     "endDate": "End date",
     "enterCollections": "Enter one or more Collection IDs...",
     "enterItemIds": "Enter one or more Item IDs...",
+    "enterPattern": "Enter pattern for {field}",
     "enterSearchTerms": "Enter one or more search terms...",
+    "enterValue": "Enter value for {field}",
     "equalTo": "equal to",
     "filterBySpatialExtent": "Filter by spatial extent",
     "filterCollection": "Filter Collection",
@@ -271,6 +291,7 @@
     "lessThan": "less than",
     "lessThanEqual": "less than or equal to",
     "likeOperatorDescription": "You can use wildcard characters. `_` matches a single character, `%` matches any number of characters. To search for a wildcard character specifically, you need to add a `\\` in front of the character.",
+    "loadingFilters": "Loading filter fields...",
     "logical": {
       "and": "Match all filters (and)",
       "or": "Match any filters (or)"
@@ -278,6 +299,7 @@
     "matches": "matches",
     "metaDescription": "Search through the data offering of {title}.",
     "modifyCriteria": "Please modify the search criteria.",
+    "noFiltersAvailable": "No filters available",
     "noFurtherItemsFound": "No further items available.",
     "noItemsFound": "No items found for the given filters.",
     "noOptions": "Nothing entered yet",
@@ -287,6 +309,10 @@
     "placeholder": "Search...",
     "searchCollections": "Search collections",
     "selectCollections": "Select one or multiple collections...",
+    "selectDate": "Select date",
+    "selectDateAfter": "Select date (after)",
+    "selectDateBefore": "Select date (before)",
+    "selectDateRange": "Select date range",
     "selectForItemSearch": "Select for Item Search",
     "spatialExtent": "Spatial Extent",
     "startDate": "Start date",
