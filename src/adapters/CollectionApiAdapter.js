@@ -140,6 +140,13 @@ class CollectionApiAdapter {
 
     // Add other filters if present (placeholder for bbox etc.)
 
+
+    // Add bbox filter
+    if (filters.bbox && Array.isArray(filters.bbox) && filters.bbox.length === 4) {
+      params.append('bbox', filters.bbox.join(','));
+    }
+
+
     // Add sorting (sortby parameter)
     if (sort && typeof sort === 'string') {
       const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));

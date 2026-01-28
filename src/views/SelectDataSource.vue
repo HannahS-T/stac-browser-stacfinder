@@ -133,7 +133,11 @@ export default {
         }
 
         // TODO: Add other filters when API supports them
-        // if (filters.bbox) apiFilters.bbox = filters.bbox;
+        
+        // Add bbox filter
+        if (filters.bbox) { 
+          apiFilters.bbox = filters.bbox;
+        }
 
         // Load collections with filters
         await this.$store.dispatch('loadExternalCollections', {
