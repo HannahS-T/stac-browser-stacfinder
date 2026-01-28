@@ -2,22 +2,37 @@
   <nav class="share">
     <b-button-group>
       <b-button
-        v-if="stacUrl" size="sm" variant="outline-primary" id="popover-link-btn"
-        :title="$t('source.detailsAboutSource')" tag="a" tabindex="0"
+        v-if="stacUrl || externalSourceUrl" 
+        size="sm" 
+        variant="outline-primary" 
+        id="popover-link-btn"
+        :title="$t('source.detailsAboutSource')" 
+        tag="a" 
+        tabindex="0"
       >
         <b-icon-info-lg /><span class="button-label">{{ $t('source.label') }}</span>
       </b-button>
       <b-button
-        size="sm" variant="outline-primary" id="popover-share-btn"
-        :title="$t('source.share.withOthers')" tag="a" tabindex="0"
+        size="sm" 
+        variant="outline-primary" 
+        id="popover-share-btn"
+        :title="$t('source.share.withOthers')" 
+        tag="a" 
+        tabindex="0"
       >
         <b-icon-share /><span class="button-label">{{ $t('source.share.title') }}</span>
       </b-button>
     </b-button-group>
 
     <b-popover
-      v-if="stacUrl" id="popover-link" custom-class="popover-large" target="popover-link-btn"
-      triggers="focus" placement="bottom" container="stac-browser" :title="$t('source.title')"
+      v-if="stacUrl || externalSourceUrl" 
+      id="popover-link" 
+      custom-class="popover-large" 
+      target="popover-link-btn"
+      triggers="focus" 
+      placement="bottom" 
+      container="stac-browser" 
+      :title="$t('source.title')"
     >
       <template v-if="stac">
         <b-row v-if="stacId" class="stac-id">
@@ -39,12 +54,32 @@
         </b-row>
         <hr>
       </template>
-      <Url id="stacUrl" :url="stacUrl" :label="$t('source.locatedAt')" />
+      
+      <!-- Show external source URL if available (for collections from API) -->
+      <Url 
+        v-if="externalSourceUrl" 
+        id="externalSourceUrl" 
+        :url="externalSourceUrl" 
+        :label="$t('source.viewSource')" 
+      />
+      
+      <!-- Show internal STAC URL (for regular catalog browsing) -->
+      <Url 
+        v-if="stacUrl && !externalSourceUrl" 
+        id="stacUrl" 
+        :url="stacUrl" 
+        :label="$t('source.locatedAt')" 
+      />
     </b-popover>
 
     <b-popover
-      id="popover-share" custom-class="popover-large" target="popover-share-btn" triggers="focus"
-      placement="bottom" container="stac-browser" :title="$t('source.share.title')"
+      id="popover-share" 
+      custom-class="popover-large" 
+      target="popover-share-btn" 
+      triggers="focus"
+      placement="bottom" 
+      container="stac-browser" 
+      :title="$t('source.share.title')"
     >
       <Url id="browserUrl" :url="browserUrl()" :label="$t('source.share.sharePageWithOthers')" :open="false" />
       <template v-if="enableSocialSharing">
@@ -96,6 +131,16 @@ export default {
     },
     stacId() {
       return this.stac?.id;
+    },
+    /**
+     * Extract external source URL from 'via' link
+     * This is populated by the backend for collections from the API
+     */
+    externalSourceUrl() {
+      if (!this.stac?.links) return null;
+      
+      const viaLink = this.stac.links.find(link => link.rel === 'via');
+      return viaLink?.href || null;
     },
     enableSocialSharing() {
       return Array.isArray(this.socialSharing) && this.socialSharing.length > 0;
