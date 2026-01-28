@@ -230,6 +230,13 @@ class CollectionApiAdapter {
 
     // Add other filters if present (placeholder for bbox etc.)
 
+
+    // Add bbox filter
+    if (filters.bbox && Array.isArray(filters.bbox) && filters.bbox.length === 4) {
+      params.append('bbox', filters.bbox.join(','));
+    }
+
+
     // Add CQL2 filter 
     if (filters.cql2 && typeof filters.cql2 === 'string') {
       const trimmed = filters.cql2.trim();

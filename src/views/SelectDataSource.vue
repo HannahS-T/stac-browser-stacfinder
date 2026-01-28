@@ -132,7 +132,7 @@ export default {
           apiFilters.datetime = filters.datetime;
         }
 
-        // Add bbox filter (if supported by backend)
+        // Add bbox filter
         if (filters.bbox) {
           apiFilters.bbox = filters.bbox;
         }
