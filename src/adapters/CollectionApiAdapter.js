@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { BrowserError } from '../utils';
 import { createSTAC } from '../models/stac';
+import CollectionQueryable from '../models/cql2/collectionQueryable';
 
 /**
  * Adapter for the Collections API
@@ -20,6 +21,9 @@ class CollectionApiAdapter {
       'description',
       'license'
     ];
+
+    // Cache for queryables
+    this.queryablesCache = null;
   }
 
   /**
@@ -27,6 +31,92 @@ class CollectionApiAdapter {
    */
   getSortableFields() {
     return [...this.sortableFields];
+  }
+
+  /**
+   * Fetch queryables from API (with caching)
+   * 
+   * NOTE: Temporarily adds temporal_start and temporal_end fields manually
+   * until backend /queryables endpoint is updated. These fields exist in
+   * queryableMap.js and are supported by the CQL2 parser.
+   */
+  async fetchQueryables() {
+    // Return cached version if available
+    if (this.queryablesCache) {
+      return this.queryablesCache;
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/queryables`);
+
+      if (!response.data?.properties) {
+        throw new BrowserError('Invalid queryables response');
+      }
+
+      // Parse to CollectionQueryable objects
+      let queryables = Object.entries(response.data.properties)
+        .map(([id, schema]) => new CollectionQueryable(id, schema))
+        .filter(q => q.supported);
+
+      // ============================================================
+      // TEMPORARY: Add timestamp fields and doi manually and filter out broken fields until backend updates
+      // ============================================================
+
+      // FILTER OUT BROKEN FIELDS
+      // These fields exist in queryables.js but NOT in queryableMap.js
+      const brokenFields = [
+        'gsd_summary',       // Backend has type: 'jsonb' (commented out), not text_array
+        'temporal_extent',   // Not in queryableMap, conceptually wrong (use temporal_start/end instead)
+        'spatial_extent'     // Not filterable via CQL2 (use bbox parameter instead)
+      ];
+      queryables = queryables.filter(q => !brokenFields.includes(q.id));
+
+      // Check if fields already exist (for future-proofing)
+      const hasTemporalStart = queryables.some(q => q.id === 'temporal_start');
+      const hasTemporalEnd = queryables.some(q => q.id === 'temporal_end');
+      const hasDoi = queryables.some(q => q.id === 'doi');
+
+      // Add temporal_start if not present
+      if (!hasTemporalStart) {
+        queryables.push(new CollectionQueryable('temporal_start', {
+          type: 'string',
+          format: 'date-time',
+          title: 'Zeitbeginn',
+          description: 'Startdatum der Collection (ISO 8601)'
+        }));
+      }
+
+      // Add temporal_end if not present
+      if (!hasTemporalEnd) {
+        queryables.push(new CollectionQueryable('temporal_end', {
+          type: 'string',
+          format: 'date-time',
+          title: 'Zeitende',
+          description: 'Enddatum der Collection (ISO 8601)'
+        }));
+      }
+
+      // Add doi field (text field) if not present
+      if (!hasDoi) {
+        queryables.push(new CollectionQueryable('doi', {
+          type: 'string',
+          title: 'DOI',
+          description: 'Digital Object Identifier'
+        }));
+      }
+
+      // ============================================================
+      // TEMPORARY: Add timestamp fields and doi manually and filter out broken fields until backend updates
+      // ============================================================
+
+      // Cache result
+      this.queryablesCache = queryables;
+
+      return queryables;
+
+    } catch (error) {
+      throw new BrowserError(`Failed to load queryables: ${error.message}`);
+    }
   }
 
   /**
@@ -139,6 +229,15 @@ class CollectionApiAdapter {
     }
 
     // Add other filters if present (placeholder for bbox etc.)
+
+    // Add CQL2 filter 
+    if (filters.cql2 && typeof filters.cql2 === 'string') {
+      const trimmed = filters.cql2.trim();
+      if (trimmed) {
+        params.append('filter', trimmed);
+        params.append('filter-lang', 'cql2-text');
+      }
+    }
 
     // Add sorting (sortby parameter)
     if (sort && typeof sort === 'string') {
