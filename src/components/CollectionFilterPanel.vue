@@ -29,8 +29,11 @@
       </b-form-group>
 
       <!-- Map filter -->
-      <b-form-group :label="$t('search.spatialExtent')">
+      <b-form-group style="width: 25%" :label="$t('search.spatialExtent')">
         <MapSelect v-model="bbox" :stac="resolvedStac" />
+        <b-form-group :label="$t('search.spatialRelationType')">
+          <b-form-select v-model="selected" :options="options"/>
+        </b-form-group>
       </b-form-group>
 
       <!--CQL2 METADATA FILTERS -->
@@ -89,6 +92,7 @@ import {
   BDropdownItemButton,
   BButton,
   BCol,
+  BFormSelect,
   BRow,
   BFormInput,
   BBadge,
@@ -119,6 +123,7 @@ export default {
     BDropdownItemButton,
     BButton,
     BCol,
+    BFormSelect,
     BRow,
     BFormInput,
     BBadge,
@@ -150,6 +155,15 @@ export default {
 
   data() {
     return {
+      // spatial filters
+      selected: null,
+      options: [
+        { value: 'intersects', text: this.$t('search.intersects') },
+        { value: 'contains', text: this.$t('search.contains') },
+        { value: 'overlaps', text: this.$t('search.overlaps') },
+        { value: 'within', text: this.$t('search.within') }
+      ],
+
       // Free-text search term
       query: {
         q: ''
