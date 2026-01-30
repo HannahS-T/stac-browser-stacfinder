@@ -16,10 +16,10 @@ class CollectionApiAdapter {
 
     // Whitelisted fields supported by the API for sorting
     this.sortableFields = [
-      'id',
       'title',
       'description',
-      'license'
+      'temporal_start',
+      'temporal_end'
     ];
 
     // Cache for queryables

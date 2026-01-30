@@ -331,11 +331,11 @@
   "sort": {
     "asc": {
       "label": "Ascending",
-      "title": "Sort in ascending order (A-Z)"
+      "title": "Sort in ascending order"
     },
     "desc": {
       "label": "Descending",
-      "title": "Sort in descending order (Z-A)"
+      "title": "Sort in descending order"
     },
     "title": "Sort"
   },
