@@ -25,6 +25,7 @@ If you care about STAC Browser and have some funds to support the future of STAC
   - [Get Started](#get-started)
     - [Private query parameters](#private-query-parameters)
     - [Migrate from old versions](#migrate-from-old-versions)
+  - [STACFinder - Advanced Collection Search](#stacfinder---advanced-collection-search)
   - [Customize](#customize)
     - [Options](#options)
     - [Languages](#languages)
@@ -106,6 +107,14 @@ In this case use for example `https://examples.com/stac-browser/#?~API_KEY=123` 
 ### Migrate from old versions
 
 Please read the [migration documentation](docs/migrate.md) for details.
+
+## STACFinder - Advanced Collection Search
+
+STAC Browser has been extended by [GeoStack Solutions](https://github.com/GeoStack-Solutions) with advanced collection search functionality. This extension enables cross-catalog collection browsing with advanced filtering (CQL2, spatial, temporal) and sorting across multiple STAC catalogs through a unified API.
+
+For more information please read the **[advanced collection search documentation](docs/collection-search.md)**.
+
+This extension is part of the [STACFinder Project](https://github.com/GeoStack-Solutions/stac-finder).
 
 ## Customize
 
