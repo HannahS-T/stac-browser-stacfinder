@@ -23,7 +23,6 @@
       :collectionsOnly="true"
       :pagination="pagination"
       :disableLocalSort="true"
-      :hideFirstButton="true"
       @paginate="handlePaginate"
     />
   </div>
