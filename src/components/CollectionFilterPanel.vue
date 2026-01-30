@@ -292,11 +292,21 @@ export default {
  * Build CQL2 filter string from active metadata filters
  */
     buildCql2Filter() {
-      if (this.metadataFilters.length === 0) {
+      let spatialExpr = null;
+      if (Array.isArray(this.bbox) && this.bbox.length == 4 && this.selected) {
+       spatialExpr = this.selected;
+      }
+
+      if (this.metadataFilters.length === 0 && !spatialExpr) {
         return null;
       }
 
       const cql = new CollectionCql();
+
+      // Add spatial filter if defined
+      if (spatialExpr) {
+        cql.addSpatial(spatialExpr, this.bbox.join(','));
+      }
 
       for (const filter of this.metadataFilters) {
         const { queryable, operator, value } = filter;
@@ -351,7 +361,7 @@ export default {
               }
             }
           }
-
+      
         } catch (error) {
           console.error('Error building CQL for filter:', filter, error);
         }
@@ -415,7 +425,7 @@ export default {
           ? [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null)
           : null,
 
-        bbox: Array.isArray(this.bbox) && this.bbox.length === 4
+        bbox: Array.isArray(this.bbox) && this.bbox.length === 4 && !this.selected
           ? [...this.bbox]
           : null,
 
