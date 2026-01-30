@@ -268,6 +268,11 @@ function getStore(config, router) {
           url = '/';
         }
 
+        // Don't resolve absolute /collections paths when browsing internal collections
+        if (state.url?.startsWith('internal://collections') && url.startsWith('/collections')) {
+          return url;
+        }
+
         let absolute = Utils.toAbsolute(url, state.url, false);
         let relative;
         if (!state.allowSelectCatalog && state.catalogUrl) {
@@ -1079,7 +1084,7 @@ function getStore(config, router) {
             activePaginationUrl
           );
 
-          // Convert to Stac Browser kompatible STAC Collections
+          // Convert to STAC Browser compatible STAC Collections
           const stacCollections = collections.map(col =>
             collectionAdapter.wrapCollection(col)
           );
@@ -1098,10 +1103,13 @@ function getStore(config, router) {
             collections: stacCollections
           });
 
-          // Show page if requested
+          // Display the collections page if requested
+          // Note: We pass the stac object explicitly to ensure it's available
+          // in state.data even if the database lookup by URL fails
           if (show) {
             cx.commit('showPage', {
               url: collectionAdapter.syntheticUrl,
+              stac: catalog,
               page: () => ({ title: 'Collections' })
             });
           }
@@ -1133,10 +1141,13 @@ function getStore(config, router) {
           // Save the collection in the Vuex store
           cx.commit('setExternalCollection', stacCollection);
 
-          // Optionally display the collection page
+          // Display the collection page if requested
+          // Note: We pass the stac object explicitly to ensure it's available
+          // in state.data even if the database lookup by URL fails
           if (show) {
             cx.commit('showPage', {
               url,
+              stac: stacCollection,
               page: () => ({
                 title: stacCollection.title,
                 description: stacCollection.description

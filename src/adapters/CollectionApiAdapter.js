@@ -333,39 +333,94 @@ class CollectionApiAdapter {
   }
 
   /**
-   * Prepares a STAC Collection for use in the browser
-   * Adds internal browser metadata (href, path)
-   */
+ * Prepare a STAC Collection for use in the browser
+ * 
+ * @param {Object} collection - Raw collection object from the backend API
+ * @returns {STAC} - STAC Browser compatible collection object
+ */
   wrapCollection(collection) {
+
+    // Extract metadata links that should be preserved
+    // These links provide information about the data source and licensing
+    const metadataRels = ['via', 'license', 'cite-as', 'derived_from', 'about', 'describedby'];
+    const metadataLinks = (collection.links || []).filter(link =>
+      link && link.rel && metadataRels.includes(link.rel)
+    );
+
+    // Create browser-compatible navigation links
+    // These links use absolute paths that work with the browser's routing system
+    const browserLinks = [
+      {
+        rel: 'self',
+        href: `/collections/${collection.id}`,
+        type: 'application/json'
+      },
+      {
+        rel: 'root',
+        href: '/collections',
+        type: 'application/json',
+        title: 'Collections'
+      },
+      {
+        rel: 'parent',
+        href: '/collections',
+        type: 'application/json',
+        title: 'Collections'
+      }
+    ];
+
+    // Combine browser navigation links and preserved metadata links
+    const processedCollection = {
+      ...collection,
+      links: [...browserLinks, ...metadataLinks]
+    };
+
+    // Create STAC object with browser metadata
+    // The syntheticUrl is used internally for database storage
     const collectionUrl = `${this.syntheticUrl}/${collection.id}`;
 
     return createSTAC(
-      collection,
+      processedCollection,
       collectionUrl,
       `/collections/${collection.id}`
     );
   }
 
   /**
-   * Creates a catalog for the collections list
+   *Creates a synthetic STAC Catalog that represents the collections list page 
    * @param {Array} collections - Array of STAC collections
    * @param {Object} filters - Active filters (q, datetime etc.)
    * @param {string|null} sort - Sort parameter
-   * @param {Array} paginationLinks - Pagination links
+   * @param {Array} paginationLinks - Pagination links from API
+   * @returns {STAC} - STAC Browser compatible catalog object
    */
   createCatalog(collections, filters = {}, sort = null, paginationLinks = []) {
     const catalogData = {
       type: 'Catalog',
       id: 'collections',
       title: 'Collections',
+      description: 'Collections from external STAC API',
       stac_version: '1.0.0',
       links: [
-        { rel: 'self', href: this.syntheticUrl, type: 'application/json' },
+        {
+          rel: 'self',
+          href: this.syntheticUrl,
+          type: 'application/json'
+        },
+        {
+          rel: 'root',
+          href: this.syntheticUrl,
+          type: 'application/json',
+          title: 'Collections'
+        },
+        // No parent link - this catalog is the root level
         ...paginationLinks
       ]
     };
 
     const catalog = createSTAC(catalogData, this.syntheticUrl, '/collections');
+
+    // Attach browser-specific metadata
     catalog._apiCollections = collections;
     catalog._filters = filters;
     catalog._sort = sort;
