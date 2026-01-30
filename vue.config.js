@@ -32,7 +32,7 @@ const mergedConfig = Object.assign(configFromFile, argv);
 // Set dev server host and API URL dynamically
 // If running in Docker, use Docker environment variable (API_URL)
 // Otherwise, default to localhost for local development
-const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:3000';
+const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:4000';
 const host = apiUrl.includes('localhost')? 'localhost' : '0.0.0.0';
 
 const vueConfig = {
