@@ -52,6 +52,16 @@
       <!-- Additional metadata filters -->
       <b-form-group v-if="queryablesLoaded && queryables.length > 0" class="additional-filters"
         :label="$t('search.additionalFilters')">
+        
+        <!-- AND/OR logical operator selection -->
+        <b-form-radio-group 
+          v-model="logicalOperator" 
+          :options="logicalOperatorOptions" 
+          name="logical-operator" 
+          size="sm"
+          class="mb-2"
+        />
+
         <b-dropdown size="sm" block variant="primary" :text="$t('search.addFilter')"
           :disabled="availableQueryables.length === 0" class="metadata-filters mt-2 mb-3">
           <!-- Queryable Items -->
@@ -102,6 +112,7 @@ import {
   BButton,
   BCol,
   BFormSelect,
+  BFormRadioGroup,
   BRow,
   BFormInput,
   BBadge,
@@ -133,6 +144,7 @@ export default {
     BButton,
     BCol,
     BFormSelect,
+    BFormRadioGroup,
     BRow,
     BFormInput,
     BBadge,
@@ -186,6 +198,9 @@ export default {
       // Spatial filter as bounding box [minX, minY, maxX, maxY]
       bbox: null,
 
+      // Logical operator for combining metadata filters (AND/OR)
+      logicalOperator: 'and',
+
       // Active metadata filters (CQL2)
       // Each filter: { queryable: CollectionQueryable, operator: string, value: string }
       metadataFilters: [],
@@ -223,6 +238,16 @@ export default {
         { value: 'contains',   text: this.$t('search.contains') },
         { value: 'overlaps',   text: this.$t('search.overlaps') },
         { value: 'within',     text: this.$t('search.within') }
+      ];
+    },
+
+    /**
+     * AND/OR options for combining metadata filters
+     */
+    logicalOperatorOptions() {
+      return [
+        { value: 'and', text: this.$t('search.logical.and') },
+        { value: 'or', text: this.$t('search.logical.or') }
       ];
     },
 
@@ -304,6 +329,11 @@ export default {
         this.bbox = this.initialFilters.bbox;
       }
 
+      // Restore logical operator for metadata filters
+      if (this.initialFilters.logicalOperator === 'and' || this.initialFilters.logicalOperator === 'or') {
+        this.logicalOperator = this.initialFilters.logicalOperator;
+      }
+
       // Restore metadata filters (requires queryables to be loaded)
       this.restoreMetadataFilters();
     },
@@ -341,6 +371,7 @@ export default {
       this.start = null;
       this.end = null;
       this.bbox = null;
+      this.logicalOperator = 'and';
       this.metadataFilters = [];
     },
 
@@ -419,6 +450,9 @@ export default {
       }
 
       const cql = new CollectionCql();
+      
+      // Set the logical operator (AND/OR) for combining metadata filters
+      cql.setLogicalOperator(this.logicalOperator);
 
       // Add spatial filter for contains, within, overlaps (not intersects)
       if (useCql2Spatial) {
@@ -608,7 +642,10 @@ export default {
         // Structured metadata filters (for UI restoration)
         metadataFilters: serializedMetadataFilters.length > 0 
           ? serializedMetadataFilters 
-          : null
+          : null,
+
+        // Logical operator for combining metadata filters
+        logicalOperator: this.logicalOperator
       };
 
       this.$emit('submit', filters);
