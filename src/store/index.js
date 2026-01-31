@@ -52,6 +52,9 @@ function getStore(config, router) {
     apiItemsLoading: {},
     nextCollectionsLink: null,
     externalCollectionsLoaded: false,
+    
+    // Pagination info for external collections
+    collectionsNumberMatched: null,  // Total number of collections
 
     // Central state for external collection filters/sort/pagination
     collectionsFilters: {},
@@ -238,6 +241,11 @@ function getStore(config, router) {
       collectionSortableFields: () => {
         return collectionAdapter.getSortableFields();
       },
+
+      /**
+       * Total number of collections for display
+       */
+      collectionsTotal: state => state.collectionsNumberMatched,
 
       items: state => {
         if (state.apiItems.length > 0) {
@@ -655,6 +663,12 @@ function getStore(config, router) {
         state.collectionsFilters = {};
         state.collectionsSort = null;
         state.collectionsPaginationUrl = null;
+        state.collectionsNumberMatched = null;
+      },
+
+      // Set total number of collections
+      setCollectionsNumberMatched(state, count) {
+        state.collectionsNumberMatched = count;
       }
     },
     actions: {
@@ -1078,11 +1092,14 @@ function getStore(config, router) {
           cx.commit('setCollectionsPaginationUrl', activePaginationUrl);
 
           // Fetch collections from API
-          const { collections, paginationLinks } = await collectionAdapter.fetchCollections(
+          const { collections, paginationLinks, numberReturned, numberMatched } = await collectionAdapter.fetchCollections(
             activeFilters,
             activeSort,
             activePaginationUrl
           );
+
+          // Store total number of collections
+          cx.commit('setCollectionsNumberMatched', numberMatched);
 
           // Convert to STAC Browser compatible STAC Collections
           const stacCollections = collections.map(col =>

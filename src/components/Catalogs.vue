@@ -100,23 +100,13 @@ export default {
   },
   computed: {
     ...mapState(['cardViewSort', 'uiLanguage']),
-    ...mapGetters(['getStac']),
+    ...mapGetters(['getStac', 'collectionsTotal']),
 
 
     catalogCount() {
-      // For external collections with pagination: Show contextual information
-      if (this.showPagination && this.catalogs.length > 0) {
-        const hasNext = !!this.pagination.next;
-        const hasPrev = !!this.pagination.prev;
-        
-        // Show page indicators with arrows
-        if (hasPrev && hasNext) {
-          return `← ${this.catalogs.length} →`; // Middle page
-        } else if (hasNext) {
-          return `${this.catalogs.length} →`; // First page
-        } else if (hasPrev) {
-          return `← ${this.catalogs.length}`; // Last page
-        }
+      // For external collections with pagination: Show total count
+      if (this.showPagination && this.collectionsTotal !== null) {
+        return this.collectionsTotal;
       }
 
       // Original logic for other cases

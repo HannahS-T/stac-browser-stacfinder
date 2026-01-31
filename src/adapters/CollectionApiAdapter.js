@@ -298,7 +298,9 @@ class CollectionApiAdapter {
 
       return {
         collections: response.data.collections,
-        paginationLinks: paginationLinks
+        paginationLinks: paginationLinks,
+        numberReturned: response.data.numberReturned || 0,
+        numberMatched: response.data.numberMatched || 0
       };
 
     } catch (error) {

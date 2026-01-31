@@ -74,14 +74,30 @@ export default {
 
     /**
      * Extract pagination links from API response
+     * Filter first/last based on current position
      */
     pagination() {
       const links = this.data?._paginationLinks || [];
       const paginationLinks = {};
 
+      // Check current page position
+      const hasNext = links.some(l => l.rel === 'next');
+      const hasPrev = links.some(l => l.rel === 'prev');
+
       links.forEach(link => {
-        if (['next', 'prev', 'first', 'last'].includes(link.rel)) {
+        if (link.rel === 'next' || link.rel === 'prev') {
+          // Always include next/prev
           paginationLinks[link.rel] = link;
+        } else if (link.rel === 'first') {
+          // Only include first if we're NOT on first page (i.e., if prev exists)
+          if (hasPrev) {
+            paginationLinks[link.rel] = link;
+          }
+        } else if (link.rel === 'last') {
+          // Only include last if we're NOT on last page (i.e., if next exists)
+          if (hasNext) {
+            paginationLinks[link.rel] = link;
+          }
         }
       });
 
