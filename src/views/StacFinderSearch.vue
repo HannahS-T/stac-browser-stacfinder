@@ -3,7 +3,6 @@
     <!-- Initial State: Only Filter Panel (centered) -->
     <div v-if="!hasSearched" class="filter-only-view">
       <div class="filter-container">
-        <h2 class="mb-4 text-center">{{ $t('search.searchCollections') }}</h2>
         <p class="text-muted text-center mb-4">{{ $t('index.stacFinderDescription') }}</p>
         <CollectionFilterPanel 
           :stac="parent" 
@@ -12,18 +11,53 @@
       </div>
     </div>
 
-    <!-- Results State: Filter Panel left, Results right -->
-    <b-row v-else>
-      <!-- Left: Filter Panel -->
-      <b-col cols="12" lg="4" class="left">
-        <CollectionFilterPanel 
-          :stac="parent" 
-          @submit="searchCollections"
-        />
+    <!-- Results State: Collapsible Filter + Results -->
+    <b-row v-else class="results-view">
+      <!-- Left: Collapsible Filter Panel -->
+      <b-col 
+        cols="12" 
+        :lg="showFilters ? 3 : 'auto'" 
+        class="left"
+        :class="{ 'filter-collapsed': !showFilters }"
+      >
+        <!-- Collapsed state: just a button -->
+        <b-button
+          v-if="!showFilters"
+          variant="outline-secondary"
+          class="filter-expand-btn"
+          @click="showFilters = true"
+          :title="$t('items.showFilter')"
+        >
+          ☰ {{ $t('items.filter') }}
+        </b-button>
+
+        <!-- Expanded state: full filter panel with collapse button -->
+        <div v-else class="filter-panel-wrapper">
+          <div class="filter-header d-flex justify-content-between align-items-center mb-2">
+            <span class="font-weight-bold">{{ $t('items.filter') }}</span>
+            <b-button 
+              variant="link" 
+              size="sm" 
+              class="p-0 text-muted"
+              @click="showFilters = false"
+              :title="$t('items.hideFilter')"
+            >
+              ✕
+            </b-button>
+          </div>
+          <CollectionFilterPanel 
+            :stac="parent" 
+            @submit="searchCollections"
+          />
+        </div>
       </b-col>
 
-      <!-- Right: Results -->
-      <b-col cols="12" lg="8" class="right">
+      <!-- Right: Results (expands when filter hidden) -->
+      <b-col 
+        cols="12" 
+        :lg="showFilters ? 9 : true" 
+        class="right"
+      >
         <!-- Loading State -->
         <Loading v-if="loading" fill top />
 
@@ -97,6 +131,7 @@ export default {
       error: null,
       errorId: null,
       hasSearched: false,
+      showFilters: true,  // Toggle for collapsible filter panel
       data: null,
       filters: {},
       sortField: 'title',
@@ -256,18 +291,43 @@ export default {
 
     .filter-container {
       width: 100%;
-      max-width: 600px;
+      max-width: 800px;
+
+      @include media-breakpoint-up(lg) {
+        max-width: 900px;
+      }
     }
   }
 
-  // Results state
+  // Results state - collapsible filter
   .left {
     margin-bottom: $block-margin;
+    transition: all 0.2s ease;
+
+    &.filter-collapsed {
+      flex: 0 0 auto;
+      max-width: none;
+      width: auto;
+    }
+
+    .filter-expand-btn {
+      white-space: nowrap;
+    }
+
+    .filter-panel-wrapper {
+      .filter-header {
+        padding: 0.5rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem 0.25rem 0 0;
+        margin: -1px -1px 0 -1px;
+      }
+    }
   }
 
   .right {
     position: relative;
     min-height: 300px;
+    transition: all 0.2s ease;
   }
 
   .sort-controls {
