@@ -2,16 +2,17 @@
 
 ## Overview
 
-The STAC Browser has been extended by [GeoStack Solutions](https://github.com/GeoStack-Solutions) with advanced collection search functionality as part of the [STACFinder](https://github.com/GeoStack-Solutions/stac-finder) project. The extension enables cross-catalog collection browsing through a API integration. The enhanced STAC Browser allows users to search, filter, and browse STAC Collections from multiple catalogs stored in a PostgreSQL/PostGIS database.
+The STAC Browser has been extended by [GeoStack Solutions](https://github.com/GeoStack-Solutions) with advanced collection search functionality as part of the [STACFinder](https://github.com/GeoStack-Solutions/stac-finder) project. The extension enables cross-catalog collection browsing through API integration.
 
 ### What Was Extended
 
 The standard STAC Browser was designed to browse individual STAC Catalogs via their static JSON files or STAC API endpoints. STACFinder adds:
 
 - **Cross-Catalog Search**: Browse collections from multiple STAC Index catalogs through a single interface
-- **External API Integration**: Connects to a STAC API backend that aggregates collections from multiple STAC catalogs and APIs
+- **External API Integration**: Connects to a STAC API backend that aggregates collections from multiple STAC catalogs
 - **Advanced Filtering**: CQL2-based filtering, free-text search, temporal and spatial filters
-- **Modified UI Components**: Filter panels, queryables-driven filter builder, enhanced pagination and sorting
+- **URL-based State**: Filter parameters in URL for bookmarking and sharing
+- **Session Persistence**: Metadata filters and pagination preserved during navigation
 ---
 
 ## Getting Started
@@ -182,10 +183,8 @@ Filterable fields discoverable via `/collections/queryables` endpoint. Frontend 
 The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 
 **Key Responsibilities:**
-- URL conversion between `internal://collections` and HTTP URLs
-- Query parameter building 
-- Response parsing and STAC wrapping
-- Queryables caching
+- Query parameter building for filters and sorting
+- Queryables fetching and caching
 - Error handling
 
 ---
@@ -213,82 +212,65 @@ The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 └─────────────────────────┘
 ```
 
-### Added Components
+### Components
 
 **Vue Components:**
-- `CollectionFilterPanel.vue` - Main filter panel container with search, datetime, bbox, and CQL2 filters
+- `StacFinderSearch.vue` - Main search view with filter panel, results, sorting and pagination
+- `CollectionFilterPanel.vue` - Filter form with search, datetime, bbox, and CQL2 metadata filters
 - `CollectionMetadataFilter.vue` - Dynamic CQL2 filter builder UI driven by queryables
-- `Collections.vue` - Collections list view with sorting controls
 
 **JavaScript Modules:**
-- `CollectionApiAdapter.js` - API client handling URL conversion, request building, and response parsing
+- `CollectionApiAdapter.js` - API client for query building and queryables fetching
 - `collectionCql.js` - CQL2-Text query builder for constructing filter expressions
 - `collectionQueryable.js` - Queryable field definitions with type detection and operator mapping
 
-**Vue Router (Extended):**
-- `/collections` → Collections list view
-- `/collections/:id` → Single collection detail view
+**Vue Router:**
+- `/stacfinder` → StacFinderSearch view (collection search with filters)
+- `/` → Standard STAC Browser catalog view
 
-**Vuex Store (Added):**
-- **State**: `collectionsFilters`, `collectionsSort`, `collectionsPaginationUrl`
-- **Actions**: `loadExternalCollections`, `loadExternalCollection`
-- **Mutations**: `setExternalCollections`, `setExternalCollection`, `setCollectionsFilters`, `setCollectionsSort`, `setCollectionsPaginationUrl`
-- **Getters**: `collectionSortableFields`
+**Vuex Store:**
+- `collectionsSearchData` - Cache for search results (enables back navigation with pagination)
+
+### State Management
+
+The search state is managed across three layers:
+
+| Data | Storage | Survives Reload | Survives Back-Nav |
+|------|---------|-----------------|-------------------|
+| Simple filters (q, bbox, datetime, sort) | **URL** | ✅ | ✅ | 
+| Metadata filters (CQL2) | **sessionStorage** | ✅ | ✅ |
+| Pagination + Results | **Vuex Cache** | ❌ | ✅ | 
+
+**URL Format:**
+```
+/stacfinder?q=sentinel&bbox=7,51,8,52&datetime=2024-01-01/..&sort=-title
+```
 
 ### Data Flow
 
-**Standard Workflow:** User searches for collections and views details
-
 ```
-1. Application Start:
-   → SelectDataSource.vue displays CollectionFilterPanel
-   → User enters filters (q, datetime, bbox, CQL2 metadata)
+1. User enters filters in CollectionFilterPanel
    
 2. Filter Submission:
    → CollectionFilterPanel emits @submit with filters
-   → SelectDataSource.browseCollections() receives filters
-   → Calls store.dispatch('loadExternalCollections', { filters })
-   → Navigates to /collections
+   → StacFinderSearch.searchCollections() receives filters
+   → Updates URL with simple filters
+   → Saves metadata filters to sessionStorage
+   → Calls API via CollectionApiAdapter
 
-3. Data Loading (Vuex Store):
-   → loadExternalCollections() stores filters in state
-   → Calls CollectionApiAdapter.fetchCollections()
-   → Adapter builds URL and sends Axios GET request
+3. API Request:
+   → CollectionApiAdapter.buildFilteredLink() constructs URL
+   → stacRequest() sends GET to /collections?q=...&filter=...
 
-4. Backend Processing:
-   → API receives /collections?q=...&filter=...&sortby=...
-   → PostgreSQL executes query with filters
-   → Returns collections + pagination links
+4. Response Handling:
+   → Results cached in Vuex (collectionsSearchData)
+   → Collections rendered as cards with pagination
 
-5. Response Processing:
-   → Adapter converts pagination links (HTTP → internal://)
-   → Wraps collections as STAC format
-   → Creates synthetic catalog and stores in Vuex
-
-6. Rendering:
-   → Router matches /collections → Browse.vue
-   → BrowseMixin detects internal:// URL
-   → Browse renders Collections.vue
-   → Collections displays Catalogs component with cards
-
-7. Detail View:
-   → User clicks collection card
-   → Navigate to /collections/{id}
-   → loadExternalCollection() fetches single collection
-   → Catalog.vue renders full metadata
+5. Navigation:
+   → User clicks collection → navigates to detail view
+   → Back button → Vuex cache restores results + pagination
+   → Reload (F5) → URL params + sessionStorage restore filters
 ```
-
-### URL Schema
-
-Three-layer URL system for routing and API communication:
-
-| Layer | Example | Purpose |
-|-------|---------|---------|
-| **Browser URLs** | `/collections?q=sentinel` | User-facing URLs (Vue Router) |
-| **Internal URLs** | `internal://collections?q=sentinel` | State management (Vuex, detected by BrowseMixin) |
-| **API URLs** | `/collections?q=sentinel` | HTTP requests to backend (Axios) |
-
-**Purpose:** The `internal://` protocol distinguishes collections API requests from regular STAC catalog browsing. `CollectionApiAdapter` converts between internal and API URLs automatically.
 
 ---
 ## Technology Stack

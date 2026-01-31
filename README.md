@@ -110,9 +110,10 @@ Please read the [migration documentation](docs/migrate.md) for details.
 
 ## STACFinder - Advanced Collection Search
 
-STAC Browser has been extended by [GeoStack Solutions](https://github.com/GeoStack-Solutions) with advanced collection search functionality. This extension enables cross-catalog collection browsing with advanced filtering (CQL2, spatial, temporal) and sorting across multiple STAC catalogs through a unified API.
+STAC Browser has been extended by [GeoStack Solutions](https://github.com/GeoStack-Solutions) with advanced collection search functionality. This extension enables cross-catalog collection browsing with advanced filtering (CQL2, spatial, temporal), sorting, and URL-based state persistence.
 
-For more information please read the **[advanced collection search documentation](docs/collection-search.md)**.
+
+For more information please read the **[STACFinder documentation](docs/stacfinder.md)**.
 
 This extension is part of the [STACFinder Project](https://github.com/GeoStack-Solutions/stac-finder).
 
