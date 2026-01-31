@@ -1,5 +1,18 @@
 <template>
   <main class="select-data-source">
+    <!-- STACFinder Search -->
+    <b-card v-if="hasStacFinderApi" no-body class="mb-4">
+      <b-card-header>
+        <h5 class="mb-0">STACFinder</h5>
+      </b-card-header>
+      <b-card-body>
+        <p class="text-muted">{{ $t('index.stacFinderDescription') }}</p>
+        <b-button variant="primary" @click="openStacFinder">
+          {{ $t('index.openStacFinder') }}
+        </b-button>
+      </b-card-body>
+    </b-card>
+
     <!-- URL Input Section -->
     <b-card no-body class="mb-4">
       <b-card-header>
@@ -14,9 +27,6 @@
         </b-form>
       </b-card-body>
     </b-card>
-
-    <!-- Filter Collections Section -->
-    <CollectionFilterPanel @submit="browseCollections" />
 
     <!-- STAC Index Section -->
     <b-card v-if="stacIndex.length > 0" no-body class="stac-index">
@@ -50,14 +60,13 @@
 
 <script>
 import { BForm, BFormGroup, BFormInput, BListGroup, BListGroupItem, BCard, BCardHeader, BCardBody } from 'bootstrap-vue';
-import { mapGetters } from "vuex";
+import { mapGetters, mapState } from 'vuex';
 import Description from '../components/Description.vue';
 import Utils from '../utils';
-import axios from "axios";
-import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
+import axios from 'axios';
 
 export default {
-  name: "SelectDataSource",
+  name: 'SelectDataSource',
   components: {
     BForm,
     BFormGroup,
@@ -67,8 +76,7 @@ export default {
     BCard,
     BCardHeader,
     BCardBody,
-    Description,
-    CollectionFilterPanel
+    Description
   },
   data() {
     return {
@@ -77,32 +85,28 @@ export default {
     };
   },
   computed: {
+    ...mapState(['stacFinderApiUrl']),
     ...mapGetters(['toBrowserPath']),
+    hasStacFinderApi() {
+      return Boolean(this.stacFinderApiUrl);
+    },
     valid() {
       return !this.error;
     },
     error() {
-      if (!this.url) {
-        return null;
-      }
+      if (!this.url) return null;
       try {
-        let url = new URL(this.url);
-        if (!url.protocol) {
-          return this.$t('index.urlMissingProtocol');
-        }
-        else if (!url.host) {
-          return this.$t('index.urlMissingHost');
-        }
+        let parsedUrl = new URL(this.url);
+        if (!parsedUrl.protocol) return this.$t('index.urlMissingProtocol');
+        if (!parsedUrl.host) return this.$t('index.urlMissingHost');
         return null;
-      } catch (error) {
+      } catch (e) {
         return this.$t('index.urlInvalid');
       }
     }
   },
   async created() {
-    // Reset loaded STAC catalog
     this.$store.commit('resetCatalog', true);
-    // Load entries from STAC Index
     try {
       let response = await axios.get('https://stacindex.org/api/catalogs');
       if (Array.isArray(response.data)) {
@@ -113,62 +117,12 @@ export default {
     }
   },
   methods: {
-    /**
-     * When collection filter panel submits filters, load filtered collections
-     * @param {Object} filters - Filter object from CollectionFilterPanel
-     */
-    async browseCollections(filters) {
-      try {
-        // Build filter object for API
-        const apiFilters = {};
-
-        // Add free-text search
-        if (filters.q) {
-          apiFilters.q = filters.q;
-        }
-
-        // Add datetime filter
-        if (filters.datetime) {
-          apiFilters.datetime = filters.datetime;
-        }
-
-        // Add bbox filter
-        if (filters.bbox) {
-          apiFilters.bbox = filters.bbox;
-        }
-
-        // Add CQL2 filter 
-        if (filters.cql2) {
-          apiFilters.cql2 = filters.cql2;
-        }
-
-        // Log filters for debugging
-        console.log('Submitting collection filters:', apiFilters);
-
-        // Load collections with filters via Vuex action
-        await this.$store.dispatch('loadExternalCollections', {
-          show: true,
-          filters: apiFilters,
-          resetPagination: true  // Start from first page
-        });
-
-        // Navigate to collections view
-        this.$router.push({ name: 'collections' });
-
-      } catch (error) {
-        console.error('Error loading filtered collections:', error);
-        this.$root.$emit('error', error, 'Failed to load collections');
-      }
+    openStacFinder() {
+      this.$router.push({ name: 'stacfinder' });
     },
-
     show(catalog) {
-      if (catalog.access === 'private') {
-        return false;
-      }
-      else if (!this.url) {
-        return true;
-      }
-
+      if (catalog.access === 'private') return false;
+      if (!this.url) return true;
       return Utils.search(this.url, [catalog.title, catalog.url]);
     },
     setUrl(url) {
@@ -196,18 +150,17 @@ export default {
   overflow-x: hidden;
   padding: 0;
 
-  >.card:first-child,
-  >div:not(.stac-index),
-  >.collection-filter-panel {
+  > .card,
+  > .stacfinder-card {
     flex-shrink: 0;
     margin: $block-margin;
     margin-bottom: 0;
   }
 
   .stac-index {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
     margin: $block-margin;
-    height: 500px;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     overflow: hidden;
