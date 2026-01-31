@@ -16,10 +16,10 @@ class CollectionApiAdapter {
 
     // Whitelisted fields supported by the API for sorting
     this.sortableFields = [
-      'id',
       'title',
       'description',
-      'license'
+      'temporal_start',
+      'temporal_end'
     ];
 
     // Cache for queryables
@@ -298,7 +298,9 @@ class CollectionApiAdapter {
 
       return {
         collections: response.data.collections,
-        paginationLinks: paginationLinks
+        paginationLinks: paginationLinks,
+        numberReturned: response.data.numberReturned || 0,
+        numberMatched: response.data.numberMatched || 0
       };
 
     } catch (error) {

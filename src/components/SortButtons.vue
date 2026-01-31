@@ -1,22 +1,22 @@
 <template>
   <b-button-group :title="$t('sort.title')" size="sm">
     <b-button @click="toggle(1)" variant="outline-primary" :title="$t('sort.asc.title')" :pressed="value === 1 || (enforce && value !== -1)">
-      <b-icon-sort-alpha-down /> <span class="button-label">{{ $t('sort.asc.label') }}</span>
+      <b-icon-sort-down /> <span class="button-label">{{ $t('sort.asc.label') }}</span>
     </b-button>
     <b-button @click="toggle(-1)" variant="outline-primary" :title="$t('sort.desc.title')" :pressed="value === -1">
-      <b-icon-sort-alpha-up /> <span class="button-label">{{ $t('sort.desc.label') }}</span>
+      <b-icon-sort-up /> <span class="button-label">{{ $t('sort.desc.label') }}</span>
     </b-button>
   </b-button-group>
 </template>
 
 <script>
-import { BIconSortAlphaDown, BIconSortAlphaUp } from 'bootstrap-vue';
+import { BIconSortDown, BIconSortUp } from 'bootstrap-vue';
 
 export default {
   name: "SortButtons",
   components: {
-    BIconSortAlphaDown,
-    BIconSortAlphaUp
+    BIconSortDown,
+    BIconSortUp
   },
   props: {
     value: {
