@@ -5,7 +5,9 @@
       <div class="filter-container">
         <p class="text-muted text-center mb-4">{{ $t('index.stacFinderDescription') }}</p>
         <CollectionFilterPanel 
-          :stac="parent" 
+          key="initial-filter"
+          :stac="parent"
+          :initialFilters="filters"
           @submit="searchCollections"
         />
       </div>
@@ -46,7 +48,9 @@
             </b-button>
           </div>
           <CollectionFilterPanel 
-            :stac="parent" 
+            key="results-filter"
+            :stac="parent"
+            :initialFilters="filters"
             @submit="searchCollections"
           />
         </div>
@@ -139,7 +143,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(['stacFinderApiUrl', 'catalogTitle']),
+    ...mapState(['stacFinderApiUrl', 'catalogTitle', 'collectionsFilters', 'collectionsSort']),
     ...mapGetters(['root', 'toBrowserPath']),
 
     parent() {
@@ -196,8 +200,38 @@ export default {
   },
   created() {
     this.showPage();
+    this.restoreFromStore();
   },
   methods: {
+    /**
+     * Restore filters and sort from Vuex store (for persistence across navigation)
+     * If filters exist, automatically trigger a search to show previous results
+     */
+    restoreFromStore() {
+      let hasStoredFilters = false;
+
+      // Restore filters from store
+      if (this.collectionsFilters && Object.keys(this.collectionsFilters).length > 0) {
+        this.filters = { ...this.collectionsFilters };
+        hasStoredFilters = true;
+      }
+
+      // Restore sort from store
+      if (this.collectionsSort) {
+        const sortStr = this.collectionsSort;
+        this.sortDirection = sortStr.startsWith('-') ? -1 : 1;
+        this.sortField = sortStr.replace(/^[+-]/, '');
+      }
+
+      // If we have stored filters, automatically search to restore results
+      if (hasStoredFilters) {
+        this.hasSearched = true;
+        this.$nextTick(() => {
+          this.loadResults();
+        });
+      }
+    },
+
     showPage() {
       this.$store.commit('showPage', {
         url: null,
@@ -209,8 +243,10 @@ export default {
     },
 
     async searchCollections(filters) {
-      this.filters = filters;
+      this.filters = { ...filters };
       this.hasSearched = true;
+      // Use $nextTick to ensure filters are updated before loading results
+      await this.$nextTick();
       await this.loadResults();
     },
 
