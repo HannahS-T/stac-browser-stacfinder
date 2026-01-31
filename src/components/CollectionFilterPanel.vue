@@ -7,7 +7,7 @@
     <b-card-body>
 
       <!-- Free-text search -->
-      <b-form-group :label="$t('search.enterSearchTerms')">
+      <b-form-group :label="$t('search.enterSearchTerms')" :description="$t('search.freeTextCollectionDescription')">
         <SearchBox v-model="query.q" :placeholder="$t('search.enterSearchTerms')" />
       </b-form-group>
 
@@ -171,8 +171,8 @@ export default {
 
   data() {
     return {
-      // spatial filters
-      selected: null,
+      // spatial filter relation type (default: intersects)
+      selected: 'intersects',
 
       // Free-text search term
       query: {
@@ -405,23 +405,24 @@ export default {
     },
 
     /**
- * Build CQL2 filter string from active metadata filters
- */
+     * Build CQL2 filter string from active metadata filters
+     */
     buildCql2Filter() {
-      let spatialExpr = null;
-      if (Array.isArray(this.bbox) && this.bbox.length == 4 && this.selected) {
-       spatialExpr = this.selected;
-      }
+      // Use CQL2 spatial filter only for non-intersects relations
+      const useCql2Spatial = Array.isArray(this.bbox) && 
+                             this.bbox.length === 4 && 
+                             this.selected && 
+                             this.selected !== 'intersects';
 
-      if (this.metadataFilters.length === 0 && !spatialExpr) {
+      if (this.metadataFilters.length === 0 && !useCql2Spatial) {
         return null;
       }
 
       const cql = new CollectionCql();
 
-      // Add spatial filter if defined
-      if (spatialExpr) {
-        cql.addSpatial(spatialExpr, this.bbox.join(','));
+      // Add spatial filter for contains, within, overlaps (not intersects)
+      if (useCql2Spatial) {
+        cql.addSpatial(this.selected, this.bbox.join(','));
       }
 
       for (const filter of this.metadataFilters) {
@@ -431,6 +432,38 @@ export default {
           // Text fields: comparison operators (=, !=, LIKE)
           if (queryable.isText && (operator === '=' || operator === '!=' || operator === 'LIKE')) {
             // Only add filters with non-empty values
+            if (value !== null && value !== undefined && value !== '') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cql.addComparison(queryable.id, operator, trimmedValue);
+              }
+            }
+          }
+
+          // Enum fields: single value operators (=, !=)
+          else if (queryable.isEnum && (operator === '=' || operator === '!=')) {
+            if (value !== null && value !== undefined && value !== '') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cql.addComparison(queryable.id, operator, trimmedValue);
+              }
+            }
+          }
+
+          // Enum fields: IN operator (multiple values)
+          else if (queryable.isEnum && operator === 'IN') {
+            if (Array.isArray(value) && value.length > 0) {
+              const cleanedValues = value
+                .map(v => String(v).trim())
+                .filter(v => v !== '');
+              if (cleanedValues.length > 0) {
+                cql.addIn(queryable.id, cleanedValues);
+              }
+            }
+          }
+
+          // Array fields: single value operators (=, !=)
+          else if (queryable.isTextArray && (operator === '=' || operator === '!=')) {
             if (value !== null && value !== undefined && value !== '') {
               const trimmedValue = String(value).trim();
               if (trimmedValue) {
@@ -450,6 +483,16 @@ export default {
 
               if (cleanedValues.length > 0) {
                 cql.addIn(queryable.id, cleanedValues);
+              }
+            }
+          }
+
+          // Number fields: comparison operators (=, !=, <, >)
+          else if (queryable.isNumber && (operator === '=' || operator === '!=' || operator === '<' || operator === '>')) {
+            if (value !== null && value !== undefined && value !== '') {
+              const numValue = Number(value);
+              if (!isNaN(numValue)) {
+                cql.addComparison(queryable.id, operator, numValue);
               }
             }
           }
@@ -539,18 +582,25 @@ export default {
         value: f.value
       }));
 
+      // Use bbox parameter only for 'intersects' (efficient), other relations use CQL2
+      const useBboxParam = Array.isArray(this.bbox) && 
+                           this.bbox.length === 4 && 
+                           this.selected === 'intersects';
+
+      // Datetime parameter: only if at least one date is set
+      let datetimeValue = null;
+      if (this.start || this.end) {
+        datetimeValue = [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null);
+      }
+
       const filters = {
         q: Utils.hasText(this.query.q)
           ? this.query.q.trim()
           : null,
 
-        datetime: Array.isArray([this.start, this.end])
-          ? [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null)
-          : null,
+        datetime: datetimeValue,
 
-        bbox: Array.isArray(this.bbox) && this.bbox.length === 4 && !this.selected
-          ? [...this.bbox]
-          : null,
+        bbox: useBboxParam ? [...this.bbox] : null,
 
         // CQL2 metadata filter (for API)
         cql2: cql2Filter,
