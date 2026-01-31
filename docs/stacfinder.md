@@ -72,30 +72,36 @@ docker-compose down
 ---
 ## Key Features
 
-### 1. Free-Text Search(`q`)
-- Users can search for collections using keywords that match collection titles, descriptions, and keywords
+### 1. Free-Text Search (`q`)
+- Search across collection titles, descriptions, keywords, license, and providers
+- Multiple words are searched with OR logic
 ```
 /collections?q=sentinel
+/collections?q=sentinel atmosphere    # matches "sentinel" OR "atmosphere"
 ```
 
 ### 2. Temporal Filtering (`datetime`)
-- Filter collections by their temporal extent using an date picker
-- Collections with temporal extents overlapping this range will be included
+- Filter collections by their temporal extent using a date picker
+- Collections with temporal extents **overlapping** this range will be included (not only fully contained)
+- Start and end dates are optional - leave empty for open-ended queries
 ```
 /collections?datetime=2020-01-01/2020-12-31
 ```
 
 ### 3. Spatial Filtering (`bbox`)
 - Define a bounding box (bbox) on an interactive map to filter collections by their spatial extent
-- Collections with spatial extents intersecting this bbox will be included
+- Choose spatial relation: **intersects** (default), **contains**, **within**, or **overlaps**
+- `intersects` uses the efficient `bbox` parameter, others use CQL2 spatial functions
 ```
-/collections?bbox=-180,-90,180,90
+/collections?bbox=7,51,8,52                                        # intersects (default)
+/collections?filter=S_CONTAINS(spatial_extent,BBOX(7,51,8,52))     # collection covers bbox
 ```
 
 ### 4. Advanced Metadata Filtering (`filter`, `filter-lang`)
 - Create complex queries using CQL2 (Common Query Language 2) expressions
-- Filter by metadata fields like keywords, license, platform, constellation
+- Filter by metadata fields like title, description, license, platform, constellation, keywords
 ```
+/collections?filter=platform = 'Sentinel-2'&filter-lang=cql2-text
 /collections?filter=keywords IN ('satellite','optical')&filter-lang=cql2-text
 ```
 
@@ -136,23 +142,29 @@ GET /collections/sentinel-2-l2a
 
 ### Queryables
 
-Filterable fields discoverable via `/collections/queryables` endpoint. Frontend automatically generates filter UI based on field types and supported operators.
+Filterable fields from `/collections/queryables` endpoint. The frontend generates filter UI automatically.
 
-### Operators:
-- Text fields: `=`, `!=`, `LIKE` (case-insensitive pattern matching)
-- Array fields: `IN` (match any value in array)
-- Timestamps: `<`, `>`, `BETWEEN`
-- Spatial: `S_INTERSECTS`, `S_CONTAINS`, `S_OVERLAPS`, `S_WITHIN`
-- Logical: `AND`, `OR`, `NOT`, `()`
+| Field | Type | Description |
+|-------|------|-------------|
+| `title`, `description`, `doi` | text | Free text with `=`, `!=`, `LIKE` |
+| `license` | enum | License identifier (dynamic values from DB) |
+| `platform`, `constellation`, `processingLevel` | enum | Array-backed fields (dynamic values from DB) |
+| `provider` | enum | Provider name from JSONB (dynamic values from DB) |
+| `keywords` | text | Keyword search |
+| `gsd` | number | Ground sample distance |
+| `temporal_start`, `temporal_end` | timestamp | Temporal extent boundaries |
 
-### Queryable Fields
+### Spatial Filtering
 
-| Field | Type | Operators 
-|-------|------|-----------
-| `title`, `description`, `license`, `doi` | text | `=`, `!=`, `LIKE` | 
-| `keywords`, `platform_summary`, `constellation_summary` | text_array | `IN` | 
-| `temporal_start`, `temporal_end` | timestamp | `<`, `>`, `BETWEEN` |
-| `spatial_extent` | geometry | `S_INTERSECTS`, `S_CONTAINS`, `S_OVERLAPS`, `S_WITHIN` |
+Spatial filtering uses the `bbox` parameter or CQL2 spatial functions:
+
+| Method | Example | Description |
+|--------|---------|-------------|
+| `bbox` | `bbox=7,51,8,52` | Standard intersection filter (default) |
+| `S_INTERSECTS` | `filter=S_INTERSECTS(spatial_extent,BBOX(...))` | Same as bbox |
+| `S_CONTAINS` | `filter=S_CONTAINS(spatial_extent,BBOX(...))` | Collection covers search area |
+| `S_WITHIN` | `filter=S_WITHIN(spatial_extent,BBOX(...))` | Collection inside search area |
+| `S_OVERLAPS` | `filter=S_OVERLAPS(spatial_extent,BBOX(...))` | Partial overlap only |
 
 ---
 ## API Integration
