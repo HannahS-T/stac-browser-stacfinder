@@ -96,6 +96,23 @@ export default class CollectionCql {
     return this;
   }
 
+/**
+ * Add a spatial filter for more refined bounding box searches
+ * 
+ * @param {string} spatialRelation - Spatial relation type (e.g., 'intersects', 'contains', 'within', 'overlaps')
+ * @param {string} bbox - Bounding box coordinates in the format 'minX,minY,maxX,maxY'
+ * @returns {CollectionCql} this (for chaining)
+ */
+  addSpatial(spatialRelation, bbox) {
+    this.filters.push({
+      type: 'spatial',
+      spatialRelation,
+      bbox
+    });
+    return this;
+  }
+
+
   /**
    * Build CQL2-Text expression
    * 
@@ -118,6 +135,8 @@ export default class CollectionCql {
         return this._buildIn(filter);
       } else if (filter.type === 'between') {
         return this._buildBetween(filter);
+      } else if (filter.type === 'spatial') {
+        return this._buildSpatial(filter);
       }
       throw new Error(`Unknown filter type: ${filter.type}`);
     });
@@ -191,6 +210,15 @@ export default class CollectionCql {
 
     // Format: field BETWEEN 'low' AND 'high'
     return `${field} BETWEEN '${escapedLow}' AND '${escapedHigh}'`;
+  }
+
+  /**
+   * Build spatial expression
+   * @private
+   */
+  _buildSpatial(filter) {
+    const { spatialRelation, bbox } = filter;
+    return `S_${spatialRelation.toUpperCase()}(spatial_extent, BBOX(${bbox}))`;
   }
 
   /**
