@@ -29,8 +29,11 @@
       </b-form-group>
 
       <!-- Map filter -->
-      <b-form-group :label="$t('search.spatialExtent')">
+      <b-form-group style="width: 25%" :label="$t('search.spatialExtent')">
         <MapSelect v-model="bbox" :stac="resolvedStac" />
+        <b-form-group :label="$t('search.spatialRelationType')">
+          <b-form-select v-model="selected" :options="options"/>
+        </b-form-group>
       </b-form-group>
 
       <!--CQL2 METADATA FILTERS -->
@@ -98,6 +101,7 @@ import {
   BDropdownItemButton,
   BButton,
   BCol,
+  BFormSelect,
   BRow,
   BFormInput,
   BBadge,
@@ -128,6 +132,7 @@ export default {
     BDropdownItemButton,
     BButton,
     BCol,
+    BFormSelect,
     BRow,
     BFormInput,
     BBadge,
@@ -166,6 +171,9 @@ export default {
 
   data() {
     return {
+      // spatial filters
+      selected: null,
+
       // Free-text search term
       query: {
         q: ''
@@ -204,6 +212,20 @@ export default {
         this.metadataFilters.length > 0
       );
     },
+
+    /**
+     * Spatial relation options for bbox filter
+     */
+    options() {
+      const _ = this.$i18n.locale; // dependency on locale
+      return [
+        { value: 'intersects', text: this.$t('search.intersects') },
+        { value: 'contains',   text: this.$t('search.contains') },
+        { value: 'overlaps',   text: this.$t('search.overlaps') },
+        { value: 'within',     text: this.$t('search.within') }
+      ];
+    },
+
 
     /**
      * Queryables that are not yet in active filters
@@ -386,11 +408,21 @@ export default {
  * Build CQL2 filter string from active metadata filters
  */
     buildCql2Filter() {
-      if (this.metadataFilters.length === 0) {
+      let spatialExpr = null;
+      if (Array.isArray(this.bbox) && this.bbox.length == 4 && this.selected) {
+       spatialExpr = this.selected;
+      }
+
+      if (this.metadataFilters.length === 0 && !spatialExpr) {
         return null;
       }
 
       const cql = new CollectionCql();
+
+      // Add spatial filter if defined
+      if (spatialExpr) {
+        cql.addSpatial(spatialExpr, this.bbox.join(','));
+      }
 
       for (const filter of this.metadataFilters) {
         const { queryable, operator, value } = filter;
@@ -445,7 +477,7 @@ export default {
               }
             }
           }
-
+      
         } catch (error) {
           console.error('Error building CQL for filter:', filter, error);
         }
@@ -516,7 +548,7 @@ export default {
           ? [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null)
           : null,
 
-        bbox: Array.isArray(this.bbox) && this.bbox.length === 4
+        bbox: Array.isArray(this.bbox) && this.bbox.length === 4 && !this.selected
           ? [...this.bbox]
           : null,
 

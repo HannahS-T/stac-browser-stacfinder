@@ -272,6 +272,7 @@
     "addSearchTerm": "Suchbegriff hinzufügen mittels Enter-Taste",
     "additionalFilters": "Weitere Filter",
     "allFiltersActive": "Alle Filter sind bereits aktiv",
+    "contains": "Beinhaltet",
     "dateDescription": "Alle Zeiten in koordinierter Weltzeit (UTC).",
     "endDate": "Enddatum",
     "enterCollections": "Gebe Katalog-Identifikationsnummern ein...",
@@ -286,6 +287,7 @@
     "freeTextDescription": "Suche nach mindestens einem der angegebene Begriffen in Feldern wie dem Titel und der Beschreibung.",
     "greaterThan": "größer als",
     "greaterThanEqual": "größer als oder entspricht",
+    "intersects": "Schneidet",
     "itemIds": "Element-Identifikationsnummern",
     "itemsPerPage": "Elemente pro Seite",
     "itemsPerPageDescription": "Anzahl der Elemente die pro Seite angefragt wird, maximal {maxItems} Elemente.",
@@ -308,6 +310,7 @@
     "notEqualTo": "entspricht nicht",
     "notFullySupported": "Eventuell werden nicht alle Optionen unterstützt.",
     "notSupported": "Suchen wird von dem Diensteanbieter nicht unterstützt.",
+    "overlaps": "Überlappt",
     "placeholder": "Suchen...",
     "searchCollections": "Collections durchsuchen",
     "selectCollections": "Wähle Kataloge...",
@@ -319,13 +322,15 @@
     "spatialExtent": "Räumliche Ausdehnung",
     "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Quellen.",
     "startDate": "Startdatum",
+    "spatialRelationType": "Räumliche Beziehung:",
     "tabs": {
       "collections": "Kataloge durchsuchen",
       "items": "Elemente durchsuchen"
     },
     "temporalExtent": "Zeitliche Ausdehnung",
     "title": "Suche",
-    "useInItemSearch": "Nutze Katalog in Elementsuche | Nutze {count} Kataloge in Elementsuche"
+    "useInItemSearch": "Nutze Katalog in Elementsuche | Nutze {count} Kataloge in Elementsuche",
+    "within": "Innerhalb"
   },
   "showMore": "Zeige mehr...",
   "sidebar": {

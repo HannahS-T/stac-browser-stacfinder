@@ -272,6 +272,7 @@
     "addSearchTerm": "Press enter to add a search term",
     "additionalFilters": "Additional filters",
     "allFiltersActive": "All filters are already active",
+    "contains": "contains",
     "dateDescription": "All times in Coordinated Universal Time (UTC).",
     "endDate": "End date",
     "enterCollections": "Enter one or more Collection IDs...",
@@ -286,6 +287,7 @@
     "freeTextDescription": "Search for at least one of the given terms in fields such as the title and the description.",
     "greaterThan": "greater than",
     "greaterThanEqual": "greater than or equal to",
+    "intersects": "intersects",
     "itemIds": "Item IDs",
     "itemsPerPage": "Items per page",
     "itemsPerPageDescription": "Number of items requested per page, max. {maxItems} items.",
@@ -308,6 +310,7 @@
     "notEqualTo": "not equal to",
     "notFullySupported": "Not all of the options may be supported.",
     "notSupported": "Item Search is not supported by the API.",
+    "overlaps": "overlaps",
     "placeholder": "Search...",
     "searchCollections": "Search collections",
     "selectCollections": "Select one or multiple collections...",
@@ -317,6 +320,7 @@
     "selectDateRange": "Select date range",
     "selectForItemSearch": "Select for Item Search",
     "spatialExtent": "Spatial Extent",
+    "spatialRelationType": "Spatial Relation Type:",
     "stacFinderDescription": "Search and discover STAC collections from multiple sources.",
     "startDate": "Start date",
     "tabs": {
@@ -325,7 +329,8 @@
     },
     "temporalExtent": "Temporal Extent",
     "title": "Search",
-    "useInItemSearch": "Open Collection in Item Search | Open {count} Collections in Item Search"
+    "useInItemSearch": "Open Collection in Item Search | Open {count} Collections in Item Search",
+    "within": "within"
   },
   "showMore": "Show more...",
   "sidebar": {
