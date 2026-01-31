@@ -137,7 +137,9 @@
     "containsOneOf": "Contains one of",
     "before": "Before",
     "after": "After",
-    "between": "Between"
+    "between": "Between",
+    "lessThan": "Less than",
+    "greaterThan": "Greater than"
   },
   "fullscreen": {
     "exit": "Exit fullscreen mode",
@@ -273,8 +275,8 @@
     "additionalFilters": "Additional filters",
     "allFiltersActive": "All filters are already active",
     "contains": "contains",
-    "dateDescription": "All times in Coordinated Universal Time (UTC).",
-    "endDate": "End date",
+    "dateDescription": "Finds collections that overlap the selected time range (not only fully contained).",
+    "endDate": "End date (optional, open if empty)",
     "enterCollections": "Enter one or more Collection IDs...",
     "enterItemIds": "Enter one or more Item IDs...",
     "enterPattern": "Enter pattern for {field}",
@@ -285,6 +287,7 @@
     "filterCollection": "Filter Collection",
     "freeText": "Search Terms",
     "freeTextDescription": "Search for at least one of the given terms in fields such as the title and the description.",
+    "freeTextCollectionDescription": "Searches in: Title, Description, License, Keywords, Providers",
     "greaterThan": "greater than",
     "greaterThanEqual": "greater than or equal to",
     "intersects": "intersects",
@@ -319,10 +322,12 @@
     "selectDateBefore": "Select date (before)",
     "selectDateRange": "Select date range",
     "selectForItemSearch": "Select for Item Search",
+    "selectValue": "Select a value...",
+    "selectValues": "Select one or more values...",
     "spatialExtent": "Spatial Extent",
     "spatialRelationType": "Spatial Relation Type:",
     "stacFinderDescription": "Search and discover STAC collections from multiple sources.",
-    "startDate": "Start date",
+    "startDate": "Start date (optional, open if empty)",
     "tabs": {
       "collections": "Search for Collections",
       "items": "Search for Items"
