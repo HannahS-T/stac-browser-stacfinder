@@ -16,8 +16,6 @@ import { translateFields, executeCustomFunctions, loadMessages } from '../i18n';
 import { TYPES } from "../components/ApiCapabilitiesMixin";
 import BrowserStorage from "../browser-store.js";
 
-import collectionAdapter from '../adapters/CollectionApiAdapter';
-
 function getStore(config, router) {
   // Local settings (e.g. for currently loaded STAC entity)
   const localDefaults = () => ({
@@ -51,12 +49,11 @@ function getStore(config, router) {
     apiCollections: [],
     apiItemsLoading: {},
     nextCollectionsLink: null,
-    externalCollectionsLoaded: false,
     
-    // Pagination info for external collections
+    // Pagination info for collections (used by STACFinder search)
     collectionsNumberMatched: null,  // Total number of collections
 
-    // Central state for external collection filters/sort/pagination
+    // Central state for STACFinder collection filters/sort/pagination
     collectionsFilters: {},
     collectionsSort: null,
     collectionsPaginationUrl: null
@@ -274,11 +271,6 @@ function getStore(config, router) {
       toBrowserPath: (state, getters) => url => {
         if (!Utils.hasText(url)) {
           url = '/';
-        }
-
-        // Don't resolve absolute /collections paths when browsing internal collections
-        if (state.url?.startsWith('internal://collections') && url.startsWith('/collections')) {
-          return url;
         }
 
         let absolute = Utils.toAbsolute(url, state.url, false);
@@ -625,40 +617,23 @@ function getStore(config, router) {
         }
         state.globalError = error;
       },
-      // Store an external catalog and its collections in the Vuex database
-      setExternalCollections(state, { catalog, collections }) {
-        Vue.set(state.database, collectionAdapter.syntheticUrl, catalog);
 
-        collections.forEach(collection => {
-          const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
-          Vue.set(state.database, url, processSTAC(state, collection));
-        });
-
-        state.externalCollectionsLoaded = true;
-      },
-
-      // Store a single external collection in the Vuex database
-      setExternalCollection(state, collection) {
-        const url = `${collectionAdapter.syntheticUrl}/${collection.id}`;
-        Vue.set(state.database, url, processSTAC(state, collection));
-      },
-
-      // Set collection filters
+      // Set collection filters (for STACFinder advanced search)
       setCollectionsFilters(state, filters) {
         state.collectionsFilters = filters || {};
       },
 
-      // Set collection sort
+      // Set collection sort (for STACFinder advanced search)
       setCollectionsSort(state, sort) {
         state.collectionsSort = sort;
       },
 
-      // Set pagination URL
+      // Set pagination URL (for STACFinder advanced search)
       setCollectionsPaginationUrl(state, url) {
         state.collectionsPaginationUrl = url;
       },
 
-      // Reset all collection states
+      // Reset all collection states (for STACFinder advanced search)
       resetCollectionsState(state) {
         state.collectionsFilters = {};
         state.collectionsSort = null;
@@ -666,7 +641,7 @@ function getStore(config, router) {
         state.collectionsNumberMatched = null;
       },
 
-      // Set total number of collections
+      // Set total number of collections (for STACFinder advanced search)
       setCollectionsNumberMatched(state, count) {
         state.collectionsNumberMatched = count;
       }
@@ -1065,117 +1040,6 @@ function getStore(config, router) {
           } catch (error) {
             errorFn(error);
           }
-        }
-      },
-      /**
-       * Load all collections from the external API
-       * Uses central Store state for filters/sort/pagination
-       * @param {Object} cx Vuex context
-       * @param {Object} options
-       */
-      async loadExternalCollections(cx, {
-        show = false,
-        filters = null,
-        sort = null,
-        paginationUrl = null,
-        resetPagination = false
-      } = {}) {
-        try {
-          // Use stored values if not explicitly provided
-          const activeFilters = filters !== null ? filters : cx.state.collectionsFilters;
-          const activeSort = sort !== null ? sort : cx.state.collectionsSort;
-          const activePaginationUrl = resetPagination ? null : (paginationUrl || cx.state.collectionsPaginationUrl);
-
-          // Store current state in Vuex before fetching
-          cx.commit('setCollectionsFilters', activeFilters);
-          cx.commit('setCollectionsSort', activeSort);
-          cx.commit('setCollectionsPaginationUrl', activePaginationUrl);
-
-          // Fetch collections from API
-          const { collections, paginationLinks, numberReturned, numberMatched } = await collectionAdapter.fetchCollections(
-            activeFilters,
-            activeSort,
-            activePaginationUrl
-          );
-
-          // Store total number of collections
-          cx.commit('setCollectionsNumberMatched', numberMatched);
-
-          // Convert to STAC Browser compatible STAC Collections
-          const stacCollections = collections.map(col =>
-            collectionAdapter.wrapCollection(col)
-          );
-
-          // Create catalog with collections and pagination links
-          const catalog = collectionAdapter.createCatalog(
-            stacCollections,
-            activeFilters,
-            activeSort,
-            paginationLinks
-          );
-
-          // Store in Vuex database
-          cx.commit('setExternalCollections', {
-            catalog: processSTAC(cx.state, catalog),
-            collections: stacCollections
-          });
-
-          // Display the collections page if requested
-          // Note: We pass the stac object explicitly to ensure it's available
-          // in state.data even if the database lookup by URL fails
-          if (show) {
-            cx.commit('showPage', {
-              url: collectionAdapter.syntheticUrl,
-              stac: catalog,
-              page: () => ({ title: 'Collections' })
-            });
-          }
-
-        } catch (error) {
-          console.error('Error loading collections:', error);
-          cx.commit('errored', {
-            url: collectionAdapter.syntheticUrl,
-            error
-          });
-          throw error;
-        }
-      },
-      /**
-       * Load a single external collection by ID and store it in the Vuex database.
-       * @param {Object} cx Vuex context
-       * @param {Object} options { id: string, show?: boolean }
-       */
-      async loadExternalCollection(cx, { id, show = false }) {
-        const url = `${collectionAdapter.syntheticUrl}/${id}`;
-
-        try {
-          // Fetch the collection from the external API
-          const collection = await collectionAdapter.fetchCollection(id);
-
-          // Convert to a STAC Collection
-          const stacCollection = collectionAdapter.wrapCollection(collection);
-
-          // Save the collection in the Vuex store
-          cx.commit('setExternalCollection', stacCollection);
-
-          // Display the collection page if requested
-          // Note: We pass the stac object explicitly to ensure it's available
-          // in state.data even if the database lookup by URL fails
-          if (show) {
-            cx.commit('showPage', {
-              url,
-              stac: stacCollection,
-              page: () => ({
-                title: stacCollection.title,
-                description: stacCollection.description
-              })
-            });
-          }
-
-        } catch (error) {
-          console.error('Error loading collection:', error);
-          cx.commit('errored', { url, error });
-          throw error;
         }
       }
     },
