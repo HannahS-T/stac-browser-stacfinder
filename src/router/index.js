@@ -11,25 +11,15 @@ function getPath(route, config) {
 function getRoutes(config) {
   let routes = [];
 
-  // Collections-Liste
-  routes.push({
-    path: "/collections",
-    name: "collections",
-    component: Browse,
-    props: route => ({
-      path: 'internal://collections',
-    })
-  });
-
-  // Collection-Detail
-  routes.push({
-    path: "/collections/:id",
-    name: "collectionDetail",
-    component: Browse,
-    props: route => ({
-      path: `internal://collections/${route.params.id}`
-    })
-  });
+  // STACFinder Search - dedicated route for collection search with filters
+  // This provides the advanced search UI for the STACFinder API
+  if (config.stacFinderApiUrl) {
+    routes.push({
+      path: "/stacfinder",
+      name: "stacfinder",
+      component: () => import("../views/StacFinderSearch.vue")
+    });
+  }
 
   if (!config.catalogUrl) {
     routes.push({
