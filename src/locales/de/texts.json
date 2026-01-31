@@ -164,8 +164,10 @@
     "api": "API",
     "catalog": "Katalog",
     "load": "Laden",
+    "openStacFinder": "Öffne STACFinder",
     "selectStacIndex": "... oder wähle von {stacIndex}:",
     "specifyCatalog": "Bitte gib einen STAC Katalog oder eine STAC API an...",
+    "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Katalogen mit erweitertem Filtern, Sortieren und CQL2-Unterstützung.",
     "urlInvalid": "Die Adresse ist ungültig.",
     "urlMissingHost": "Der Adresse fehlt ein Host.",
     "urlMissingProtocol": "Der Adresse fehlt ein Protokoll."
@@ -318,6 +320,7 @@
     "selectDateRange": "Zeitraum auswählen",
     "selectForItemSearch": "Markiere für Elementsuche",
     "spatialExtent": "Räumliche Ausdehnung",
+    "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Quellen.",
     "startDate": "Startdatum",
     "spatialRelationType": "Räumliche Beziehung:",
     "tabs": {

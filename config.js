@@ -1,4 +1,9 @@
 module.exports = {
+    // STACFinder API URL - set to your API endpoint
+    // In development, this is proxied via /api in vue.config.js
+    // In production, set this to the full API URL
+    stacFinderApiUrl: "/api",
+    
     catalogUrl: null,
     catalogTitle: "STAC Browser",
     catalogImage: null,

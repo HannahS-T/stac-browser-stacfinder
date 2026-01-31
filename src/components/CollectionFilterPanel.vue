@@ -73,10 +73,19 @@
           @remove="removeFilter" />
       </b-form-group>
 
-      <!-- Submit button -->
-      <b-button variant="primary" class="mt-3" @click="submitFilters">
-        {{ $t('submit') }}
-      </b-button>
+      <!-- Action buttons -->
+      <div class="d-flex justify-content-between mt-3">
+        <b-button 
+          variant="outline-secondary" 
+          @click="resetFilters"
+          :disabled="!hasActiveFilters"
+        >
+          {{ $t('reset') }}
+        </b-button>
+        <b-button variant="primary" @click="submitFilters">
+          {{ $t('submit') }}
+        </b-button>
+      </div>
 
     </b-card-body>
   </b-card>
@@ -150,6 +159,13 @@ export default {
     parent: {
       type: [String, Object],
       default: null
+    },
+    /**
+     * Initial filter values to pre-populate the form
+     */
+    initialFilters: {
+      type: Object,
+      default: null
     }
   },
 
@@ -183,6 +199,19 @@ export default {
 
   computed: {
     ...mapGetters(['getStac', 'root']),
+
+    /**
+     * Check if any filter is currently active
+     */
+    hasActiveFilters() {
+      return Boolean(
+        this.query.q ||
+        this.start ||
+        this.end ||
+        (Array.isArray(this.bbox) && this.bbox.length === 4) ||
+        this.metadataFilters.length > 0
+      );
+    },
 
     /**
      * Spatial relation options for bbox filter
@@ -234,11 +263,87 @@ export default {
     }
   },
 
+  watch: {
+    /**
+     * Watch for changes in initialFilters prop and restore them
+     */
+    initialFilters: {
+      handler() {
+        this.restoreFilters();
+      },
+      deep: true
+    }
+  },
+
   async mounted() {
     await this.loadQueryables();
+    this.restoreFilters();
   },
 
   methods: {
+    /**
+     * Restore filters from initialFilters prop
+     */
+    restoreFilters() {
+      if (!this.initialFilters) return;
+
+      // Restore free-text search
+      if (this.initialFilters.q) {
+        this.query.q = this.initialFilters.q;
+      }
+
+      // Restore datetime (array [start, end])
+      if (Array.isArray(this.initialFilters.datetime)) {
+        const [start, end] = this.initialFilters.datetime;
+        this.start = start ? new Date(start) : null;
+        this.end = end ? new Date(end) : null;
+      }
+
+      // Restore bbox
+      if (Array.isArray(this.initialFilters.bbox)) {
+        this.bbox = this.initialFilters.bbox;
+      }
+
+      // Restore metadata filters (requires queryables to be loaded)
+      this.restoreMetadataFilters();
+    },
+
+    /**
+     * Restore metadata filters from serialized format
+     * Must be called after queryables are loaded
+     */
+    restoreMetadataFilters() {
+      if (!this.initialFilters?.metadataFilters || !this.queryablesLoaded) {
+        return;
+      }
+
+      // Clear existing filters first to avoid duplicates
+      this.metadataFilters = [];
+
+      for (const serialized of this.initialFilters.metadataFilters) {
+        // Find the queryable by ID
+        const queryable = this.queryables.find(q => q.id === serialized.queryableId);
+        if (queryable) {
+          this.metadataFilters.push({
+            queryable,
+            operator: serialized.operator,
+            value: serialized.value
+          });
+        }
+      }
+    },
+
+    /**
+     * Reset all filters to their initial empty state
+     */
+    resetFilters() {
+      this.query.q = '';
+      this.start = null;
+      this.end = null;
+      this.bbox = null;
+      this.metadataFilters = [];
+    },
+
     /**
      * Load queryables from Collections API via adapter
      */
@@ -247,6 +352,9 @@ export default {
         // Fetch queryables from collection adapter
         this.queryables = await collectionAdapter.fetchQueryables();
         this.queryablesLoaded = true;
+        
+        // Try to restore metadata filters now that queryables are loaded
+        this.restoreMetadataFilters();
       } catch (error) {
         console.error('Failed to load queryables:', error);
         this.queryablesError = this.$t('errors.loadQueryables');
@@ -424,6 +532,13 @@ export default {
     submitFilters() {
       const cql2Filter = this.buildCql2Filter();
 
+      // Serialize metadata filters for restoration (without the queryable instance)
+      const serializedMetadataFilters = this.metadataFilters.map(f => ({
+        queryableId: f.queryable.id,
+        operator: f.operator,
+        value: f.value
+      }));
+
       const filters = {
         q: Utils.hasText(this.query.q)
           ? this.query.q.trim()
@@ -437,8 +552,13 @@ export default {
           ? [...this.bbox]
           : null,
 
-        // CQL2 metadata filter
-        cql2: cql2Filter
+        // CQL2 metadata filter (for API)
+        cql2: cql2Filter,
+
+        // Structured metadata filters (for UI restoration)
+        metadataFilters: serializedMetadataFilters.length > 0 
+          ? serializedMetadataFilters 
+          : null
       };
 
       this.$emit('submit', filters);

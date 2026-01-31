@@ -40,15 +40,17 @@ const vueConfig = {
   productionSourceMap: !mergedConfig.noSourceMaps,
   publicPath: mergedConfig.pathPrefix,
 
-  // Proxy collection API calls to avoid CORS issues (only in dev mode)
+  // Proxy API calls to avoid CORS issues (only in dev mode)
   devServer: {
     host: host,  
     port: 8080,
     hot: true,
     proxy: {
-      '/collections': {
+      // Proxy /api to the STACFinder API backend
+      '/api': {
         target: apiUrl, 
         changeOrigin: true,
+        pathRewrite: { '^/api': '' }  // Remove /api prefix when forwarding
       }
     }
   },

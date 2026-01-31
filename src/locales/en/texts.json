@@ -164,8 +164,10 @@
     "api": "API",
     "catalog": "Static Catalog",
     "load": "Load",
+    "openStacFinder": "Open STACFinder",
     "selectStacIndex": "... or select one from {stacIndex}:",
     "specifyCatalog": "Please specify a STAC Catalog or API...",
+    "stacFinderDescription": "Search and discover STAC collections from multiple catalogs with advanced filtering, sorting, and CQL2 support.",
     "urlInvalid": "The URL is invalid.",
     "urlMissingHost": "The URL is missing a host.",
     "urlMissingProtocol": "The URL is missing a protocol."
@@ -319,6 +321,7 @@
     "selectForItemSearch": "Select for Item Search",
     "spatialExtent": "Spatial Extent",
     "spatialRelationType": "Spatial Relation Type:",
+    "stacFinderDescription": "Search and discover STAC collections from multiple sources.",
     "startDate": "Start date",
     "tabs": {
       "collections": "Search for Collections",
