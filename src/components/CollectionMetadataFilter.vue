@@ -36,11 +36,59 @@
                         @input="onSingleDateChange" />
                 </div>
 
-                <!-- Multi-Select for Array Fields (IN operator) -->
-                <multiselect v-else-if="isMultiSelect" :value="filter.value" @input="onValueChange" :options="[]"
-                    :multiple="true" :taggable="true" :close-on-select="false" :clear-on-select="false"
-                    :preserve-search="true" :tag-placeholder="$t('search.addSearchTerm')"
-                    :placeholder="$t('search.enterSearchTerms')" @tag="addTag" select-label="" deselect-label="×"
+                <!-- Single Enum Dropdown for = or != operator on enum fields -->
+                <b-form-select 
+                    v-else-if="isEnumSingleSelect" 
+                    :value="filter.value" 
+                    @change="onValueChange" 
+                    size="sm"
+                    class="enum-select">
+                    <b-form-select-option :value="''" disabled>
+                        {{ $t('search.selectValue') }}
+                    </b-form-select-option>
+                    <b-form-select-option 
+                        v-for="option in filter.queryable.enumValues" 
+                        :key="option" 
+                        :value="option">
+                        {{ option }}
+                    </b-form-select-option>
+                </b-form-select>
+
+                <!-- Multi-Select for Enum Fields with IN operator (with predefined options) -->
+                <multiselect 
+                    v-else-if="isEnumMultiSelect" 
+                    :value="filter.value" 
+                    @input="onValueChange" 
+                    :options="filter.queryable.enumValues"
+                    :multiple="true" 
+                    :close-on-select="false" 
+                    :clear-on-select="false"
+                    :preserve-search="true" 
+                    :placeholder="$t('search.selectValues')" 
+                    select-label="" 
+                    deselect-label="×"
+                    :allow-empty="true">
+                    <template slot="noResult">
+                        <span>{{ $t('search.noOptions') }}</span>
+                    </template>
+                </multiselect>
+
+                <!-- Multi-Select for text_array Fields (IN operator, free tagging) -->
+                <multiselect 
+                    v-else-if="isMultiSelect" 
+                    :value="filter.value" 
+                    @input="onValueChange" 
+                    :options="[]"
+                    :multiple="true" 
+                    :taggable="true" 
+                    :close-on-select="false" 
+                    :clear-on-select="false"
+                    :preserve-search="true" 
+                    :tag-placeholder="$t('search.addSearchTerm')"
+                    :placeholder="$t('search.enterSearchTerms')" 
+                    @tag="addTag" 
+                    select-label="" 
+                    deselect-label="×"
                     :allow-empty="true">
                     <template slot="noResult">
                         <span>{{ $t('search.noOptions') }}</span>
@@ -69,6 +117,7 @@ import {
     BRow,
     BCol,
     BFormSelect,
+    BFormSelectOption,
     BFormInput,
     BButton,
     BIconXCircleFill
@@ -81,9 +130,11 @@ import DatePicker from 'vue2-datepicker';
  * 
  * Displays one CQL2 filter with field, operator, and value input.
  * Supports:
- * - Text fields: text input
- * - Array fields: multi-select with tagging
+ * - Text fields: text input (=, !=, LIKE)
+ * - Enum fields: dropdown for single (=, !=) or multi-select for IN
+ * - Array fields: multi-select with tagging (=, !=, IN)
  * - Timestamp fields: single date picker (<, >) or date-range picker (BETWEEN)
+ * - Number fields: text input (=, !=, <, >)
  * 
  * @emits update - When filter properties change
  * @emits remove - When filter should be removed
@@ -95,6 +146,7 @@ export default {
         BRow,
         BCol,
         BFormSelect,
+        BFormSelectOption,
         BFormInput,
         BButton,
         BIconXCircleFill,
@@ -147,7 +199,22 @@ export default {
         },
 
         /**
-         * Check if this filter uses multi-select input
+         * Check if this filter uses single-select dropdown (enum field with = or !=)
+         */
+        isEnumSingleSelect() {
+            return this.filter.queryable.isEnum && 
+                   (this.filter.operator === '=' || this.filter.operator === '!=');
+        },
+
+        /**
+         * Check if this filter uses multi-select with enum options (enum field with IN)
+         */
+        isEnumMultiSelect() {
+            return this.filter.queryable.isEnum && this.filter.operator === 'IN';
+        },
+
+        /**
+         * Check if this filter uses multi-select input (text_array with free tagging)
          */
         isMultiSelect() {
             return this.filter.queryable.isTextArray && this.filter.operator === 'IN';
