@@ -10,38 +10,24 @@
 <script>
 import Item from './Item.vue';
 import Catalog from './Catalog.vue';
-import Collections from './Collections.vue';
-import { mapGetters, mapState } from "vuex";
+import { mapGetters, mapState } from 'vuex';
 import BrowseMixin from './BrowseMixin';
 
 export default {
-  name: "Browse",
+  name: 'Browse',
   components: {
     Catalog,
-    Collections,
     Item
   },
-  mixins: [
-    BrowseMixin
-  ],
+  mixins: [BrowseMixin],
   computed: {
     ...mapState(['url']),
-    ...mapGetters(["isItem"]),
-    
-    isExternalCollectionsList() {
-      return this.url === 'internal://collections';
-    },
-    
+    ...mapGetters(['isItem']),
     component() {
       if (this.isItem) {
         return 'Item';
       }
-      else if (this.isExternalCollectionsList) {
-        return 'Collections';
-      }
-      else {
-        return 'Catalog';
-      }
+      return 'Catalog';
     }
   }
 };
