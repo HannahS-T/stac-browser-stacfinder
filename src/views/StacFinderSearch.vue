@@ -143,7 +143,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(['stacFinderApiUrl', 'catalogTitle', 'collectionsFilters', 'collectionsSort']),
+    ...mapState(['stacFinderApiUrl', 'catalogTitle', 'collectionsSearchData']),
     ...mapGetters(['root', 'toBrowserPath']),
 
     parent() {
@@ -196,39 +196,123 @@ export default {
 
     totalCount() {
       return typeof this.data?.numberMatched === 'number' ? this.data.numberMatched : null;
+    },
+
+    /**
+     * Unique key for current URL params (used for cache matching)
+     */
+    currentUrlKey() {
+      const q = this.$route.query;
+      return JSON.stringify({ q: q.q, bbox: q.bbox, datetime: q.datetime, sort: q.sort });
     }
   },
   created() {
     this.showPage();
-    this.restoreFromStore();
+    this.initFromUrl();
+  },
+  watch: {
+    // Watch for URL query changes (browser back/forward)
+    '$route.query': {
+      handler(newQuery, oldQuery) {
+        // Only react if query actually changed (not from our own update)
+        if (JSON.stringify(newQuery) !== JSON.stringify(oldQuery)) {
+          this.initFromUrl();
+        }
+      },
+      deep: true
+    }
   },
   methods: {
     /**
-     * Restore filters and sort from Vuex store (for persistence across navigation)
-     * If filters exist, automatically trigger a search to show previous results
+     * Initialize state from URL or restore from cache/sessionStorage
+     * - URL = Source of Truth for simple filters (q, bbox, datetime, sort)
+     * - Vuex Cache = Preserves pagination on back navigation
+     * - sessionStorage = Preserves metadataFilters on reload
      */
-    restoreFromStore() {
-      let hasStoredFilters = false;
-
-      // Restore filters from store
-      if (this.collectionsFilters && Object.keys(this.collectionsFilters).length > 0) {
-        this.filters = { ...this.collectionsFilters };
-        hasStoredFilters = true;
+    initFromUrl() {
+      const query = this.$route.query;
+      const hasUrlParams = query.q || query.bbox || query.datetime || query.sort;
+      
+      if (!hasUrlParams) {
+        return; // No search params - show initial state
       }
-
-      // Restore sort from store
-      if (this.collectionsSort) {
-        const sortStr = this.collectionsSort;
-        this.sortDirection = sortStr.startsWith('-') ? -1 : 1;
-        this.sortField = sortStr.replace(/^[+-]/, '');
+      
+      // Check if we have a valid Vuex cache for this URL (back navigation)
+      const cached = this.collectionsSearchData;
+      const cacheHit = cached?.urlKey === this.currentUrlKey;
+      
+      // Try to restore metadataFilters from sessionStorage (survives reload)
+      const sessionData = this.loadFromSession();
+      const sessionMatch = sessionData?.urlKey === this.currentUrlKey;
+      
+      // Restore filters - combine URL params with cached/session metadataFilters
+      this.filters = {
+        q: query.q || null,
+        bbox: query.bbox ? query.bbox.split(',').map(Number) : null,
+        datetime: query.datetime ? this.parseDatetimeParam(query.datetime) : null,
+        // Priority: Vuex cache > sessionStorage > null
+        metadataFilters: cacheHit ? cached.metadataFilters : (sessionMatch ? sessionData.metadataFilters : null),
+        cql2: cacheHit ? cached.cql2 : (sessionMatch ? sessionData.cql2 : null)
+      };
+      
+      if (query.sort) {
+        this.sortDirection = query.sort.startsWith('-') ? -1 : 1;
+        this.sortField = query.sort.replace(/^[+-]/, '');
       }
+      
+      this.hasSearched = true;
+      
+      if (cacheHit) {
+        // Restore cached results (preserves pagination + metadataFilters)
+        this.data = cached.data;
+      } else {
+        // Cache miss - load fresh
+        this.$nextTick(() => this.loadResults());
+      }
+    },
 
-      // If we have stored filters, automatically search to restore results
-      if (hasStoredFilters) {
-        this.hasSearched = true;
-        this.$nextTick(() => {
-          this.loadResults();
-        });
+    /**
+     * Parse datetime URL parameter back to array [start, end]
+     */
+    parseDatetimeParam(datetime) {
+      if (!datetime) return null;
+      if (datetime.includes('/')) {
+        const [start, end] = datetime.split('/');
+        return [
+          start === '..' ? null : start,
+          end === '..' ? null : end
+        ];
+      }
+      return [datetime, datetime];
+    },
+
+    /**
+     * Update URL with current filter state (enables back/forward navigation)
+     */
+    updateUrl() {
+      const query = {};
+      
+      if (this.filters.q) {
+        query.q = this.filters.q;
+      }
+      if (Array.isArray(this.filters.bbox) && this.filters.bbox.length === 4) {
+        query.bbox = this.filters.bbox.join(',');
+      }
+      if (Array.isArray(this.filters.datetime)) {
+        const [start, end] = this.filters.datetime;
+        if (start || end) {
+          const s = start || '..';
+          const e = end || '..';
+          query.datetime = (s === e) ? s : `${s}/${e}`;
+        }
+      }
+      if (this.sortParam && this.sortParam !== '+title') {
+        query.sort = this.sortParam;
+      }
+      
+      // Only update if different from current
+      if (JSON.stringify(query) !== JSON.stringify(this.$route.query)) {
+        this.$router.replace({ query }).catch(() => {});
       }
     },
 
@@ -245,14 +329,15 @@ export default {
     async searchCollections(filters) {
       this.filters = { ...filters };
       this.hasSearched = true;
-      // Use $nextTick to ensure filters are updated before loading results
       await this.$nextTick();
       await this.loadResults();
+      this.updateUrl();
     },
 
     async updateSorting() {
       if (this.hasSearched) {
         await this.loadResults();
+        this.updateUrl();
       }
     },
 
@@ -261,6 +346,7 @@ export default {
         console.error('Invalid pagination link:', link);
         return;
       }
+      // Use pagination link directly as provided by API (opaque token)
       await this.loadResults(link);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -274,7 +360,7 @@ export default {
         let requestLink;
 
         if (paginationLink) {
-          // Use pagination link directly
+          // Use pagination link directly (as recommended by STAC API)
           requestLink = paginationLink;
         } else {
           // Build link with filters and sort
@@ -289,13 +375,9 @@ export default {
         }
 
         this.data = response.data;
-
-        // Store filters in vuex for persistence
-        this.$store.commit('setCollectionsFilters', this.filters);
-        this.$store.commit('setCollectionsSort', this.sortParam);
-        if (typeof this.data.numberMatched === 'number') {
-          this.$store.commit('setCollectionsNumberMatched', this.data.numberMatched);
-        }
+        
+        // Cache results in store (for back navigation)
+        this.cacheSearchState();
 
       } catch (error) {
         console.error('Search error:', error);
@@ -304,6 +386,57 @@ export default {
         this.errorId = getErrorCode(error);
       } finally {
         this.loading = false;
+      }
+    },
+
+    /**
+     * Cache current search state in Vuex store (for back navigation)
+     * Also saves metadataFilters to sessionStorage (survives reload)
+     */
+    cacheSearchState() {
+      const cacheData = {
+        urlKey: this.currentUrlKey,
+        data: this.data,
+        metadataFilters: this.filters.metadataFilters || null,
+        cql2: this.filters.cql2 || null
+      };
+      
+      // Vuex: for back navigation
+      this.$store.commit('setCollectionsSearchData', cacheData);
+      
+      // sessionStorage: for reload (only metadataFilters, not results)
+      this.saveToSession();
+    },
+
+    /**
+     * Save metadataFilters to sessionStorage (survives page reload)
+     */
+    saveToSession() {
+      if (!this.filters.metadataFilters && !this.filters.cql2) {
+        sessionStorage.removeItem('stacfinder-search');
+        return;
+      }
+      try {
+        sessionStorage.setItem('stacfinder-search', JSON.stringify({
+          urlKey: this.currentUrlKey,
+          metadataFilters: this.filters.metadataFilters,
+          cql2: this.filters.cql2
+        }));
+      } catch (e) {
+        // sessionStorage might be unavailable or full
+        console.warn('Could not save to sessionStorage:', e);
+      }
+    },
+
+    /**
+     * Load metadataFilters from sessionStorage
+     */
+    loadFromSession() {
+      try {
+        const data = sessionStorage.getItem('stacfinder-search');
+        return data ? JSON.parse(data) : null;
+      } catch (e) {
+        return null;
       }
     }
   }

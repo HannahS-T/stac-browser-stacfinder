@@ -50,13 +50,8 @@ function getStore(config, router) {
     apiItemsLoading: {},
     nextCollectionsLink: null,
     
-    // Pagination info for collections (used by STACFinder search)
-    collectionsNumberMatched: null,  // Total number of collections
-
-    // Central state for STACFinder collection filters/sort/pagination
-    collectionsFilters: {},
-    collectionsSort: null,
-    collectionsPaginationUrl: null
+    // STACFinder search cache (for back navigation - preserves pagination state)
+    collectionsSearchData: null
   });
 
   return new Vuex.Store({
@@ -618,32 +613,14 @@ function getStore(config, router) {
         state.globalError = error;
       },
 
-      // Set collection filters (for STACFinder advanced search)
-      setCollectionsFilters(state, filters) {
-        state.collectionsFilters = filters || {};
+      // STACFinder: Cache search results (for back navigation)
+      setCollectionsSearchData(state, data) {
+        state.collectionsSearchData = data;
       },
 
-      // Set collection sort (for STACFinder advanced search)
-      setCollectionsSort(state, sort) {
-        state.collectionsSort = sort;
-      },
-
-      // Set pagination URL (for STACFinder advanced search)
-      setCollectionsPaginationUrl(state, url) {
-        state.collectionsPaginationUrl = url;
-      },
-
-      // Reset all collection states (for STACFinder advanced search)
-      resetCollectionsState(state) {
-        state.collectionsFilters = {};
-        state.collectionsSort = null;
-        state.collectionsPaginationUrl = null;
-        state.collectionsNumberMatched = null;
-      },
-
-      // Set total number of collections (for STACFinder advanced search)
-      setCollectionsNumberMatched(state, count) {
-        state.collectionsNumberMatched = count;
+      // STACFinder: Clear search cache
+      clearCollectionsSearchData(state) {
+        state.collectionsSearchData = null;
       }
     },
     actions: {
