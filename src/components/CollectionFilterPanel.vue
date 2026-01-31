@@ -157,12 +157,6 @@ export default {
     return {
       // spatial filters
       selected: null,
-      options: [
-        { value: 'intersects', text: this.$t('search.intersects') },
-        { value: 'contains', text: this.$t('search.contains') },
-        { value: 'overlaps', text: this.$t('search.overlaps') },
-        { value: 'within', text: this.$t('search.within') }
-      ],
 
       // Free-text search term
       query: {
@@ -189,6 +183,20 @@ export default {
 
   computed: {
     ...mapGetters(['getStac', 'root']),
+
+    /**
+     * Spatial relation options for bbox filter
+     */
+    options() {
+      const _ = this.$i18n.locale; // dependency on locale
+      return [
+        { value: 'intersects', text: this.$t('search.intersects') },
+        { value: 'contains',   text: this.$t('search.contains') },
+        { value: 'overlaps',   text: this.$t('search.overlaps') },
+        { value: 'within',     text: this.$t('search.within') }
+      ];
+    },
+
 
     /**
      * Queryables that are not yet in active filters
