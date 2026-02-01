@@ -20,11 +20,6 @@ export default class CollectionQueryable {
   /**
    * Detect field type from JSON Schema
    * 
-   * Supported types:
-   * - string → text field
-   * - array + items.type=string → text_array
-   * - string + format=date-time → timestamp
-   * 
    * @returns {string} Field type
    */
   get type() {
@@ -35,6 +30,17 @@ export default class CollectionQueryable {
       return 'timestamp';
     }
     
+    // Enum field: string with predefined values 
+    if (schemaType === 'string' && Array.isArray(this.schema.enum) && this.schema.enum.length > 0) {
+      return 'enum';
+    }
+    
+    // Special case: keywords is a text_array in backend but exposed as string without enum
+    // LIKE is not supported for text_array, so treat it as text_array
+    if (schemaType === 'string' && this.id === 'keywords') {
+      return 'text_array';
+    }
+    
     // Text field
     if (schemaType === 'string') {
       return 'text';
@@ -43,6 +49,12 @@ export default class CollectionQueryable {
     // Array of strings (text_array)
     if (schemaType === 'array' && this.schema.items?.type === 'string') {
       return 'text_array';
+    }
+    
+    // Number fields are not supported for filtering (gsd has no backend mapping)
+    // Return 'unknown' so they won't appear in the filter UI
+    if (schemaType === 'number') {
+      return 'unknown';
     }
     
     // Unknown/unsupported type
@@ -59,12 +71,30 @@ export default class CollectionQueryable {
   }
 
   /**
+   * Check if field is an enum field (dropdown with predefined values)
+   * 
+   * @returns {boolean}
+   */
+  get isEnum() {
+    return this.type === 'enum';
+  }
+
+  /**
    * Check if field is a text array field
    * 
    * @returns {boolean}
    */
   get isTextArray() {
     return this.type === 'text_array';
+  }
+
+  /**
+   * Check if field is a number field
+   * 
+   * @returns {boolean}
+   */
+  get isNumber() {
+    return this.type === 'number';
   }
 
   /**
@@ -97,9 +127,28 @@ export default class CollectionQueryable {
       );
     }
 
+    if (this.isEnum) {
+      operators.push(
+        { value: '=', label: '=', description: 'operators.equals' },
+        { value: '!=', label: '≠', description: 'operators.notEquals' },
+        { value: 'IN', label: '∈', description: 'operators.containsOneOf' }
+      );
+    }
+
     if (this.isTextArray) {
       operators.push(
+        { value: '=', label: '=', description: 'operators.equals' },
+        { value: '!=', label: '≠', description: 'operators.notEquals' },
         { value: 'IN', label: '∈', description: 'operators.containsOneOf' }
+      );
+    }
+
+    if (this.isNumber) {
+      operators.push(
+        { value: '=', label: '=', description: 'operators.equals' },
+        { value: '!=', label: '≠', description: 'operators.notEquals' },
+        { value: '<', label: '<', description: 'operators.lessThan' },
+        { value: '>', label: '>', description: 'operators.greaterThan' }
       );
     }
 
@@ -168,6 +217,22 @@ export default class CollectionQueryable {
   }
 
   /**
+   * Get enum values if available
+   * @returns {Array<string>} Array of allowed values, or empty array
+   */
+  get enumValues() {
+    return Array.isArray(this.schema.enum) ? this.schema.enum : [];
+  }
+
+  /**
+   * Check if this field has enum values (for dropdown display)
+   * @returns {boolean} True if field has predefined values
+   */
+  get hasEnumValues() {
+    return this.enumValues.length > 0;
+  }
+
+  /**
    * Check if this field is supported by the frontend
    * A field is supported if it has at least one operator available.
    * @returns {boolean} True if field can be filtered
@@ -184,8 +249,14 @@ export default class CollectionQueryable {
     if (this.isText) {
       return '';
     }
+    if (this.isEnum) {
+      return ''; // Single value for = operator, array for IN
+    }
     if (this.isTextArray) {
       return [];
+    }
+    if (this.isNumber) {
+      return '';
     }
     if (this.isTimestamp) {
       return null; // Will be single date or { start, end } depending on operator
@@ -203,10 +274,12 @@ export default class CollectionQueryable {
 
   /**
    * Check if this filter value type changes based on operator
+   * Enum fields switch between single value (=, !=) and multi-value (IN)
+   * Timestamp fields switch between single date (<, >) and range (BETWEEN)
    * @returns {boolean} True if operator affects input type
    */
   get isOperatorDependent() {
-    return this.isTimestamp;
+    return this.isTimestamp || this.isEnum || this.isTextArray;
   }
 
   /**

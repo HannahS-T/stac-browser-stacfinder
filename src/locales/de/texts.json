@@ -137,7 +137,9 @@
     "containsOneOf": "Enthält eines von",
     "before": "Vor",
     "after": "Nach",
-    "between": "Zwischen"
+    "between": "Zwischen",
+    "lessThan": "Kleiner als",
+    "greaterThan": "Größer als"
   },
   "fullscreen": {
     "exit": "Verlasse den Vollbild-Modus",
@@ -273,8 +275,8 @@
     "additionalFilters": "Weitere Filter",
     "allFiltersActive": "Alle Filter sind bereits aktiv",
     "contains": "Beinhaltet",
-    "dateDescription": "Alle Zeiten in koordinierter Weltzeit (UTC).",
-    "endDate": "Enddatum",
+    "dateDescription": "Findet Collections, die den gewählten Zeitraum überschneiden (nicht nur vollständig enthalten).",
+    "endDate": "Enddatum (optional, sonst offen)",
     "enterCollections": "Gebe Katalog-Identifikationsnummern ein...",
     "enterItemIds": "Gebe Element-Identifikationsnummern ein...",
     "enterPattern": "Muster für {field} eingeben",
@@ -285,6 +287,7 @@
     "filterCollection": "Im Katalog filtern",
     "freeText": "Suchbegriffe",
     "freeTextDescription": "Suche nach mindestens einem der angegebene Begriffen in Feldern wie dem Titel und der Beschreibung.",
+    "freeTextCollectionDescription": "Sucht in: Titel, Beschreibung, Lizenz, Schlüsselwörter, Anbieter",
     "greaterThan": "größer als",
     "greaterThanEqual": "größer als oder entspricht",
     "intersects": "Schneidet",
@@ -296,6 +299,13 @@
     "lessThanEqual": "kleiner als oder entspricht",
     "likeOperatorDescription": "Platzhalterzeichen können verwendet werden. `_` entspricht einem einzelnen Zeichen, `%` entspricht einer beliebigen Anzahl an Zeichen. Um nach einem Platzhalterzeichen selber zu suchen, müssen ein `\\` vor das Zeichen gesetzt werden.",
     "loadingFilters": "Lade Filter-Felder...",
+    "filterGroups": {
+      "text": "Textsuche",
+      "selection": "Auswahl",
+      "temporal": "Zeitlich",
+      "numeric": "Numerisch",
+      "other": "Sonstige"
+    },
     "logical": {
       "and": "Berücksichtige alle Filter (und)",
       "or": "Berücksichtige mindestens einen der Filter (oder)"
@@ -319,9 +329,11 @@
     "selectDateBefore": "Datum wählen (vor)",
     "selectDateRange": "Zeitraum auswählen",
     "selectForItemSearch": "Markiere für Elementsuche",
+    "selectValue": "Wert auswählen...",
+    "selectValues": "Einen oder mehrere Werte auswählen...",
     "spatialExtent": "Räumliche Ausdehnung",
     "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Quellen.",
-    "startDate": "Startdatum",
+    "startDate": "Startdatum (optional, sonst offen)",
     "spatialRelationType": "Räumliche Beziehung:",
     "tabs": {
       "collections": "Kataloge durchsuchen",

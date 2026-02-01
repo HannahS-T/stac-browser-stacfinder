@@ -7,7 +7,7 @@
     <b-card-body>
 
       <!-- Free-text search -->
-      <b-form-group :label="$t('search.enterSearchTerms')">
+      <b-form-group :label="$t('search.enterSearchTerms')" :description="$t('search.freeTextCollectionDescription')">
         <SearchBox v-model="query.q" :placeholder="$t('search.enterSearchTerms')" />
       </b-form-group>
 
@@ -52,19 +52,72 @@
       <!-- Additional metadata filters -->
       <b-form-group v-if="queryablesLoaded && queryables.length > 0" class="additional-filters"
         :label="$t('search.additionalFilters')">
+        
+        <!-- AND/OR logical operator selection -->
+        <b-form-radio-group 
+          v-model="logicalOperator" 
+          :options="logicalOperatorOptions" 
+          name="logical-operator" 
+          size="sm"
+          class="mb-2"
+        />
+
         <b-dropdown size="sm" block variant="primary" :text="$t('search.addFilter')"
           :disabled="availableQueryables.length === 0" class="metadata-filters mt-2 mb-3">
-          <!-- Queryable Items -->
-          <b-dropdown-item-button v-for="queryable in availableQueryables" :key="queryable.id"
-            @click="addMetadataFilter(queryable)" class="queryable-item">
-            <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
-            <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
-          </b-dropdown-item-button>
+          
+          <!-- Text: Free text fields (title, description, keywords, etc.) -->
+          <template v-if="groupedQueryables.text.length > 0">
+            <b-dropdown-header>{{ $t('search.filterGroups.text') }}</b-dropdown-header>
+            <b-dropdown-item-button v-for="queryable in groupedQueryables.text" :key="'text-' + queryable.id"
+              @click="addMetadataFilter(queryable)" class="queryable-item">
+              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
+              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
+            </b-dropdown-item-button>
+          </template>
 
-          <!-- Empty State -->
-          <b-dropdown-text v-if="availableQueryables.length === 0" class="text-muted">
-            {{ $t('search.allFiltersActive') }}
-          </b-dropdown-text>
+          <!-- Selection: Enum/dropdown fields (license, platform, etc.) -->
+          <template v-if="groupedQueryables.selection.length > 0">
+            <b-dropdown-divider v-if="groupedQueryables.text.length > 0" />
+            <b-dropdown-header>{{ $t('search.filterGroups.selection') }}</b-dropdown-header>
+            <b-dropdown-item-button v-for="queryable in groupedQueryables.selection" :key="'sel-' + queryable.id"
+              @click="addMetadataFilter(queryable)" class="queryable-item">
+              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
+              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
+            </b-dropdown-item-button>
+          </template>
+
+          <!-- Temporal: Date/time fields -->
+          <template v-if="groupedQueryables.temporal.length > 0">
+            <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0" />
+            <b-dropdown-header>{{ $t('search.filterGroups.temporal') }}</b-dropdown-header>
+            <b-dropdown-item-button v-for="queryable in groupedQueryables.temporal" :key="'temp-' + queryable.id"
+              @click="addMetadataFilter(queryable)" class="queryable-item">
+              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
+              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
+            </b-dropdown-item-button>
+          </template>
+
+          <!-- Numeric: Number fields (gsd, etc.) -->
+          <template v-if="groupedQueryables.numeric.length > 0">
+            <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0 || groupedQueryables.temporal.length > 0" />
+            <b-dropdown-header>{{ $t('search.filterGroups.numeric') }}</b-dropdown-header>
+            <b-dropdown-item-button v-for="queryable in groupedQueryables.numeric" :key="'num-' + queryable.id"
+              @click="addMetadataFilter(queryable)" class="queryable-item">
+              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
+              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
+            </b-dropdown-item-button>
+          </template>
+
+          <!-- Other: Uncategorized fields -->
+          <template v-if="groupedQueryables.other.length > 0">
+            <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0 || groupedQueryables.temporal.length > 0 || groupedQueryables.numeric.length > 0" />
+            <b-dropdown-header>{{ $t('search.filterGroups.other') }}</b-dropdown-header>
+            <b-dropdown-item-button v-for="queryable in groupedQueryables.other" :key="'other-' + queryable.id"
+              @click="addMetadataFilter(queryable)" class="queryable-item">
+              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
+              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
+            </b-dropdown-item-button>
+          </template>
         </b-dropdown>
 
         <!-- Render active metadata filters -->
@@ -99,9 +152,12 @@ import {
   BFormGroup,
   BDropdown,
   BDropdownItemButton,
+  BDropdownHeader,
+  BDropdownDivider,
   BButton,
   BCol,
   BFormSelect,
+  BFormRadioGroup,
   BRow,
   BFormInput,
   BBadge,
@@ -130,9 +186,12 @@ export default {
     BFormGroup,
     BDropdown,
     BDropdownItemButton,
+    BDropdownHeader,
+    BDropdownDivider,
     BButton,
     BCol,
     BFormSelect,
+    BFormRadioGroup,
     BRow,
     BFormInput,
     BBadge,
@@ -171,8 +230,8 @@ export default {
 
   data() {
     return {
-      // spatial filters
-      selected: null,
+      // spatial filter relation type (default: intersects)
+      selected: 'intersects',
 
       // Free-text search term
       query: {
@@ -185,6 +244,9 @@ export default {
 
       // Spatial filter as bounding box [minX, minY, maxX, maxY]
       bbox: null,
+
+      // Logical operator for combining metadata filters (AND/OR)
+      logicalOperator: 'and',
 
       // Active metadata filters (CQL2)
       // Each filter: { queryable: CollectionQueryable, operator: string, value: string }
@@ -226,13 +288,62 @@ export default {
       ];
     },
 
+    /**
+     * AND/OR options for combining metadata filters
+     */
+    logicalOperatorOptions() {
+      return [
+        { value: 'and', text: this.$t('search.logical.and') },
+        { value: 'or', text: this.$t('search.logical.or') }
+      ];
+    },
+
 
     /**
-     * Queryables that are not yet in active filters
+     * Queryables available for selection, grouped by category.
+     * All fields can be added multiple times 
      */
     availableQueryables() {
-      const activeIds = this.metadataFilters.map(f => f.queryable.id);
-      return this.queryables.filter(q => !activeIds.includes(q.id));
+      return this.queryables.slice(0);
+    },
+
+    /**
+     * Queryables grouped by type for the dropdown menu
+     * Dynamic grouping based on field type properties
+     */
+    groupedQueryables() {
+      const groups = {
+        text: [],
+        selection: [],
+        temporal: [],
+        numeric: [],
+        other: []
+      };
+
+      for (const q of this.queryables) {
+        // Categorize by field type (dynamic, not hardcoded)
+        if (q.isTimestamp) {
+          groups.temporal.push(q);
+        } else if (q.isNumber) {
+          groups.numeric.push(q);
+        } else if (q.isEnum) {
+          groups.selection.push(q);
+        } else if (q.isText || q.isTextArray) {
+          groups.text.push(q);
+        } else {
+          groups.other.push(q);
+        }
+      }
+
+      // Sort within each group alphabetically
+      const collator = new Intl.Collator(this.$i18n?.locale || 'en');
+      for (const key in groups) {
+        groups[key].sort((a, b) => 
+          collator.compare(a.getLocalizedTitle(this.$i18n), b.getLocalizedTitle(this.$i18n))
+        );
+      }
+
+      return groups;
     },
 
     /**
@@ -304,6 +415,11 @@ export default {
         this.bbox = this.initialFilters.bbox;
       }
 
+      // Restore logical operator for metadata filters
+      if (this.initialFilters.logicalOperator === 'and' || this.initialFilters.logicalOperator === 'or') {
+        this.logicalOperator = this.initialFilters.logicalOperator;
+      }
+
       // Restore metadata filters (requires queryables to be loaded)
       this.restoreMetadataFilters();
     },
@@ -341,6 +457,7 @@ export default {
       this.start = null;
       this.end = null;
       this.bbox = null;
+      this.logicalOperator = 'and';
       this.metadataFilters = [];
     },
 
@@ -405,23 +522,27 @@ export default {
     },
 
     /**
- * Build CQL2 filter string from active metadata filters
- */
+     * Build CQL2 filter string from active metadata filters
+     */
     buildCql2Filter() {
-      let spatialExpr = null;
-      if (Array.isArray(this.bbox) && this.bbox.length == 4 && this.selected) {
-       spatialExpr = this.selected;
-      }
+      // Use CQL2 spatial filter only for non-intersects relations
+      const useCql2Spatial = Array.isArray(this.bbox) && 
+                             this.bbox.length === 4 && 
+                             this.selected && 
+                             this.selected !== 'intersects';
 
-      if (this.metadataFilters.length === 0 && !spatialExpr) {
+      if (this.metadataFilters.length === 0 && !useCql2Spatial) {
         return null;
       }
 
       const cql = new CollectionCql();
+      
+      // Set the logical operator (AND/OR) for combining metadata filters
+      cql.setLogicalOperator(this.logicalOperator);
 
-      // Add spatial filter if defined
-      if (spatialExpr) {
-        cql.addSpatial(spatialExpr, this.bbox.join(','));
+      // Add spatial filter for contains, within, overlaps (not intersects)
+      if (useCql2Spatial) {
+        cql.addSpatial(this.selected, this.bbox.join(','));
       }
 
       for (const filter of this.metadataFilters) {
@@ -431,6 +552,38 @@ export default {
           // Text fields: comparison operators (=, !=, LIKE)
           if (queryable.isText && (operator === '=' || operator === '!=' || operator === 'LIKE')) {
             // Only add filters with non-empty values
+            if (value !== null && value !== undefined && value !== '') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cql.addComparison(queryable.id, operator, trimmedValue);
+              }
+            }
+          }
+
+          // Enum fields: single value operators (=, !=)
+          else if (queryable.isEnum && (operator === '=' || operator === '!=')) {
+            if (value !== null && value !== undefined && value !== '') {
+              const trimmedValue = String(value).trim();
+              if (trimmedValue) {
+                cql.addComparison(queryable.id, operator, trimmedValue);
+              }
+            }
+          }
+
+          // Enum fields: IN operator (multiple values)
+          else if (queryable.isEnum && operator === 'IN') {
+            if (Array.isArray(value) && value.length > 0) {
+              const cleanedValues = value
+                .map(v => String(v).trim())
+                .filter(v => v !== '');
+              if (cleanedValues.length > 0) {
+                cql.addIn(queryable.id, cleanedValues);
+              }
+            }
+          }
+
+          // Array fields: single value operators (=, !=)
+          else if (queryable.isTextArray && (operator === '=' || operator === '!=')) {
             if (value !== null && value !== undefined && value !== '') {
               const trimmedValue = String(value).trim();
               if (trimmedValue) {
@@ -450,6 +603,16 @@ export default {
 
               if (cleanedValues.length > 0) {
                 cql.addIn(queryable.id, cleanedValues);
+              }
+            }
+          }
+
+          // Number fields: comparison operators (=, !=, <, >)
+          else if (queryable.isNumber && (operator === '=' || operator === '!=' || operator === '<' || operator === '>')) {
+            if (value !== null && value !== undefined && value !== '') {
+              const numValue = Number(value);
+              if (!isNaN(numValue)) {
+                cql.addComparison(queryable.id, operator, numValue);
               }
             }
           }
@@ -539,18 +702,25 @@ export default {
         value: f.value
       }));
 
+      // Use bbox parameter only for 'intersects' (efficient), other relations use CQL2
+      const useBboxParam = Array.isArray(this.bbox) && 
+                           this.bbox.length === 4 && 
+                           this.selected === 'intersects';
+
+      // Datetime parameter: only if at least one date is set
+      let datetimeValue = null;
+      if (this.start || this.end) {
+        datetimeValue = [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null);
+      }
+
       const filters = {
         q: Utils.hasText(this.query.q)
           ? this.query.q.trim()
           : null,
 
-        datetime: Array.isArray([this.start, this.end])
-          ? [this.start, this.end].map(d => d ? Utils.dateToUTC(d) : null)
-          : null,
+        datetime: datetimeValue,
 
-        bbox: Array.isArray(this.bbox) && this.bbox.length === 4 && !this.selected
-          ? [...this.bbox]
-          : null,
+        bbox: useBboxParam ? [...this.bbox] : null,
 
         // CQL2 metadata filter (for API)
         cql2: cql2Filter,
@@ -558,7 +728,10 @@ export default {
         // Structured metadata filters (for UI restoration)
         metadataFilters: serializedMetadataFilters.length > 0 
           ? serializedMetadataFilters 
-          : null
+          : null,
+
+        // Logical operator for combining metadata filters
+        logicalOperator: this.logicalOperator
       };
 
       this.$emit('submit', filters);

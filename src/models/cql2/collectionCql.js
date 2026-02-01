@@ -6,6 +6,7 @@
  * - Text fields: =, !=, LIKE
  * - Array fields: IN
  * - Timestamp fields: <, >, BETWEEN
+ * - Logical operators: AND, OR
  */
 
 export default class CollectionCql {
@@ -15,6 +16,24 @@ export default class CollectionCql {
      * @type {Array<Object>}
      */
     this.filters = [];
+    
+    /**
+     * Logical operator for combining filters ('and' or 'or')
+     * @type {string}
+     */
+    this.logicalOperator = 'and';
+  }
+
+  /**
+   * Set the logical operator for combining filters
+   * @param {string} operator - 'and' or 'or'
+   * @returns {CollectionCql} this (for chaining)
+   */
+  setLogicalOperator(operator) {
+    if (operator === 'and' || operator === 'or') {
+      this.logicalOperator = operator;
+    }
+    return this;
   }
 
   /**
@@ -116,7 +135,7 @@ export default class CollectionCql {
   /**
    * Build CQL2-Text expression
    * 
-   * Combines all filters with AND operator.
+   * Combines all filters with the configured logical operator (AND/OR).
    * Single filter: no parentheses
    * Multiple filters: wrapped in parentheses
    * 
@@ -146,8 +165,9 @@ export default class CollectionCql {
       return expressions[0];
     }
 
-    // Multiple filters: wrap in parentheses and join with AND
-    return expressions.map(e => `(${e})`).join(' AND ');
+    // Multiple filters: wrap in parentheses and join with logical operator
+    const logicalOp = this.logicalOperator.toUpperCase(); // 'AND' or 'OR'
+    return expressions.map(e => `(${e})`).join(` ${logicalOp} `);
   }
 
   /**
