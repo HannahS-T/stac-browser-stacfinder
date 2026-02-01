@@ -299,6 +299,13 @@
     "lessThanEqual": "kleiner als oder entspricht",
     "likeOperatorDescription": "Platzhalterzeichen können verwendet werden. `_` entspricht einem einzelnen Zeichen, `%` entspricht einer beliebigen Anzahl an Zeichen. Um nach einem Platzhalterzeichen selber zu suchen, müssen ein `\\` vor das Zeichen gesetzt werden.",
     "loadingFilters": "Lade Filter-Felder...",
+    "filterGroups": {
+      "text": "Textsuche",
+      "selection": "Auswahl",
+      "temporal": "Zeitlich",
+      "numeric": "Numerisch",
+      "other": "Sonstige"
+    },
     "logical": {
       "and": "Berücksichtige alle Filter (und)",
       "or": "Berücksichtige mindestens einen der Filter (oder)"
