@@ -100,16 +100,9 @@ export default {
   },
   computed: {
     ...mapState(['cardViewSort', 'uiLanguage']),
-    ...mapGetters(['getStac', 'collectionsTotal']),
-
+    ...mapGetters(['getStac']),
 
     catalogCount() {
-      // For external collections with pagination: Show total count
-      if (this.showPagination && this.collectionsTotal !== null) {
-        return this.collectionsTotal;
-      }
-
-      // Original logic for other cases
       if (this.catalogs.length !== this.catalogView.length) {
         return this.catalogView.length + '/' + this.catalogs.length;
       }
