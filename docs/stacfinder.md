@@ -112,20 +112,25 @@ docker-compose down
 /collections?sortby=-title,+id
 ```
 
-### 6. Pagination (`limit`)
-- Token-based pagination for efficient navigation through large result sets
-- API returns `next`/`prev` links in response - tokens are opaque and handled automatically
+### 6. Pagination (`limit`, `token`)
+- Offset-based pagination with opaque tokens for efficient navigation
+- API returns `first`, `prev`, `next`, `last` links with encoded tokens
 - Optional `limit` parameter sets results per page (default: 9, max: 10000)
+- Use `numberMatched` from response to see total count
 ```
 # Request
 GET /collections?limit=50
 
 # Response
+{
   "collections": [...],
+  "numberMatched": 1234,
+  "numberReturned": 50,
   "links": [
     { "rel": "self", "href": "/collections?limit=50" },
-    { "rel": "next", "href": "/collections?limit=50&token=xyz" }
+    { "rel": "next", "href": "/collections?limit=50&token=..." }
   ]
+}
 ```
 
 ### 7. Results Display
