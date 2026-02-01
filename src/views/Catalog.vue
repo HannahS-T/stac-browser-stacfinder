@@ -42,7 +42,7 @@
         <Links v-if="linkPosition === 'right'" :title="$t('additionalResources')" :links="additionalLinks" :context="data" />
       </b-col>
       <b-col class="catalogs-container" v-if="hasCatalogs">
-        <Catalogs :catalogs="catalogs" :hasMore="!!nextCollectionsLink" @loadMore="loadMoreCollections" />
+        <Catalogs :catalogs="catalogs" :collectionsOnly="isOnStacFinderApi" :hasMore="!!nextCollectionsLink" @loadMore="loadMoreCollections" />
       </b-col>
       <b-col class="items-container" v-if="hasItems || hasItemAssets">
         <Items
@@ -210,6 +210,15 @@ export default {
     },
     isApi() {
       return Boolean(this.apiItemsLink);
+    },
+    // Check if we're browsing the STACFinder API
+    isOnStacFinderApi() {
+      const origin = this.$store.state.stacFinderApiOrigin;
+      if (!origin) {
+        return false;
+      }
+      const browserPath = this.data?.getBrowserPath?.() || '';
+      return browserPath.includes('/external/') && browserPath.includes(origin);
     },
     hasItems() {
       return this.items.length > 0 || this.isApi;
