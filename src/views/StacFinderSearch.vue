@@ -231,7 +231,7 @@ export default {
      */
     initFromUrl() {
       const query = this.$route.query;
-      const hasUrlParams = query.q || query.bbox || query.datetime || query.sort;
+      const hasUrlParams = query.q || query.bbox || query.datetime || query.sort || query.limit;
       
       if (!hasUrlParams) {
         return; // No search params - show initial state
@@ -250,6 +250,7 @@ export default {
         q: query.q || null,
         bbox: query.bbox ? query.bbox.split(',').map(Number) : null,
         datetime: query.datetime ? this.parseDatetimeParam(query.datetime) : null,
+        limit: query.limit ? parseInt(query.limit, 10) : null,
         // Priority: Vuex cache > sessionStorage > null
         metadataFilters: cacheHit ? cached.metadataFilters : (sessionMatch ? sessionData.metadataFilters : null),
         cql2: cacheHit ? cached.cql2 : (sessionMatch ? sessionData.cql2 : null)
@@ -308,6 +309,9 @@ export default {
       }
       if (this.sortParam && this.sortParam !== '+title') {
         query.sort = this.sortParam;
+      }
+      if (this.filters.limit && this.filters.limit > 0) {
+        query.limit = this.filters.limit;
       }
       
       // Only update if different from current

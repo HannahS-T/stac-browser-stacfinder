@@ -234,11 +234,6 @@ function getStore(config, router) {
         return collectionAdapter.getSortableFields();
       },
 
-      /**
-       * Total number of collections for display
-       */
-      collectionsTotal: state => state.collectionsNumberMatched,
-
       items: state => {
         if (state.apiItems.length > 0) {
           return state.apiItems;
