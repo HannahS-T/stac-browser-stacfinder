@@ -143,8 +143,7 @@ export default {
     };
   },
   computed: {
-  // Temporal fix: delete stacFinderApiOrigin after fix in backend
-    ...mapState(['stacFinderApiUrl', 'stacFinderApiOrigin', 'catalogTitle', 'collectionsSearchData']),
+    ...mapState(['stacFinderApiUrl', 'catalogTitle', 'collectionsSearchData']),
     ...mapGetters(['root', 'toBrowserPath']),
 
     parent() {
@@ -176,13 +175,9 @@ export default {
               return null;
             }
             let selfLink = Utils.getLinkWithRel(collection.links, 'self');
-            // Temporal fix: replace  
-            // ? this.normalizeApiUrl(selfLink.href)
-            // with 
-            // ? Utils.toAbsolute(selfLink.href, this.stacFinderApiUrl)
 
             let url = selfLink?.href 
-              ? this.normalizeApiUrl(selfLink.href)
+              ? Utils.toAbsolute(selfLink.href, this.stacFinderApiUrl)
               : `${this.stacFinderApiUrl}/collections/${collection.id}`;
             
             let stac = createSTAC(collection, url, this.toBrowserPath(url));
@@ -229,16 +224,6 @@ export default {
     }
   },
   methods: {
-    /**
-     * Temporal fix: delete function after fix in backend
-     * Normalize URL from internal Docker host (api:4000) to browser-accessible host.
-     * In Docker, the API returns self-links with the internal hostname which browsers can't resolve.
-     */
-    normalizeApiUrl(url) {
-      if (!url || !this.stacFinderApiOrigin) return url;
-      // Replace internal Docker host (http://api:4000) with browser-accessible origin
-      return url.replace(/^https?:\/\/api:\d+/, `http://${this.stacFinderApiOrigin}`);
-    },
     /**
      * Initialize state from URL or restore from cache/sessionStorage
      * - URL = Source of Truth for simple filters (q, bbox, datetime, sort)
