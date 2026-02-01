@@ -230,7 +230,7 @@ export default {
       }
     },
     isSearchPage() {
-      return this.$route.name === 'search';
+      return this.$route.name === 'search' || this.$route.name === 'stacfinder';
     },
     isServerSelector() {
       return this.$route.name !== 'select';
@@ -244,9 +244,27 @@ export default {
     authLabel() {
       return this.isLoggedIn ? this.authMethod.getLogoutLabel() : this.authMethod.getLoginLabel();
     },
+    /**
+     * Check if we're currently browsing the STACFinder API.
+     * Compares browser path against stacFinderApiOrigin from config.
+     */
+    isOnStacFinderApi() {
+      const origin = this.$store.state.stacFinderApiOrigin;
+      if (!origin) {
+        return false;
+      }
+      // Get browser path - for external URLs: /external/http:/localhost:4000/...
+      const browserPath = this.data?.getBrowserPath?.() || this.root?.getBrowserPath?.() || '';
+      // Check if path is external and contains the configured API origin
+      return browserPath.includes('/external/') && browserPath.includes(origin);
+    },
     searchBrowserLink() {
       if (!this.canSearch) {
         return null;
+      }
+      // Redirect to STACFinder search when on STACFinder API
+      if (this.isOnStacFinderApi) {
+        return '/stacfinder';
       }
       let searchLink;
       if (this.data instanceof CatalogLike && !this.data.equals(this.root)) {

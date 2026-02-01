@@ -204,6 +204,18 @@ The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 - Queryables fetching and caching
 - Error handling
 
+### Configuration
+
+In `config.js`:
+
+| Setting | Purpose | Default |
+|---------|---------|---------|
+| `stacFinderApiUrl` | API base URL (proxied) | `/api` |
+| `stacFinderApiOrigin` | Host for Search redirect detection | `localhost:4000` |
+
+When browsing a STACFinder collection, the "Search" button redirects to `/stacfinder` instead of `/search`.
+
+
 ---
 
 ## Architecture
