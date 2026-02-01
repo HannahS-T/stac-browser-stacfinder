@@ -87,6 +87,12 @@ class CollectionApiAdapter {
       if (invalid) throw new BrowserError('Invalid sort field: ' + invalid);
       params.sortby = sort;
     }
+
+    // Add limit (items per page)
+    if (filters.limit && typeof filters.limit === 'number' && filters.limit > 0) {
+      params.limit = filters.limit;
+    }
+
     return params;
   }
 

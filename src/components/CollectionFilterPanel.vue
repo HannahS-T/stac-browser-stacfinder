@@ -126,6 +126,21 @@
           @remove="removeFilter" />
       </b-form-group>
 
+      <!-- Items per page -->
+      <b-form-group 
+        class="limit mt-3" 
+        :label="$t('search.itemsPerPage')" 
+        :description="$t('search.itemsPerPageDescription', { maxItems })"
+      >
+        <b-form-input
+          v-model.number="limit"
+          type="number"
+          min="1"
+          :max="maxItems"
+          :placeholder="limitPlaceholder"
+        />
+      </b-form-group>
+
       <!-- Action buttons -->
       <div class="d-flex justify-content-between mt-3">
         <b-button 
@@ -252,6 +267,9 @@ export default {
       // Each filter: { queryable: CollectionQueryable, operator: string, value: string }
       metadataFilters: [],
 
+      // Items per page (limit)
+      limit: null,
+
       // Available queryables from API
       queryables: [],
       queryablesLoaded: false,
@@ -271,7 +289,8 @@ export default {
         this.start ||
         this.end ||
         (Array.isArray(this.bbox) && this.bbox.length === 4) ||
-        this.metadataFilters.length > 0
+        this.metadataFilters.length > 0 ||
+        this.limit
       );
     },
 
@@ -296,6 +315,20 @@ export default {
         { value: 'and', text: this.$t('search.logical.and') },
         { value: 'or', text: this.$t('search.logical.or') }
       ];
+    },
+
+    /**
+     * Maximum items per page (matches backend maxLimit)
+     */
+    maxItems() {
+      return 10000;
+    },
+
+    /**
+     * Placeholder for limit input showing the default value
+     */
+    limitPlaceholder() {
+      return this.$t('defaultWithValue', { value: 9 });
     },
 
 
@@ -420,6 +453,11 @@ export default {
         this.logicalOperator = this.initialFilters.logicalOperator;
       }
 
+      // Restore limit (items per page)
+      if (typeof this.initialFilters.limit === 'number' && this.initialFilters.limit > 0) {
+        this.limit = this.initialFilters.limit;
+      }
+
       // Restore metadata filters (requires queryables to be loaded)
       this.restoreMetadataFilters();
     },
@@ -459,6 +497,7 @@ export default {
       this.bbox = null;
       this.logicalOperator = 'and';
       this.metadataFilters = [];
+      this.limit = null;
     },
 
     /**
@@ -731,7 +770,10 @@ export default {
           : null,
 
         // Logical operator for combining metadata filters
-        logicalOperator: this.logicalOperator
+        logicalOperator: this.logicalOperator,
+
+        // Items per page
+        limit: this.limit && this.limit > 0 ? Math.min(this.limit, this.maxItems) : null
       };
 
       this.$emit('submit', filters);
