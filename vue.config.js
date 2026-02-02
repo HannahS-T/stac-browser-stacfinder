@@ -1,10 +1,23 @@
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
 const path = require('path');
+const fs = require('fs');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
+
+// Load root .env for local development (ports configured in one place)
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { properties } = require('./config.schema.json');
 const pkgFile = require('./package.json');
+
+// Port configuration from root .env (with defaults matching .env.example)
+const API_PORT = process.env.API_PORT || 4000;
+const WEB_UI_PORT = process.env.WEB_UI_PORT || 8080;
+
+// Set stacFinderApiUrl if not already set by environment
+if (!process.env.SB_stacFinderApiUrl) {
+  process.env.SB_stacFinderApiUrl = `http://localhost:${API_PORT}`;
+}
 
 const optionsForType = (type) => Object.entries(properties)
   .filter(([_, schema]) => Array.isArray(schema.type) && schema.type.includes(type))
@@ -36,7 +49,8 @@ const vueConfig = {
 
   // Required for Docker development: bind to 0.0.0.0 so container is accessible from host
   devServer: {
-    host: '0.0.0.0'
+    host: '0.0.0.0',
+    port: WEB_UI_PORT
   },
 
   chainWebpack: webpackConfig => {
