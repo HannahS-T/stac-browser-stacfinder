@@ -181,6 +181,7 @@ Spatial filtering uses the `bbox` parameter or CQL2 spatial functions:
 | `GET /collections` | List collections (with filtering, sorting, pagination) |
 | `GET /collections/{id}` | Single collection by ID |
 | `GET /collections/queryables` | Filterable fields schema |
+| `GET /collections/sortables` | Sortable fields schema |
 
 ### Collections Endpoint
 
@@ -199,7 +200,7 @@ The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 
 **Key Responsibilities:**
 - Query parameter building for filters and sorting
-- Queryables fetching and caching
+- Queryables and sortables fetching with caching
 - Error handling
 
 ### Configuration
@@ -252,7 +253,7 @@ The STACFinder API collections are treated like external STAC APIs and navigated
 - `CollectionMetadataFilter.vue` - Dynamic CQL2 filter builder UI driven by queryables
 
 **JavaScript Modules:**
-- `CollectionApiAdapter.js` - API client for query building and queryables fetching
+- `CollectionApiAdapter.js` - API client for query building, queryables and sortables fetching
 - `collectionCql.js` - CQL2-Text query builder for constructing filter expressions
 - `collectionQueryable.js` - Queryable field definitions with type detection and operator mapping
 
