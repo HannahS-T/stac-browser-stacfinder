@@ -128,7 +128,8 @@
     "constellation_summary": "Constellations",
     "processing_level_summary": "Processing Levels",
     "temporal_start": "Start Date",
-    "temporal_end": "End Date"
+    "temporal_end": "End Date",
+    "gsd": "Ground Sample Distance (m)"
   },
   "operators": {
     "equals": "Equals",
@@ -139,7 +140,9 @@
     "after": "After",
     "between": "Between",
     "lessThan": "Less than",
-    "greaterThan": "Greater than"
+    "lessThanOrEqual": "Less than or equal",
+    "greaterThan": "Greater than",
+    "greaterThanOrEqual": "Greater than or equal"
   },
   "fullscreen": {
     "exit": "Exit fullscreen mode",
