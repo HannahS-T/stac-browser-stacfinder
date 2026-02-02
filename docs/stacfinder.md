@@ -154,7 +154,7 @@ Filterable fields from `/collections/queryables` endpoint. The frontend generate
 | `platform`, `constellation`, `processingLevel` | enum | Array-backed fields (dynamic values from DB) |
 | `provider` | enum | Provider name from JSONB (dynamic values from DB) |
 | `keywords` | text | Keyword search |
-| `gsd` | number | Ground sample distance |
+| `gsd` | number | Ground sample distance with `=`, `!=`, `<`, `<=`, `>`, `>=` |
 | `temporal_start`, `temporal_end` | timestamp | Temporal extent boundaries |
 
 ### Spatial Filtering

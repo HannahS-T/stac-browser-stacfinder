@@ -612,6 +612,16 @@ export default {
             }
           }
 
+          // Number fields: comparison operators (=, !=, <, <=, >, >=)
+          else if (queryable.isNumber && ['=', '!=', '<', '<=', '>', '>='].includes(operator)) {
+            if (value !== null && value !== undefined && value !== '') {
+              const numValue = Number(value);
+              if (!isNaN(numValue)) {
+                cql.addComparison(queryable.id, operator, numValue);
+              }
+            }
+          }
+
           // Enum fields: single value operators (=, !=)
           else if (queryable.isEnum && (operator === '=' || operator === '!=')) {
             if (value !== null && value !== undefined && value !== '') {
@@ -659,8 +669,8 @@ export default {
             }
           }
 
-          // Number fields: comparison operators (=, !=, <, >)
-          else if (queryable.isNumber && (operator === '=' || operator === '!=' || operator === '<' || operator === '>')) {
+          // Number fields: comparison operators (=, !=, <, <=, >, >=)
+          else if (queryable.isNumber && ['=', '!=', '<', '<=', '>', '>='].includes(operator)) {
             if (value !== null && value !== undefined && value !== '') {
               const numValue = Number(value);
               if (!isNaN(numValue)) {

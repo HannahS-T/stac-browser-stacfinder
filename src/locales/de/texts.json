@@ -128,7 +128,8 @@
     "constellation_summary": "Konstellationen",
     "processing_level_summary": "Verarbeitungslevel",
     "temporal_start": "Zeitbeginn",
-    "temporal_end": "Zeitende"
+    "temporal_end": "Zeitende",
+    "gsd": "Bodenauflösung (m)"
   },
   "operators": {
     "equals": "Gleich",
@@ -139,7 +140,9 @@
     "after": "Nach",
     "between": "Zwischen",
     "lessThan": "Kleiner als",
-    "greaterThan": "Größer als"
+    "lessThanOrEqual": "Kleiner oder gleich",
+    "greaterThan": "Größer als",
+    "greaterThanOrEqual": "Größer oder gleich"
   },
   "fullscreen": {
     "exit": "Verlasse den Vollbild-Modus",
