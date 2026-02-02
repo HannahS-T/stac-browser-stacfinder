@@ -4,36 +4,58 @@ import CollectionQueryable from '../models/cql2/collectionQueryable';
 
 class CollectionApiAdapter {
   constructor() {
-    this.sortableFields = ['title', 'description', 'temporal_start', 'temporal_end'];
+    this.cachedApiUrl = null;
     this.queryablesCache = null;
+    this.sortablesCache = null;
   }
 
-  getSortableFields() {
-    return [...this.sortableFields];
-  }
-
-  getBaseUrl() {
-    const config = window.STAC_BROWSER_CONFIG || {};
-    return config.stacFinderApiUrl || '/api';
-  }
-
-  async fetchQueryables() {
-    if (this.queryablesCache) return this.queryablesCache;
-    try {
-      const baseUrl = this.getBaseUrl();
-      const response = await axios.get(baseUrl + '/collections/queryables');
-      if (!response.data?.properties) throw new BrowserError('Invalid queryables response');
-      
-      let queryables = Object.entries(response.data.properties)
-        .map(([id, schema]) => new CollectionQueryable(id, schema))
-        .filter(q => q.supported);
-
-      // Cache result
-      this.queryablesCache = queryables;
-      return queryables;
-    } catch (error) {
-      throw new BrowserError('Failed to load queryables: ' + error.message);
+  /**
+   * Fetch sortables from the API
+   * @param {string} apiUrl - Base URL of the STACFinder API
+   * @returns {Promise<Array<{id: string, title: string}>>}
+   */
+  async fetchSortables(apiUrl) {
+    if (!apiUrl) throw new BrowserError('API URL is required');
+    
+    if (this.sortablesCache && this.cachedApiUrl === apiUrl) {
+      return this.sortablesCache;
     }
+
+    const response = await axios.get(`${apiUrl}/collections/sortables`);
+    if (!response.data?.properties) {
+      throw new BrowserError('Invalid sortables response');
+    }
+
+    this.sortablesCache = Object.entries(response.data.properties).map(([id, schema]) => ({
+      id,
+      title: schema.title || id
+    }));
+    this.cachedApiUrl = apiUrl;
+    return this.sortablesCache;
+  }
+
+  /**
+   * Fetch queryables from the API
+   * @param {string} apiUrl - Base URL of the STACFinder API
+   * @returns {Promise<CollectionQueryable[]>}
+   */
+  async fetchQueryables(apiUrl) {
+    if (!apiUrl) throw new BrowserError('API URL is required');
+    
+    if (this.queryablesCache && this.cachedApiUrl === apiUrl) {
+      return this.queryablesCache;
+    }
+
+    const response = await axios.get(`${apiUrl}/collections/queryables`);
+    if (!response.data?.properties) {
+      throw new BrowserError('Invalid queryables response');
+    }
+
+    this.queryablesCache = Object.entries(response.data.properties)
+      .map(([id, schema]) => new CollectionQueryable(id, schema))
+      .filter(q => q.supported);
+    this.cachedApiUrl = apiUrl;
+    return this.queryablesCache;
   }
 
   buildQueryParams(filters = {}, sort = null) {
@@ -80,11 +102,8 @@ class CollectionApiAdapter {
       params['filter-lang'] = 'cql2-text';
     }
 
-    // Add sorting (sortby parameter)
-    if (sort && typeof sort === 'string') {
-      const fields = sort.split(',').map(s => s.replace(/^[+-]/, ''));
-      const invalid = fields.find(f => !this.sortableFields.includes(f));
-      if (invalid) throw new BrowserError('Invalid sort field: ' + invalid);
+    // Add sorting
+    if (sort) {
       params.sortby = sort;
     }
 
@@ -104,7 +123,9 @@ class CollectionApiAdapter {
   }
 
   clearCache() {
+    this.cachedApiUrl = null;
     this.queryablesCache = null;
+    this.sortablesCache = null;
   }
 }
 

@@ -48,10 +48,7 @@ function getStore(config, router) {
 
     apiCollections: [],
     apiItemsLoading: {},
-    nextCollectionsLink: null,
-    
-    // STACFinder search cache (for back navigation - preserves pagination state)
-    collectionsSearchData: null
+    nextCollectionsLink: null
   });
 
   return new Vuex.Store({
@@ -606,16 +603,6 @@ function getStore(config, router) {
           console.trace(error);
         }
         state.globalError = error;
-      },
-
-      // STACFinder: Cache search results (for back navigation)
-      setCollectionsSearchData(state, data) {
-        state.collectionsSearchData = data;
-      },
-
-      // STACFinder: Clear search cache
-      clearCollectionsSearchData(state) {
-        state.collectionsSearchData = null;
       }
     },
     actions: {

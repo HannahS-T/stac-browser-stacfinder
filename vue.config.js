@@ -29,30 +29,14 @@ const configFile = path.resolve(argv.CONFIG ? argv.CONFIG : './config.js');
 const configFromFile = require(configFile);
 const mergedConfig = Object.assign(configFromFile, argv);
 
-// Set dev server host and API URL dynamically
-// If running in Docker, use Docker environment variable (API_URL)
-// Otherwise, default to localhost for local development
-const apiUrl = process.env.VUE_APP_API_URL || 'http://localhost:4000';
-const host = apiUrl.includes('localhost')? 'localhost' : '0.0.0.0';
-
 const vueConfig = {
   lintOnSave: process.env.NODE_ENV !== 'production',
   productionSourceMap: !mergedConfig.noSourceMaps,
   publicPath: mergedConfig.pathPrefix,
 
-  // Proxy API calls to avoid CORS issues (only in dev mode)
+  // Required for Docker development: bind to 0.0.0.0 so container is accessible from host
   devServer: {
-    host: host,  
-    port: 8080,
-    hot: true,
-    proxy: {
-      // Proxy /api to the STACFinder API backend
-      '/api': {
-        target: apiUrl, 
-        changeOrigin: true,
-        pathRewrite: { '^/api': '' }  // Remove /api prefix when forwarding
-      }
-    }
+    host: '0.0.0.0'
   },
 
   chainWebpack: webpackConfig => {
@@ -70,14 +54,6 @@ const vueConfig = {
     });
   },
   configureWebpack: {
-    // watchOptions only in Docker (host = 0.0.0.0)
-    ...(host === '0.0.0.0' && {
-      watchOptions: { 
-        poll: 1000, 
-        aggregateTimeout: 300, 
-        ignored: /node_modules/ 
-      }
-    }),
     resolve: {
       fallback: {
         'fs/promises': false

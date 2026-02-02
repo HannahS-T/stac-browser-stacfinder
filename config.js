@@ -1,8 +1,7 @@
 module.exports = {
-    // STACFinder API URL - set to your API endpoint
-    // In development, this is proxied via /api in vue.config.js
-    // In production, set this to the full API URL
-    stacFinderApiUrl: "/api",
+    // STACFinder API URL 
+    // The API must have CORS enabled for cross-origin requests
+    stacFinderApiUrl: "http://localhost:4000",
     
     catalogUrl: null,
     catalogTitle: "STAC Browser",

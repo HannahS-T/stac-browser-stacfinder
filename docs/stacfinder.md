@@ -11,8 +11,6 @@ The standard STAC Browser was designed to browse individual STAC Catalogs via th
 - **Cross-Catalog Search**: Browse collections from multiple STAC Index catalogs through a single interface
 - **External API Integration**: Connects to a STAC API backend that aggregates collections from multiple STAC catalogs
 - **Advanced Filtering**: CQL2-based filtering, free-text search, temporal and spatial filters
-- **URL-based State**: Filter parameters in URL for bookmarking and sharing
-- **Session Persistence**: Metadata filters and pagination preserved during navigation
 ---
 
 ## Getting Started
@@ -183,6 +181,7 @@ Spatial filtering uses the `bbox` parameter or CQL2 spatial functions:
 | `GET /collections` | List collections (with filtering, sorting, pagination) |
 | `GET /collections/{id}` | Single collection by ID |
 | `GET /collections/queryables` | Filterable fields schema |
+| `GET /collections/sortables` | Sortable fields schema |
 
 ### Collections Endpoint
 
@@ -201,17 +200,25 @@ The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 
 **Key Responsibilities:**
 - Query parameter building for filters and sorting
-- Queryables fetching and caching
+- Queryables and sortables fetching with caching
 - Error handling
 
 ### Configuration
 
-In `config.js`:
+Set the STACFinder API URL in your configuration:
 
-| Setting | Purpose | Default |
-|---------|---------|---------|
-| `stacFinderApiUrl` | API base URL (proxied via vue.config.js) | `/api` |
+**Local Development (`config.js`):**
+```javascript
+stacFinderApiUrl: "http://localhost:4000"
+```
 
+**Docker Production (environment variable in docker-compose.yml):**
+```yaml
+environment:
+  - SB_stacFinderApiUrl=http://localhost:4000
+```
+
+The STACFinder API collections are treated like external STAC APIs and navigated via `/external/...` paths.
 
 ---
 
@@ -246,7 +253,7 @@ In `config.js`:
 - `CollectionMetadataFilter.vue` - Dynamic CQL2 filter builder UI driven by queryables
 
 **JavaScript Modules:**
-- `CollectionApiAdapter.js` - API client for query building and queryables fetching
+- `CollectionApiAdapter.js` - API client for query building, queryables and sortables fetching
 - `collectionCql.js` - CQL2-Text query builder for constructing filter expressions
 - `collectionQueryable.js` - Queryable field definitions with type detection and operator mapping
 
@@ -254,23 +261,13 @@ In `config.js`:
 - `/stacfinder` → StacFinderSearch view (collection search with filters)
 - `/` → Standard STAC Browser catalog view
 
-**Vuex Store:**
-- `collectionsSearchData` - Cache for search results (enables back navigation with pagination)
-
 ### State Management
 
-The search state is managed across three layers:
+Search filters and results are stored in component-local state only (not persisted):
 
-| Data | Storage | Survives Reload | Survives Back-Nav |
-|------|---------|-----------------|-------------------|
-| Simple filters (q, bbox, datetime, sort) | **URL** | ✅ | ✅ | 
-| Metadata filters (CQL2) | **sessionStorage** | ✅ | ✅ |
-| Pagination + Results | **Vuex Cache** | ❌ | ✅ | 
-
-**URL Format:**
-```
-/stacfinder?q=sentinel&bbox=7,51,8,52&datetime=2024-01-01/..&sort=-title
-```
+- Filter parameters stored in `StacFinderSearch.vue` data
+- Results stored locally after each API request
+- No URL parameters, sessionStorage, or Vuex caching
 
 ### Data Flow
 
@@ -278,24 +275,22 @@ The search state is managed across three layers:
 1. User enters filters in CollectionFilterPanel
    
 2. Filter Submission:
-   → CollectionFilterPanel emits @submit with filters
-   → StacFinderSearch.searchCollections() receives filters
-   → Updates URL with simple filters
-   → Saves metadata filters to sessionStorage
+   → CollectionFilterPanel emits @submit
+   → StacFinderSearch stores filters locally
    → Calls API via CollectionApiAdapter
 
 3. API Request:
-   → CollectionApiAdapter.buildFilteredLink() constructs URL
+   → CollectionApiAdapter.buildFilteredLink() builds URL
    → stacRequest() sends GET to /collections?q=...&filter=...
 
 4. Response Handling:
-   → Results cached in Vuex (collectionsSearchData)
-   → Collections rendered as cards with pagination
+   → Results stored in component data
+   → Collections converted to browser paths via toBrowserPath()
+   → Rendered as cards with pagination
 
 5. Navigation:
-   → User clicks collection → navigates to detail view
-   → Back button → Vuex cache restores results + pagination
-   → Reload (F5) → URL params + sessionStorage restore filters
+   → User clicks collection → /external/http:/localhost:4000/collections/{id}
+   → STAC Browser handles collection like any external API
 ```
 
 ---
@@ -332,5 +327,5 @@ The search state is managed across three layers:
 - [STAC API Specification](https://github.com/radiantearth/stac-api-spec)
 
  
-**Last Updated:** January 2026  
+**Last Updated:** February 2026  
 **Maintainers:** GeoStack Solutions
