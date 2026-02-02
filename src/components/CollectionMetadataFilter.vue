@@ -95,6 +95,17 @@
                     </template>
                 </multiselect>
 
+                <!-- Number Input for Number Fields (gsd, etc.) -->
+                <b-form-input 
+                    v-else-if="isNumberField" 
+                    :value="filter.value" 
+                    @input="onValueChange" 
+                    size="sm" 
+                    type="number"
+                    step="any"
+                    :placeholder="getPlaceholder()" 
+                    class="value-input" />
+
                 <!-- Text Input for Text Fields -->
                 <b-form-input v-else :value="filter.value" @input="onValueChange" size="sm" type="text"
                     :placeholder="getPlaceholder()" class="value-input" />
@@ -218,6 +229,13 @@ export default {
          */
         isMultiSelect() {
             return this.filter.queryable.isTextArray && this.filter.operator === 'IN';
+        },
+
+        /**
+         * Check if this filter is a number field
+         */
+        isNumberField() {
+            return this.filter.queryable.isNumber;
         },
 
         /**
