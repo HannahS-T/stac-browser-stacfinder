@@ -204,8 +204,20 @@ The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 
 ### Configuration
 
-- Set `stacFinderApiUrl: "http://localhost:4000"` in `config.js`. 
--  STACFinder API is handled like external STAC APIs and navigated via `/external/...` paths.
+Set the STACFinder API URL in your configuration:
+
+**Local Development (`config.js`):**
+```javascript
+stacFinderApiUrl: "http://localhost:4000"
+```
+
+**Docker Production (environment variable in docker-compose.yml):**
+```yaml
+environment:
+  - SB_stacFinderApiUrl=http://localhost:4000
+```
+
+The STACFinder API collections are treated like external STAC APIs and navigated via `/external/...` paths.
 
 ---
 
@@ -314,5 +326,5 @@ Search filters and results are stored in component-local state only (not persist
 - [STAC API Specification](https://github.com/radiantearth/stac-api-spec)
 
  
-**Last Updated:** January 2026  
+**Last Updated:** February 2026  
 **Maintainers:** GeoStack Solutions

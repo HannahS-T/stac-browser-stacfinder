@@ -7,6 +7,7 @@
         <CollectionFilterPanel 
           :stac="parent"
           :initialFilters="filters"
+          :apiUrl="stacFinderApiUrl"
           @submit="searchCollections"
         />
       </div>
@@ -49,6 +50,7 @@
           <CollectionFilterPanel 
             :stac="parent"
             :initialFilters="filters"
+            :apiUrl="stacFinderApiUrl"
             @submit="searchCollections"
           />
         </div>

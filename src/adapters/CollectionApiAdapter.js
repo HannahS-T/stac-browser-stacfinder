@@ -6,30 +6,37 @@ class CollectionApiAdapter {
   constructor() {
     this.sortableFields = ['title', 'description', 'temporal_start', 'temporal_end'];
     this.queryablesCache = null;
+    this.cachedApiUrl = null;
   }
 
   getSortableFields() {
     return [...this.sortableFields];
   }
 
-  getBaseUrl() {
-    const config = window.STAC_BROWSER_CONFIG || {};
-    return config.stacFinderApiUrl || '/api';
-  }
-
-  async fetchQueryables() {
-    if (this.queryablesCache) return this.queryablesCache;
+  /**
+   * Fetch queryables from the API
+   * @param {string} apiUrl - Base URL of the STACFinder API
+   * @returns {Promise<CollectionQueryable[]>} Array of supported queryables
+   */
+  async fetchQueryables(apiUrl) {
+    if (!apiUrl) {
+      throw new BrowserError('API URL is required to fetch queryables');
+    }
+    // Return cached result if same API URL
+    if (this.queryablesCache && this.cachedApiUrl === apiUrl) {
+      return this.queryablesCache;
+    }
     try {
-      const baseUrl = this.getBaseUrl();
-      const response = await axios.get(baseUrl + '/collections/queryables');
+      const response = await axios.get(apiUrl + '/collections/queryables');
       if (!response.data?.properties) throw new BrowserError('Invalid queryables response');
       
       let queryables = Object.entries(response.data.properties)
         .map(([id, schema]) => new CollectionQueryable(id, schema))
         .filter(q => q.supported);
 
-      // Cache result
+      // Cache result for this API URL
       this.queryablesCache = queryables;
+      this.cachedApiUrl = apiUrl;
       return queryables;
     } catch (error) {
       throw new BrowserError('Failed to load queryables: ' + error.message);
@@ -105,6 +112,7 @@ class CollectionApiAdapter {
 
   clearCache() {
     this.queryablesCache = null;
+    this.cachedApiUrl = null;
   }
 }
 

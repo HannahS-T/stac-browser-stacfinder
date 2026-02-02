@@ -240,6 +240,13 @@ export default {
     initialFilters: {
       type: Object,
       default: null
+    },
+    /**
+     * Base URL of the STACFinder API 
+     */
+    apiUrl: {
+      type: String,
+      default: null
     }
   },
 
@@ -504,9 +511,15 @@ export default {
      * Load queryables from Collections API via adapter
      */
     async loadQueryables() {
+      // Skip if no API URL provided (queryables are optional)
+      if (!this.apiUrl) {
+        this.queryablesLoaded = true;
+        return;
+      }
+      
       try {
         // Fetch queryables from collection adapter
-        this.queryables = await collectionAdapter.fetchQueryables();
+        this.queryables = await collectionAdapter.fetchQueryables(this.apiUrl);
         this.queryablesLoaded = true;
         
         // Try to restore metadata filters now that queryables are loaded
