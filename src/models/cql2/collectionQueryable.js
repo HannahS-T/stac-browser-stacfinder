@@ -51,10 +51,9 @@ export default class CollectionQueryable {
       return 'text_array';
     }
     
-    // Number fields are not supported for filtering (gsd has no backend mapping)
-    // Return 'unknown' so they won't appear in the filter UI
+    // Number fields (e.g. gsd)
     if (schemaType === 'number') {
-      return 'unknown';
+      return 'number';
     }
     
     // Unknown/unsupported type
@@ -148,7 +147,9 @@ export default class CollectionQueryable {
         { value: '=', label: '=', description: 'operators.equals' },
         { value: '!=', label: '≠', description: 'operators.notEquals' },
         { value: '<', label: '<', description: 'operators.lessThan' },
-        { value: '>', label: '>', description: 'operators.greaterThan' }
+        { value: '<=', label: '≤', description: 'operators.lessThanOrEqual' },
+        { value: '>', label: '>', description: 'operators.greaterThan' },
+        { value: '>=', label: '≥', description: 'operators.greaterThanOrEqual' }
       );
     }
 
