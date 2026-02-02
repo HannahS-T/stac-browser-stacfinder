@@ -223,6 +223,7 @@ export default {
     async searchCollections(filters) {
       this.filters = { ...filters };
       this.hasSearched = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       await this.loadResults();
     },
 
