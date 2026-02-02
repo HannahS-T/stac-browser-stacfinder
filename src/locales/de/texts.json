@@ -85,6 +85,7 @@
     "warning": "Wir weisen darauf hin, dass dies abgekündigt wurde und potenziell jederzeit entfernt werden kann. Die Benutzung sollte so schnell wie möglich eingestellt werden. Die Verwendung in neuen Projekten sollte unterlassen werden."
   },
   "description": "Beschreibung",
+  "docs": "{link}",
   "errors": {
     "authFailed": "Die Anfrage ist fehlgeschlagen, die angegebenen Anmeldedaten sind möglicherweise fehlerhaft.",
     "badRequest": "Die Anfrage ist ungültig. Dies kann an ungültigen Parametern liegen, z.B. in einer Suchanfrage, oder ein Fehler im STAC Browser sein.",
