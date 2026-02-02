@@ -96,6 +96,12 @@ export default class Queryable {
   }
 
   getOperators(cql) {
+    // Check if the schema defines allowed operators via x-ogc-queryable-operators
+    if (Array.isArray(this.schema['x-ogc-queryable-operators'])) {
+      return this._mapOperatorStringsToClasses(this.schema['x-ogc-queryable-operators']);
+    }
+
+    // Default operator logic if no x-ogc-queryable-operators is defined
     let ops = [];
     if (!this.isDateTime) {
       // Although it is supported, comparing specific instances in time doesn't give predictable results.
@@ -115,6 +121,23 @@ export default class Queryable {
       ops.push(CqlLike);
     }
     return ops;
+  }
+
+  _mapOperatorStringsToClasses(operatorStrings) {
+    const operatorMap = {
+      'eq': CqlEqual,
+      'neq': CqlNotEqual,
+      'lt': CqlLessThan,
+      'lte': CqlLessThanEqual,
+      'gt': CqlGreaterThan,
+      'gte': CqlGreaterThanEqual,
+      'like': CqlLike,
+      'in': CqlEqual  // 'in' is treated as equality for single values
+    };
+
+    return operatorStrings
+      .map(op => operatorMap[op])
+      .filter(Boolean);  // Remove undefined entries
   }
 
   toText() {
