@@ -49,12 +49,12 @@
         </b-col>
       </b-row>
       <b-row class="page" v-if="!loading">
-        <b-col md="12">
-          <div class="title">
+        <b-col class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-lg-start w-100">
+          <div class="title mx-auto text-center">
             <img v-if="icon && !isRoot" :src="icon.getAbsoluteUrl()" :alt="icon.title" :title="icon.title" class="icon">
-            <h1>{{ title }}</h1>
+            <h1 class="mb-0, mt-2">{{ title }}</h1>
           </div>
-          <nav class="actions navigation">
+          <nav class="actions navigation ml-lg-auto">
             <b-button-group>
               <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', { type })"
                 variant="outline-primary" size="sm">
@@ -70,7 +70,7 @@
               </b-button>
             </b-button-group>
           </nav>
-          <Source class="actions" :title="title" :stacUrl="url" :stac="data" />
+          <Source class="actions ml-lg-2" :title="title" :stacUrl="url" :stac="data" />
         </b-col>
       </b-row>
     </header>
@@ -621,4 +621,20 @@ export default {
 @import '~bootstrap-vue/src/index.scss';
 @import "./theme/page.scss";
 @import "./theme/custom.scss";
+
+/* Center page title horizontally relative to the full page on lg+ */
+.page { position: relative; }
+@media (min-width: 992px) {
+  .page .title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    width: auto;
+  }
+  .page .title img.icon {
+    margin-right: .5rem;
+    vertical-align: middle;
+  }
+}
 </style>
