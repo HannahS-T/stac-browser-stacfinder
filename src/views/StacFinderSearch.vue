@@ -139,7 +139,8 @@ export default {
       data: null,
       filters: {},
       sortField: 'title',
-      sortDirection: 1
+      sortDirection: 1,
+      sortables: []
     };
   },
   computed: {
@@ -151,11 +152,11 @@ export default {
     },
 
     sortOptions() {
-      return collectionAdapter.getSortableFields().map(field => ({
-        value: field,
-        text: this.$te(`fields.${field}`)
-          ? this.$t(`fields.${field}`)
-          : field.charAt(0).toUpperCase() + field.slice(1)
+      return this.sortables.map(field => ({
+        value: field.id,
+        text: this.$te(`fields.${field.id}`)
+          ? this.$t(`fields.${field.id}`)
+          : field.title
       }));
     },
 
@@ -195,10 +196,20 @@ export default {
       return typeof this.data?.numberMatched === 'number' ? this.data.numberMatched : null;
     }
   },
-  created() {
+  async created() {
     this.showPage();
+    await this.loadSortables();
   },
   methods: {
+    async loadSortables() {
+      if (!this.stacFinderApiUrl) return;
+      try {
+        this.sortables = await collectionAdapter.fetchSortables(this.stacFinderApiUrl);
+      } catch (error) {
+        console.warn('Failed to load sortables:', error);
+      }
+    },
+
     showPage() {
       this.$store.commit('showPage', {
         url: null,
