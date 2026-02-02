@@ -4,13 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const NodePolyfillPlugin = require('node-polyfill-webpack-plugin');
 
-// Load root .env for port configuration
-// - Local development: ../.env (relative to web-ui folder)
-// - Docker development: ./.env (mounted via docker-compose volume)
-const localEnvPath = path.resolve(__dirname, '../.env');
-const dockerEnvPath = path.resolve(__dirname, './.env');
-const envPath = fs.existsSync(localEnvPath) ? localEnvPath : dockerEnvPath;
-require('dotenv').config({ path: envPath });
+// Load root .env for local development (ports configured in one place)
+require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
 
 const { properties } = require('./config.schema.json');
 const pkgFile = require('./package.json');
