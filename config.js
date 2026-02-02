@@ -1,5 +1,6 @@
 module.exports = {
-    // STACFinder API URL 
+    // STACFinder API URL (fallback value)
+    // This is overridden by API_PORT from root .env (local) or SB_stacFinderApiUrl (Docker)
     // The API must have CORS enabled for cross-origin requests
     stacFinderApiUrl: "http://localhost:4000",
     
