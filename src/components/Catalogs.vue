@@ -1,7 +1,7 @@
 <template>
   <section class="catalogs mb-4">
     <header>
-      <h2 class="title mr-2">Collections</h2>
+      <h2 class="title mr-2">{{title}}</h2>
       <b-badge v-if="catalogCount !== null" pill variant="secondary" class="mr-4">{{ catalogCount }}</b-badge>
       <ViewButtons class="mr-2" v-model="view" />
       <!-- Only show SortButtons when local sorting is enabled and possible -->
