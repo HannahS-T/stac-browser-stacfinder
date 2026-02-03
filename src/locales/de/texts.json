@@ -280,7 +280,7 @@
     "allFiltersActive": "Alle Filter sind bereits aktiv",
     "contains": "Beinhaltet",
     "dateDescription": "Findet Collections, die den gewählten Zeitraum überschneiden (nicht nur vollständig enthalten).",
-    "endDate": "Enddatum (optional, sonst offen)",
+    "endDate": "Enddatum (optional)",
     "enterCollections": "Gebe Katalog-Identifikationsnummern ein...",
     "enterItemIds": "Gebe Element-Identifikationsnummern ein...",
     "enterPattern": "Muster für {field} eingeben",
@@ -337,7 +337,7 @@
     "selectValues": "Einen oder mehrere Werte auswählen...",
     "spatialExtent": "Räumliche Ausdehnung",
     "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Quellen.",
-    "startDate": "Startdatum (optional, sonst offen)",
+    "startDate": "Startdatum (optional)",
     "spatialRelationType": "Räumliche Beziehung:",
     "tabs": {
       "collections": "Kataloge durchsuchen",

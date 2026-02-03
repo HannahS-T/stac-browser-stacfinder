@@ -280,7 +280,7 @@
     "allFiltersActive": "All filters are already active",
     "contains": "contains",
     "dateDescription": "Finds collections that overlap the selected time range (not only fully contained).",
-    "endDate": "End date (optional, open if empty)",
+    "endDate": "End date (optional)",
     "enterCollections": "Enter one or more Collection IDs...",
     "enterItemIds": "Enter one or more Item IDs...",
     "enterPattern": "Enter pattern for {field}",
@@ -338,7 +338,7 @@
     "spatialExtent": "Spatial Extent",
     "spatialRelationType": "Spatial Relation Type:",
     "stacFinderDescription": "Search and discover STAC collections from multiple sources.",
-    "startDate": "Start date (optional, open if empty)",
+    "startDate": "Start date (optional)",
     "tabs": {
       "collections": "Search for Collections",
       "items": "Search for Items"
