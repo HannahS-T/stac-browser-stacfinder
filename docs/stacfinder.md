@@ -261,13 +261,15 @@ The STACFinder API collections are treated like external STAC APIs and navigated
 - `/stacfinder` → StacFinderSearch view (collection search with filters)
 - `/` → Standard STAC Browser catalog view
 
+
 ### State Management
 
-Search filters and results are stored in component-local state only (not persisted):
+Search filters, sort order, and results are stored in the global Vuex store (`stacFinderState`):
 
-- Filter parameters stored in `StacFinderSearch.vue` data
-- Results stored locally after each API request
-- No URL parameters, sessionStorage, or Vuex caching
+- Filter parameters, sorting, and results are kept in the store (`stacFinderState`)
+- The state persists across navigation (e.g., when returning from a collection detail)
+- No sessionStorage or query parameters are needed; state is preserved within the SPA session
+
 
 ### Data Flow
 
@@ -276,7 +278,7 @@ Search filters and results are stored in component-local state only (not persist
    
 2. Filter Submission:
    → CollectionFilterPanel emits @submit
-   → StacFinderSearch stores filters locally
+   → StacFinderSearch stores filters and hasSearched in the Vuex store
    → Calls API via CollectionApiAdapter
 
 3. API Request:
@@ -284,13 +286,14 @@ Search filters and results are stored in component-local state only (not persist
    → stacRequest() sends GET to /collections?q=...&filter=...
 
 4. Response Handling:
-   → Results stored in component data
-   → Collections converted to browser paths via toBrowserPath()
+   → Results are stored in the Vuex store (`stacFinderState.data`)
+   → Collections are converted to browser paths via toBrowserPath()
    → Rendered as cards with pagination
 
 5. Navigation:
    → User clicks collection → /external/http:/localhost:4000/collections/{id}
    → STAC Browser handles collection like any external API
+   → When navigating back, the search state is restored from the store
 ```
 
 ---
