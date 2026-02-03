@@ -1,7 +1,7 @@
 <template>
   <b-card no-body class="collection-filter-panel mb-4">
-    <b-card-header>
-      <h5 class="mb-0">{{ $t('search.searchCollections') }}</h5>
+    <b-card-header class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center w-100 text-center">
+         <h5 class="mb-0">{{ $t('search.searchCollections') }}</h5>
     </b-card-header>
 
     <b-card-body>
@@ -29,7 +29,7 @@
       </b-form-group>
 
       <!-- Map filter -->
-      <b-form-group style="width: 25%" :label="$t('search.spatialExtent')">
+      <b-form-group style="width: 18.5rem;" :label="$t('search.spatialExtent')">
         <MapSelect v-model="bbox" :stac="resolvedStac" />
         <b-form-group :label="$t('search.spatialRelationType')">
           <b-form-select v-model="selected" :options="options"/>

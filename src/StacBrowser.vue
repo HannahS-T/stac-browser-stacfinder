@@ -7,6 +7,10 @@
     <header>
       <b-row class="site">
         <b-col md="12">
+      <div class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center">
+          <div>
+            <img src="./media/GeoStack_Solutions_logo.png" alt="GeoStack Solutions logo" style="height: 60px;">
+          </div>
           <nav class="actions navigation">
             <b-button-group v-if="canSearch || isServerSelector">
               <b-button v-if="isServerSelector" variant="primary" size="sm" :title="$t('browse')" v-b-toggle.sidebar
@@ -19,13 +23,11 @@
               </b-button>
             </b-button-group>
           </nav>
-          <div class="col-md-1">
-            <img src="./media/GeoStack_Solutions_logo.png" alt="GeoStack Solutions logo" style="height: 60px;">
           </div>
           <div class="title">
             <img v-if="logo" :src="logo.getAbsoluteUrl()" :alt="logo.title" :title="logo.title" class="logo">
             <span role="banner" style="display: block; text-align: center;">
-              <div style="white-space: nowrap; display: inline-block;">
+              <div style="white-space: nowrap; display: inline-block;" class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center w-100">
                 <img src="./media/STACFinder_logo.png" alt="STACFinder logo" style="height: 60px;">
                 <h1 style="white-space: normal; display: inline-block; margin: 0; vertical-align: middle;">STACFinder</h1>
               </div>
@@ -47,12 +49,12 @@
         </b-col>
       </b-row>
       <b-row class="page" v-if="!loading">
-        <b-col md="12">
-          <div class="title">
+        <b-col class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-lg-start w-100">
+          <div class="title mx-auto text-center">
             <img v-if="icon && !isRoot" :src="icon.getAbsoluteUrl()" :alt="icon.title" :title="icon.title" class="icon">
-            <h1>{{ title }}</h1>
+            <h1 class="mb-0, mt-2">{{ title }}</h1>
           </div>
-          <nav class="actions navigation">
+          <nav class="actions navigation ml-lg-auto">
             <b-button-group>
               <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', { type })"
                 variant="outline-primary" size="sm">
@@ -68,23 +70,31 @@
               </b-button>
             </b-button-group>
           </nav>
-          <Source class="actions" :title="title" :stacUrl="url" :stac="data" />
+          <Source class="actions ml-lg-2" :title="title" :stacUrl="url" :stac="data" />
         </b-col>
       </b-row>
     </header>
     <!-- Content (Item / Catalog) -->
     <router-view />
+    <!-- Footer -->
     <footer>
-      <i18n tag="small" path="poweredBy" class="poweredby text-muted">
-        <template #link>
-          <a href="https://github.com/radiantearth/stac-browser" target="_blank">STAC Browser</a> {{ browserVersion }}
-        </template>
-      </i18n>
-      <i18n tag="small" path="extensionInfo" class="text-muted d-block mt-1">
-        <template #company>
-          <a href="https://github.com/GeoStack-Solutions" target="_blank">GeoStack Solutions</a>
-        </template>
-      </i18n>
+      <div class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center w-100">
+        <i18n tag="small" path="poweredBy" class="poweredby text-muted mb-2 mb-lg-0 mr-lg-3">
+          <template #link>
+            <a href="https://github.com/radiantearth/stac-browser" target="_blank">STAC Browser</a> {{ browserVersion }}
+          </template>
+        </i18n>
+        <i18n tag="small" path="extensionInfo" class="text-muted mb-2 mb-lg-0">
+          <template #company>
+            <a href="https://github.com/GeoStack-Solutions" target="_blank" class="mr-lg-3">GeoStack Solutions</a>
+          </template>
+        </i18n>
+        <i18n tag="small" path="docs" class="text-muted mb-2 mb-lg-0 mr-lg-3">
+          <template #link>
+            <a href="https://github.com/GeoStack-Solutions/stac-finder/tree/main/docs" target="_blank">Docs</a>
+          </template>
+        </i18n>
+      </div>
     </footer>
     <b-popover v-if="root" id="popover-root" custom-class="popover-large" target="popover-root-btn" triggers="focus"
       placement="bottom" container="stac-browser">
@@ -611,4 +621,20 @@ export default {
 @import '~bootstrap-vue/src/index.scss';
 @import "./theme/page.scss";
 @import "./theme/custom.scss";
+
+/* Center page title horizontally relative to the full page on lg+ */
+.page { position: relative; }
+@media (min-width: 992px) {
+  .page .title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    width: auto;
+  }
+  .page .title img.icon {
+    margin-right: .5rem;
+    vertical-align: middle;
+  }
+}
 </style>
