@@ -6,11 +6,8 @@ The STAC Browser has been extended by [GeoStack Solutions](https://github.com/Ge
 
 ### What Was Extended
 
-The standard STAC Browser was designed to browse individual STAC Catalogs via their static JSON files or STAC API endpoints. STACFinder adds:
+The standard STAC Browser browses one catalog at a time. STACFinder adds **cross-catalog collection search**: a single interface to search and filter collections from all STAC Index catalogs, powered by a centralized backend that aggregates metadata via the Crawler.
 
-- **Cross-Catalog Search**: Browse collections from multiple STAC Index catalogs through a single interface
-- **External API Integration**: Connects to a STAC API backend that aggregates collections from multiple STAC catalogs
-- **Advanced Filtering**: CQL2-based filtering, free-text search, temporal and spatial filters
 ---
 
 ## Getting Started
@@ -21,8 +18,8 @@ For detailed installation and setup instructions, please refer to the [STACFinde
 
 **Prerequisites:**
 
-1. **Git** installed
-2. Make sure [Docker](https://www.docker.com/) is installed and running
+1. Make sure [Docker](https://www.docker.com/) is installed and running
+2. **Node.js** installed (only for local development)
 
 **Development Setup:**
 
@@ -32,25 +29,17 @@ For detailed installation and setup instructions, please refer to the [STACFinde
 git clone --recurse-submodules https://github.com/GeoStack-Solutions/stac-finder.git
 ```
 
-2. Configure environment variables  
-   Database credentials must be configured in two separate `.env` files. Copy the example files and add your passwords:
+2. Configure environment variables
+   Create a central `.env` file in the project root with your configuration:
 
 ```bash
-# API Service
 # Copy example file
-cp api/.env.example api/.env
+cp .env.example .env
 
-# Then edit api/.env and set password:
-# DB_PASS=YourSecurePassword
-```
-
-```bash
-# Crawler Service
-# Copy example file
-cp crawler/.env.example crawler/.env
-
-# Then edit crawler/.env and set password:
-# DB_PASS=YourSecurePassword
+# Then edit .env and configure:
+# - API_PORT: Port for the API service (default: 4000)
+# - WEB_UI_PORT: Port for the Web UI (default: 8080)
+# - DB credentials for your PostgreSQL database
 ```
 
 3. Start Docker 
@@ -63,11 +52,11 @@ docker-compose up --build
 docker-compose down
 ```
 
-4. Access the application
-- Web UI (STAC Browser): [http://localhost:8080](http://localhost:8080)
-- API Backend: [http://localhost:4000](http://localhost:4000)
-
+4. Access the application (using ports from `.env`):
+- Frontend (STAC Browser): `http://localhost:${WEB_UI_PORT}` (default: [http://localhost:8080](http://localhost:8080))
+- API Backend: `http://localhost:${API_PORT}` (default: [http://localhost:4000](http://localhost:4000))
 ---
+
 ## Key Features
 
 ### 1. Free-Text Search (`q`)
@@ -107,7 +96,7 @@ docker-compose down
 - Sort search results by different fields (title, description, temporal_start, temporal_end)
 - `+` for ascending (default) or `-` for descending order
 ```
-/collections?sortby=-title,+id
+/collections?sortby=-title
 ```
 
 ### 6. Pagination (`limit`, `token`)
@@ -143,19 +132,25 @@ GET /collections/sentinel-2-l2a
 
 ## Filtering (CQL2)
 
+
 ### Queryables
 
-Filterable fields from `/collections/queryables` endpoint. The frontend generates filter UI automatically.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `title`, `description`, `doi` | text | Free text with `=`, `!=`, `LIKE` |
-| `license` | enum | License identifier (dynamic values from DB) |
-| `platform`, `constellation`, `processingLevel` | enum | Array-backed fields (dynamic values from DB) |
-| `provider` | enum | Provider name from JSONB (dynamic values from DB) |
-| `keywords` | text | Keyword search |
-| `gsd` | number | Ground sample distance with `=`, `!=`, `<`, `<=`, `>`, `>=` |
-| `temporal_start`, `temporal_end` | timestamp | Temporal extent boundaries |
+
+Filterable fields are loaded dynamically from `/collections/queryables`. The UI adapts automatically to available fields and types.
+
+| Field(s)                        | Type         | Operators                | Input type              |
+|----------------------------------|-------------|--------------------------|--------------------------|
+| title, description, doi          | Text         | =, ≠, ~                  | Free text                |
+| keywords                        | Text-Array   | =, ≠, ∈                  | Free text and multi select |
+| license, provider                | Enum         | =, ≠, ∈                  | Dropdown (DB-based)      |
+| platform, constellation, processingLevel | Enum/Array | =, ≠, ∈            | Dropdown (DB-based)       |
+| gsd                             | Number       | =, ≠, <, ≤, >, ≥         |  Number input  |
+| temporal_start, temporal_end    | Timestamp    | <, >, ⇔                  | Date picker     |
+
+**Legend:**
+- = (equals), ≠ (not equals), ~ (contains/LIKE), ∈ (IN/contains one of), <, ≤, >, ≥, ⇔ (BETWEEN)
+- Enum/array values are loaded dynamically from the database.
 
 ### Spatial Filtering
 
@@ -174,7 +169,7 @@ Spatial filtering uses the `bbox` parameter or CQL2 spatial functions:
 
 ### Endpoints
 
-**Base URL:** `http://localhost:4000`
+**Base URL:** `http://localhost:4000` (default or configured in .env)
 
 | Endpoint | Description |
 |----------|-------------|
@@ -191,7 +186,7 @@ Spatial filtering uses the `bbox` parameter or CQL2 spatial functions:
 - `bbox` - Spatial filter (minLon,minLat,maxLon,maxLat)
 - `filter` - CQL2 expression
 - `filter-lang` - `cql2-text` or `cql2-json`
-- `sortby` - Sort fields (e.g., `-title,+id`)
+- `sortby` - Sort fields (e.g., `-title`)
 - `limit` - Results per page (default: 9, max: 10000)
 
 ### Frontend API Adapter
@@ -199,26 +194,14 @@ Spatial filtering uses the `bbox` parameter or CQL2 spatial functions:
 The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 
 **Key Responsibilities:**
-- Query parameter building for filters and sorting
-- Queryables and sortables fetching with caching
-- Error handling
+- Dynamically fetch and cache queryable and sortable fields from the API
+- Build API-compatible query parameters for filtering, sorting, and pagination
+- Construct filtered request URLs for the backend
+- Handle API errors and invalid responses robustly
 
 ### Configuration
 
-Set the STACFinder API URL in your configuration:
-
-**Local Development (`config.js`):**
-```javascript
-stacFinderApiUrl: "http://localhost:4000"
-```
-
-**Docker Production (environment variable in docker-compose.yml):**
-```yaml
-environment:
-  - SB_stacFinderApiUrl=http://localhost:4000
-```
-
-The STACFinder API collections are treated like external STAC APIs and navigated via `/external/...` paths.
+The STACFinder API URL is configured via `config.js` and `vue.config.js`, using environment variables from the root `.env` file. For Docker, the variable `SB_stacFinderApiUrl` is set 
 
 ---
 
@@ -228,7 +211,7 @@ The STACFinder API collections are treated like external STAC APIs and navigated
 
 ```
 ┌─────────────────────────┐
-│   STAC Browser          │  Port 8080
+│   STAC Browser          │ 
 │   (Frontend)            │
 └────────┬────────────────┘
          │ 
@@ -237,11 +220,11 @@ The STACFinder API collections are treated like external STAC APIs and navigated
 └────────┬─────────────────────────────┘
          │ 
 ┌────────▼────────────────┐
-│  STAC API (Backend)     │  Port 4000
+│  STAC API (Backend)     │  
 └────────┬────────────────┘
          │ 
 ┌────────▼────────────────┐
-│ PostgreSQL + PostGIS    │  Port 5432
+│ PostgreSQL + PostGIS    │  
 └─────────────────────────┘
 ```
 
@@ -259,16 +242,14 @@ The STACFinder API collections are treated like external STAC APIs and navigated
 
 **Vue Router:**
 - `/stacfinder` → StacFinderSearch view (collection search with filters)
-- `/` → Standard STAC Browser catalog view
 
-
-### State Management
+**State Management:**
 
 Search filters, sort order, and results are stored in the global Vuex store (`stacFinderState`):
 
 - Filter parameters, sorting, and results are kept in the store (`stacFinderState`)
 - The state persists across navigation (e.g., when returning from a collection detail)
-- No sessionStorage or query parameters are needed; state is preserved within the SPA session
+- No sessionStorage or query parameters are used; state is preserved within the SPA session
 
 
 ### Data Flow
@@ -291,7 +272,7 @@ Search filters, sort order, and results are stored in the global Vuex store (`st
    → Rendered as cards with pagination
 
 5. Navigation:
-   → User clicks collection → /external/http:/localhost:4000/collections/{id}
+   → User clicks collection → /external/http://localhost:4000/collections/{id}
    → STAC Browser handles collection like any external API
    → When navigating back, the search state is restored from the store
 ```
@@ -313,9 +294,9 @@ Search filters, sort order, and results are stored in the global Vuex store (`st
 **Build:**
 - Vue CLI 5.x + Webpack 5.x
 - Babel 7.x, ESLint 8.x
-
+- dotenv 17.x – Environment Variable Loader
+  
 ### Backend
-
 - Node.js 20.x + Express.js 4.x
 - PostgreSQL 16 + PostGIS 3.4
 
