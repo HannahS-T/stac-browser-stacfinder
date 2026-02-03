@@ -1,182 +1,158 @@
 <template>
-  <b-card no-body class="collection-filter-panel mb-4">
-    <b-card-header class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center w-100 text-center">
-         <h5 class="mb-0">{{ $t('search.searchCollections') }}</h5>
-    </b-card-header>
-
-    <b-card-body>
-
-      <!-- Free-text search -->
-      <b-form-group :label="$t('search.enterSearchTerms')" :description="$t('search.freeTextCollectionDescription')">
-        <SearchBox v-model="query.q" :placeholder="$t('search.enterSearchTerms')" />
-      </b-form-group>
-
-      <!-- Temporal filter: start / end datetime -->
-      <b-form-group class="filter-datetime" :label="$t('search.temporalExtent')"
-        :description="$t('search.dateDescription')">
-        <b-form-group class="mb-6" :label="$t('search.startDate')">
-          <DatePicker type="datetime" v-model="start" :get-classes="getRangeClasses" input-class="form-control mx-input"
-            :lang="datepickerLang" :format="dateTimeFormat" :default-value="end || new Date()"
-            :disabled-date="disabledStartDate" :disabled-time="disabledStartTime" :label="$t('search.startDate')" />
-        </b-form-group>
-
-        <b-form-group class="mb-6" :label="$t('search.endDate')">
-          <DatePicker type="datetime" v-model="end" :get-classes="getRangeClasses" input-class="form-control mx-input"
-            :lang="datepickerLang" :format="dateTimeFormat" :default-value="end || new Date()"
-            :disabled-date="disabledEndDate" :disabled-time="disabledEndTime" />
-
-        </b-form-group>
-      </b-form-group>
-
-      <!-- Map filter -->
-      <b-form-group style="width: 18.5rem;" :label="$t('search.spatialExtent')">
-        <MapSelect v-model="bbox" :stac="resolvedStac" />
-        <b-form-group :label="$t('search.spatialRelationType')">
-          <b-form-select v-model="selected" :options="options"/>
-        </b-form-group>
-      </b-form-group>
-
-      <!--CQL2 METADATA FILTERS -->
-
-      <!-- Loading State -->
-      <div v-if="!queryablesLoaded" class="text-center py-3">
-        <b-spinner small></b-spinner>
-        <span class="ml-2">{{ $t('search.loadingFilters') }}</span>
-      </div>
-
-      <!-- Error State -->
-      <b-alert v-if="queryablesError" variant="warning" show dismissible @dismissed="queryablesError = null">
-        {{ queryablesError }}
-      </b-alert>
-
-      <!-- Additional metadata filters -->
-      <b-form-group v-if="queryablesLoaded && queryables.length > 0" class="additional-filters"
-        :label="$t('search.additionalFilters')">
-        
-        <!-- AND/OR logical operator selection -->
-        <b-form-radio-group 
-          v-model="logicalOperator" 
-          :options="logicalOperatorOptions" 
-          name="logical-operator" 
-          size="sm"
-          class="mb-2"
-        />
-
-        <b-dropdown size="sm" block variant="primary" :text="$t('search.addFilter')"
-          :disabled="availableQueryables.length === 0" class="metadata-filters mt-2 mb-3">
-          
-          <!-- Text: Free text fields (title, description, keywords, etc.) -->
-          <template v-if="groupedQueryables.text.length > 0">
-            <b-dropdown-header>{{ $t('search.filterGroups.text') }}</b-dropdown-header>
-            <b-dropdown-item-button v-for="queryable in groupedQueryables.text" :key="'text-' + queryable.id"
-              @click="addMetadataFilter(queryable)" class="queryable-item">
-              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
-              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
-            </b-dropdown-item-button>
-          </template>
-
-          <!-- Selection: Enum/dropdown fields (license, platform, etc.) -->
-          <template v-if="groupedQueryables.selection.length > 0">
-            <b-dropdown-divider v-if="groupedQueryables.text.length > 0" />
-            <b-dropdown-header>{{ $t('search.filterGroups.selection') }}</b-dropdown-header>
-            <b-dropdown-item-button v-for="queryable in groupedQueryables.selection" :key="'sel-' + queryable.id"
-              @click="addMetadataFilter(queryable)" class="queryable-item">
-              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
-              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
-            </b-dropdown-item-button>
-          </template>
-
-          <!-- Temporal: Date/time fields -->
-          <template v-if="groupedQueryables.temporal.length > 0">
-            <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0" />
-            <b-dropdown-header>{{ $t('search.filterGroups.temporal') }}</b-dropdown-header>
-            <b-dropdown-item-button v-for="queryable in groupedQueryables.temporal" :key="'temp-' + queryable.id"
-              @click="addMetadataFilter(queryable)" class="queryable-item">
-              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
-              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
-            </b-dropdown-item-button>
-          </template>
-
-          <!-- Numeric: Number fields (gsd, etc.) -->
-          <template v-if="groupedQueryables.numeric.length > 0">
-            <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0 || groupedQueryables.temporal.length > 0" />
-            <b-dropdown-header>{{ $t('search.filterGroups.numeric') }}</b-dropdown-header>
-            <b-dropdown-item-button v-for="queryable in groupedQueryables.numeric" :key="'num-' + queryable.id"
-              @click="addMetadataFilter(queryable)" class="queryable-item">
-              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
-              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
-            </b-dropdown-item-button>
-          </template>
-
-          <!-- Other: Uncategorized fields -->
-          <template v-if="groupedQueryables.other.length > 0">
-            <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0 || groupedQueryables.temporal.length > 0 || groupedQueryables.numeric.length > 0" />
-            <b-dropdown-header>{{ $t('search.filterGroups.other') }}</b-dropdown-header>
-            <b-dropdown-item-button v-for="queryable in groupedQueryables.other" :key="'other-' + queryable.id"
-              @click="addMetadataFilter(queryable)" class="queryable-item">
-              <span class="queryable-title">{{ queryable.getLocalizedTitle($i18n) }}</span>
-              <b-badge variant="secondary" pill class="ml-2 queryable-badge">{{ queryable.id }}</b-badge>
-            </b-dropdown-item-button>
-          </template>
-        </b-dropdown>
-
-        <!-- Render active metadata filters -->
-        <CollectionMetadataFilter v-for="(filter, index) in metadataFilters"
-          :key="`filter-${filter.queryable.id}-${index}`" :filter="filter" :index="index" @update="updateFilter"
-          @remove="removeFilter" />
-      </b-form-group>
-
-      <!-- Items per page -->
-      <b-form-group 
-        class="limit mt-3" 
-        :label="$t('search.itemsPerPage')" 
-        :description="$t('search.itemsPerPageDescription', { maxItems })"
-      >
-        <b-form-input
-          v-model.number="limit"
-          type="number"
-          min="1"
-          :max="maxItems"
-          :placeholder="limitPlaceholder"
-        />
-      </b-form-group>
-
-      <!-- Action buttons -->
-      <div class="d-flex justify-content-between mt-3">
-        <b-button 
-          variant="outline-secondary" 
-          @click="resetFilters"
-          :disabled="!hasActiveFilters"
+  <b-form class="filter collection-filter-panel" @submit.stop.prevent="submitFilters" @reset.stop.prevent="resetFilters">
+    <b-card no-body>
+      <b-card-body>
+        <!-- Free-text search -->
+        <b-form-group
+          class="filter-freetext"
+          :label="$t('search.freeText')"
+          :description="$t('search.freeTextCollectionDescription')"
         >
-          {{ $t('reset') }}
-        </b-button>
-        <b-button variant="primary" @click="submitFilters">
-          {{ $t('submit') }}
-        </b-button>
-      </div>
+          <SearchBox v-model="query.q" :placeholder="$t('search.enterSearchTerms')" />
+        </b-form-group>
 
-    </b-card-body>
-  </b-card>
+        <!-- Temporal filter -->
+        <b-form-group
+          class="filter-datetime"
+          :label="$t('search.temporalExtent')"
+          :description="$t('search.dateDescription')"
+        >
+          <div class="datetime-inputs">
+            <div class="datetime-field">
+              <label>{{ $t('search.startDate') }}</label>
+              <DatePicker
+                type="datetime"
+                v-model="start"
+                :get-classes="getRangeClasses"
+                input-class="form-control mx-input"
+                :lang="datepickerLang"
+                :format="dateTimeFormat"
+                :default-value="end || new Date()"
+                :disabled-date="disabledStartDate"
+                :disabled-time="disabledStartTime"
+              />
+            </div>
+            <div class="datetime-field">
+              <label>{{ $t('search.endDate') }}</label>
+              <DatePicker
+                type="datetime"
+                v-model="end"
+                :get-classes="getRangeClasses"
+                input-class="form-control mx-input"
+                :lang="datepickerLang"
+                :format="dateTimeFormat"
+                :default-value="end || new Date()"
+                :disabled-date="disabledEndDate"
+                :disabled-time="disabledEndTime"
+              />
+            </div>
+          </div>
+        </b-form-group>
+
+        <!-- Spatial filter -->
+        <b-form-group class="filter-bbox" :label="$t('search.spatialExtent')">
+          <MapSelect v-model="bbox" :stac="resolvedStac" />
+          <div class="spatial-relation mt-2">
+            <label>{{ $t('search.spatialRelationType') }}</label>
+            <b-form-select v-model="selected" :options="options" size="sm" />
+          </div>
+        </b-form-group>
+
+        <!-- Additional metadata filters -->
+        <b-form-group
+          v-if="queryablesLoaded && queryables.length > 0"
+          class="additional-filters"
+          :label="$t('search.additionalFilters')"
+        >
+          <b-form-radio-group
+            v-model="logicalOperator"
+            :options="logicalOperatorOptions"
+            name="logical-operator"
+            size="sm"
+            class="mb-2"
+          />
+
+          <b-dropdown
+            size="sm"
+            block
+            variant="primary"
+            :text="$t('search.addFilter')"
+            :disabled="availableQueryables.length === 0"
+            class="queryables mb-3"
+            menu-class="w-100"
+          >
+            <template v-for="queryable in sortedQueryables">
+              <b-dropdown-item
+                v-if="queryable.supported"
+                :key="queryable.id"
+                @click="addMetadataFilter(queryable)"
+                link-class="d-flex justify-content-between align-items-center"
+              >
+                <span>{{ queryable.getLocalizedTitle($i18n) }}</span>
+                <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
+              </b-dropdown-item>
+            </template>
+          </b-dropdown>
+
+          <CollectionMetadataFilter
+            v-for="(filter, index) in metadataFilters"
+            :key="`filter-${filter.queryable.id}-${index}`"
+            :filter="filter"
+            :index="index"
+            @update="updateFilter"
+            @remove="removeFilter"
+          />
+        </b-form-group>
+
+        <!-- Loading/Error for queryables -->
+        <div v-if="!queryablesLoaded" class="text-center py-2">
+          <b-spinner small />
+          <span class="ml-2 text-muted">{{ $t('search.loadingFilters') }}</span>
+        </div>
+        <b-alert v-if="queryablesError" variant="warning" show dismissible @dismissed="queryablesError = null">
+          {{ queryablesError }}
+        </b-alert>
+
+        <hr>
+
+        <!-- Items per page -->
+        <b-form-group
+          class="limit"
+          :label="$t('search.itemsPerPage')"
+          :description="$t('search.itemsPerPageDescription', { maxItems })"
+        >
+          <b-form-input
+            v-model.number="limit"
+            type="number"
+            min="1"
+            :max="maxItems"
+            :placeholder="limitPlaceholder"
+          />
+        </b-form-group>
+      </b-card-body>
+
+      <b-card-footer>
+        <b-button type="submit" variant="primary">{{ $t('submit') }}</b-button>
+        <b-button type="reset" variant="danger" class="ml-3">{{ $t('reset') }}</b-button>
+      </b-card-footer>
+    </b-card>
+  </b-form>
 </template>
 
 <script>
 import {
   BCard,
   BCardBody,
-  BCardHeader,
+  BCardFooter,
+  BForm,
   BFormGroup,
   BDropdown,
-  BDropdownItemButton,
-  BDropdownHeader,
-  BDropdownDivider,
+  BDropdownItem,
   BButton,
-  BCol,
   BFormSelect,
   BFormRadioGroup,
-  BRow,
   BFormInput,
   BBadge,
-  BIconXCircleFill,
   BSpinner,
   BAlert
 } from 'bootstrap-vue';
@@ -197,20 +173,16 @@ export default {
   components: {
     BCard,
     BCardBody,
-    BCardHeader,
+    BCardFooter,
+    BForm,
     BFormGroup,
     BDropdown,
-    BDropdownItemButton,
-    BDropdownHeader,
-    BDropdownDivider,
+    BDropdownItem,
     BButton,
-    BCol,
     BFormSelect,
     BFormRadioGroup,
-    BRow,
     BFormInput,
     BBadge,
-    BIconXCircleFill,
     BSpinner,
     BAlert,
     DatePicker: () => import('vue2-datepicker'),
@@ -340,50 +312,23 @@ export default {
 
 
     /**
-     * Queryables available for selection, grouped by category.
-     * All fields can be added multiple times 
+     * Queryables available for selection
      */
     availableQueryables() {
       return this.queryables.slice(0);
     },
 
     /**
-     * Queryables grouped by type for the dropdown menu
-     * Dynamic grouping based on field type properties
+     * Queryables sorted alphabetically for the dropdown menu
      */
-    groupedQueryables() {
-      const groups = {
-        text: [],
-        selection: [],
-        temporal: [],
-        numeric: [],
-        other: []
-      };
-
-      for (const q of this.queryables) {
-        // Categorize by field type (dynamic, not hardcoded)
-        if (q.isTimestamp) {
-          groups.temporal.push(q);
-        } else if (q.isNumber) {
-          groups.numeric.push(q);
-        } else if (q.isEnum) {
-          groups.selection.push(q);
-        } else if (q.isText || q.isTextArray) {
-          groups.text.push(q);
-        } else {
-          groups.other.push(q);
-        }
+    sortedQueryables() {
+      if (!Array.isArray(this.queryables)) {
+        return [];
       }
-
-      // Sort within each group alphabetically
       const collator = new Intl.Collator(this.$i18n?.locale || 'en');
-      for (const key in groups) {
-        groups[key].sort((a, b) => 
-          collator.compare(a.getLocalizedTitle(this.$i18n), b.getLocalizedTitle(this.$i18n))
-        );
-      }
-
-      return groups;
+      return this.queryables.slice(0).sort((a, b) =>
+        collator.compare(a.getLocalizedTitle(this.$i18n), b.getLocalizedTitle(this.$i18n))
+      );
     },
 
     /**
@@ -814,84 +759,69 @@ $primary-color: map-get($theme-colors, "primary");
 
 @import '~vue2-datepicker/scss/index.scss';
 
-.collection-filter-panel {
+// Use same .filter class as native SearchFilter for consistency
+.filter.collection-filter-panel {
+  position: relative;
+
   .mx-datepicker {
     width: 100%;
   }
 
+  // Consistent form-group styling
   .form-group {
-    >div {
+    > div {
       margin-left: 1em;
     }
 
-    >label {
+    > label {
       font-weight: 600;
     }
   }
 
-  .metadata-filters .dropdown-menu {
-    max-height: 90vh;
-    overflow: auto;
+  // Datetime inputs layout
+  .datetime-inputs {
+    margin-left: 1em;
+
+    .datetime-field {
+      margin-bottom: 0.75rem;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      > label {
+        display: block;
+        font-weight: normal;
+        font-size: 0.9em;
+        margin-bottom: 0.25rem;
+        color: #6c757d;
+      }
+    }
   }
 
+  // Spatial relation select
+  .spatial-relation {
+    margin-left: 1em;
+
+    > label {
+      display: block;
+      font-weight: normal;
+      font-size: 0.9em;
+      margin-bottom: 0.25rem;
+      color: #6c757d;
+    }
+  }
+
+  // Additional filters section
   .additional-filters {
-    margin-top: 1.5em;
-    padding-top: 1.5em;
+    padding-top: 1em;
     border-top: 1px solid rgba(0, 0, 0, .125);
   }
 
-  .metadata-filter-row {
-    padding: 0.75rem 0;
-    border-bottom: 1px solid rgba(0, 0, 0, .05);
-
-    &:last-child {
-      border-bottom: none;
-    }
-
-    .text-right {
-      text-align: right;
-    }
-  }
-}
-
-// dropdown styling
-.metadata-filters {
-  ::v-deep .dropdown-menu {
-    max-height: 400px;
-    overflow-y: auto;
-  }
-
-  ::v-deep .queryable-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 1rem;
-
-    &:hover {
-      background-color: rgba(0, 123, 255, 0.1);
-    }
-
-    .queryable-title {
-      flex: 1;
-      font-weight: 500;
-    }
-
-    .queryable-badge {
-      font-size: 0.7rem;
-      font-family: 'Courier New', monospace;
-      opacity: 0.7;
-      transition: opacity 0.2s;
-    }
-
-    &:hover .queryable-badge {
-      opacity: 1;
-    }
-  }
-
-  ::v-deep .dropdown-text {
-    padding: 0.75rem 1rem;
-    font-size: 0.875rem;
-    font-style: italic;
+  // Queryables dropdown (same as native SearchFilter)
+  .queryables .dropdown-menu {
+    max-height: 90vh;
+    overflow: auto;
   }
 }
 </style>
