@@ -81,10 +81,72 @@
             class="queryables mb-3"
             menu-class="w-100"
           >
-            <template v-for="queryable in sortedQueryables">
+            <!-- Text: Free text fields (title, description, keywords, etc.) -->
+            <template v-if="groupedQueryables.text.length > 0">
+              <b-dropdown-header>{{ $t('search.filterGroups.text') }}</b-dropdown-header>
               <b-dropdown-item
-                v-if="queryable.supported"
-                :key="queryable.id"
+                v-for="queryable in groupedQueryables.text"
+                :key="'text-' + queryable.id"
+                @click="addMetadataFilter(queryable)"
+                link-class="d-flex justify-content-between align-items-center"
+              >
+                <span>{{ queryable.getLocalizedTitle($i18n) }}</span>
+                <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
+              </b-dropdown-item>
+            </template>
+
+            <!-- Selection: Enum/dropdown fields -->
+            <template v-if="groupedQueryables.selection.length > 0">
+              <b-dropdown-divider v-if="groupedQueryables.text.length > 0" />
+              <b-dropdown-header>{{ $t('search.filterGroups.selection') }}</b-dropdown-header>
+              <b-dropdown-item
+                v-for="queryable in groupedQueryables.selection"
+                :key="'sel-' + queryable.id"
+                @click="addMetadataFilter(queryable)"
+                link-class="d-flex justify-content-between align-items-center"
+              >
+                <span>{{ queryable.getLocalizedTitle($i18n) }}</span>
+                <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
+              </b-dropdown-item>
+            </template>
+
+            <!-- Temporal: Date/time fields -->
+            <template v-if="groupedQueryables.temporal.length > 0">
+              <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0" />
+              <b-dropdown-header>{{ $t('search.filterGroups.temporal') }}</b-dropdown-header>
+              <b-dropdown-item
+                v-for="queryable in groupedQueryables.temporal"
+                :key="'temp-' + queryable.id"
+                @click="addMetadataFilter(queryable)"
+                link-class="d-flex justify-content-between align-items-center"
+              >
+                <span>{{ queryable.getLocalizedTitle($i18n) }}</span>
+                <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
+              </b-dropdown-item>
+            </template>
+
+            <!-- Numeric: Number fields -->
+            <template v-if="groupedQueryables.numeric.length > 0">
+              <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0 || groupedQueryables.temporal.length > 0" />
+              <b-dropdown-header>{{ $t('search.filterGroups.numeric') }}</b-dropdown-header>
+              <b-dropdown-item
+                v-for="queryable in groupedQueryables.numeric"
+                :key="'num-' + queryable.id"
+                @click="addMetadataFilter(queryable)"
+                link-class="d-flex justify-content-between align-items-center"
+              >
+                <span>{{ queryable.getLocalizedTitle($i18n) }}</span>
+                <b-badge variant="dark" class="ml-2">{{ queryable.id }}</b-badge>
+              </b-dropdown-item>
+            </template>
+
+            <!-- Other: Uncategorized fields -->
+            <template v-if="groupedQueryables.other.length > 0">
+              <b-dropdown-divider v-if="groupedQueryables.text.length > 0 || groupedQueryables.selection.length > 0 || groupedQueryables.temporal.length > 0 || groupedQueryables.numeric.length > 0" />
+              <b-dropdown-header>{{ $t('search.filterGroups.other') }}</b-dropdown-header>
+              <b-dropdown-item
+                v-for="queryable in groupedQueryables.other"
+                :key="'other-' + queryable.id"
                 @click="addMetadataFilter(queryable)"
                 link-class="d-flex justify-content-between align-items-center"
               >
@@ -148,6 +210,8 @@ import {
   BFormGroup,
   BDropdown,
   BDropdownItem,
+  BDropdownHeader,
+  BDropdownDivider,
   BButton,
   BFormSelect,
   BFormRadioGroup,
@@ -178,6 +242,8 @@ export default {
     BFormGroup,
     BDropdown,
     BDropdownItem,
+    BDropdownHeader,
+    BDropdownDivider,
     BButton,
     BFormSelect,
     BFormRadioGroup,
@@ -329,6 +395,50 @@ export default {
       return this.queryables.slice(0).sort((a, b) =>
         collator.compare(a.getLocalizedTitle(this.$i18n), b.getLocalizedTitle(this.$i18n))
       );
+    },
+
+    /**
+     * Queryables grouped by type (text, selection, temporal, numeric, other)
+     */
+    groupedQueryables() {
+      const groups = {
+        text: [],
+        selection: [],
+        temporal: [],
+        numeric: [],
+        other: []
+      };
+
+      if (!Array.isArray(this.queryables)) {
+        return groups;
+      }
+
+      const collator = new Intl.Collator(this.$i18n?.locale || 'en');
+      const sortByTitle = (a, b) =>
+        collator.compare(a.getLocalizedTitle(this.$i18n), b.getLocalizedTitle(this.$i18n));
+
+      for (const q of this.queryables) {
+        if (!q.supported) continue;
+
+        if (q.isText || q.isTextArray) {
+          groups.text.push(q);
+        } else if (q.isEnum) {
+          groups.selection.push(q);
+        } else if (q.isTimestamp) {
+          groups.temporal.push(q);
+        } else if (q.isNumber) {
+          groups.numeric.push(q);
+        } else {
+          groups.other.push(q);
+        }
+      }
+
+      // Sort each group alphabetically
+      for (const key of Object.keys(groups)) {
+        groups[key].sort(sortByTitle);
+      }
+
+      return groups;
     },
 
     /**
