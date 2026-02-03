@@ -1,100 +1,84 @@
 <template>
-  <main class="stacfinder-search d-flex flex-column">
-    <!-- Initial State: Only Filter Panel (centered) -->
+  <main class="stacfinder-search">
+    <!-- Initial State: Centered Filter Panel -->
     <div v-if="!hasSearched" class="filter-only-view">
-      <div class="filter-container">
-        <p class="text-muted text-center mb-4">{{ $t('index.stacFinderDescription') }}</p>
-        <CollectionFilterPanel 
-          :stac="parent"
-          :initialFilters="filters"
-          :apiUrl="stacFinderApiUrl"
-          @submit="searchCollections"
-        />
-      </div>
+      <p class="description text-muted text-center">{{ $t('index.stacFinderDescription') }}</p>
+      <CollectionFilterPanel
+        :stac="parent"
+        :initialFilters="filters"
+        :apiUrl="stacFinderApiUrl"
+        @submit="searchCollections"
+      />
     </div>
 
-    <!-- Results State: Collapsible Filter + Results -->
+    <!-- Results State: Filter + Results side by side -->
     <b-row v-else class="results-view">
-      <!-- Left: Collapsible Filter Panel -->
-      <b-col 
-        cols="12" 
-        :lg="showFilters ? 3 : 'auto'" 
-        class="left"
-        :class="{ 'filter-collapsed': !showFilters }"
-      >
-        <!-- Collapsed state: just a button -->
+      <!-- Left: Filter Panel -->
+      <b-col cols="12" lg="4" xl="3" class="filter-column" :class="{ collapsed: !showFilters }">
         <b-button
           v-if="!showFilters"
-          variant="outline-secondary"
-          class="filter-expand-btn"
+          variant="outline-primary"
+          size="sm"
+          class="filter-toggle-btn"
           @click="showFilters = true"
-          :title="$t('items.showFilter')"
         >
-          ☰ {{ $t('items.filter') }}
+          {{ $t('items.showFilter') }}
         </b-button>
 
-        <!-- Expanded state: full filter panel with collapse button -->
-        <div v-else class="filter-panel-wrapper">
-          <div class="filter-header d-flex justify-content-between align-items-center mb-2">
-            <span class="font-weight-bold">{{ $t('items.filter') }}</span>
-            <b-button 
-              variant="link" 
-              size="sm" 
-              class="p-0 text-muted"
+        <template v-else>
+          <div class="filter-panel-header">
+            <b-button
+              variant="outline-secondary"
+              size="sm"
               @click="showFilters = false"
-              :title="$t('items.hideFilter')"
             >
-              ✕
+              {{ $t('items.hideFilter') }}
             </b-button>
           </div>
-          <CollectionFilterPanel 
+          <CollectionFilterPanel
             :stac="parent"
             :initialFilters="filters"
             :apiUrl="stacFinderApiUrl"
             @submit="searchCollections"
           />
-        </div>
+        </template>
       </b-col>
 
       <!-- Right: Results -->
-      <b-col 
-        cols="12" 
-        :lg="showFilters ? 9 : true" 
-        class="right"
-      >
-        <!-- Loading State -->
+      <b-col cols="12" :lg="showFilters ? 8 : 12" :xl="showFilters ? 9 : 12" class="results-column">
         <Loading v-if="loading" fill top />
 
-        <!-- Error State -->
         <ErrorAlert v-else-if="error" :description="error" :id="errorId" />
 
-        <!-- No Results -->
         <b-alert v-else-if="results.length === 0" variant="warning" show>
           {{ $t('search.noItemsFound') }}
         </b-alert>
 
-        <!-- Results -->
         <template v-else>
           <!-- Sort Controls -->
-          <div class="sort-controls mb-3 d-flex align-items-center">
-            <label class="mr-2 mb-0 font-weight-bold">{{ $t('sort.title') }}:</label>
-            <b-form-select
-              v-model="sortField"
-              :options="sortOptions"
-              size="sm"
-              class="sort-field-select mr-2"
-              @change="updateSorting"
-            />
-            <SortButtons 
-              v-model="sortDirection" 
-              :enforce="true"
-              @input="updateSorting"
-            />
+          <div class="sort-controls mb-3">
+            <b-form-group :label="$t('sort.title')" label-cols="auto" label-class="mb-0 font-weight-bold" class="mb-0">
+              <div class="d-flex align-items-center">
+                <b-form-select
+                  v-model="sortField"
+                  :options="sortOptions"
+                  size="sm"
+                  class="sort-select"
+                  @change="updateSorting"
+                />
+                <SortButtons
+                  v-model="sortDirection"
+                  :enforce="true"
+                  class="ml-2"
+                  @input="updateSorting"
+                />
+              </div>
+            </b-form-group>
           </div>
 
           <!-- Collection Cards -->
-          <Catalogs 
-            :catalogs="results" 
+          <Catalogs
+            :catalogs="results"
             :collectionsOnly="true"
             :pagination="pagination"
             :disableLocalSort="true"
@@ -109,7 +93,7 @@
 
 <script>
 import { mapState, mapGetters } from 'vuex';
-import { BFormSelect } from 'bootstrap-vue';
+import { BFormSelect, BFormGroup } from 'bootstrap-vue';
 import Loading from '../components/Loading.vue';
 import ErrorAlert from '../components/ErrorAlert.vue';
 import CollectionFilterPanel from '../components/CollectionFilterPanel.vue';
@@ -123,6 +107,7 @@ export default {
   name: 'StacFinderSearch',
   components: {
     BFormSelect,
+    BFormGroup,
     Loading,
     ErrorAlert,
     CollectionFilterPanel,
@@ -311,70 +296,44 @@ export default {
 
   // Initial state: centered filter panel
   .filter-only-view {
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 60vh;
-    padding-top: 2rem;
+    max-width: 700px;
+    margin: 0 auto;
+    padding-top: 1rem;
 
-    .filter-container {
-      width: 100%;
-      max-width: 800px;
-
-      @include media-breakpoint-up(lg) {
-        max-width: 900px;
-      }
+    .description {
+      margin-bottom: 1.5rem;
     }
   }
 
-  // Results state - collapsible filter
-  .left {
-    margin-bottom: $block-margin;
-    transition: all 0.2s ease;
+  // Results state: filter + results
+  .results-view {
+    .filter-column {
+      margin-bottom: $block-margin;
 
-    &.filter-collapsed {
-      flex: 0 0 auto;
-      max-width: none;
-      width: auto;
-    }
+      &.collapsed {
+        flex: 0 0 auto;
+        max-width: fit-content;
+      }
 
-    .filter-expand-btn {
-      white-space: nowrap;
-    }
+      .filter-panel-header {
+        margin-bottom: 0.75rem;
+      }
 
-    .filter-panel-wrapper {
-      .filter-header {
-        padding: 0.5rem;
-        background-color: #f8f9fa;
-        border-radius: 0.25rem 0.25rem 0 0;
-        margin: -1px -1px 0 -1px;
+      .filter-toggle-btn {
+        white-space: nowrap;
       }
     }
-  }
 
-  .right {
-    position: relative;
-    min-height: 300px;
-    transition: all 0.2s ease;
+    .results-column {
+      position: relative;
+      min-height: 200px;
+    }
   }
 
   .sort-controls {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    padding: 1rem;
-    background-color: #f8f9fa;
-    border-radius: 0.25rem;
-
-    label {
-      white-space: nowrap;
-    }
-
-    .sort-field-select {
+    .sort-select {
       min-width: 150px;
-      max-width: 250px;
-      flex-grow: 1;
+      max-width: 200px;
     }
   }
 }
