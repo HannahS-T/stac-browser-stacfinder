@@ -194,7 +194,9 @@ export default {
     },
 
     totalCount() {
-      return typeof this.data?.numberMatched === 'number' ? this.data.numberMatched : null;
+      // Use stable count from first search
+      const initial = this.stacFinderState.initialNumberMatched;
+      return typeof initial === 'number' ? initial : null;
     }
   },
   async created() {
@@ -223,10 +225,12 @@ export default {
     },
 
     async searchCollections(filters) {
-      // Update store state
+      // Update store state, clear cache for new search
       this.$store.commit('updateStacFinderState', {
         filters: { ...filters },
-        hasSearched: true
+        hasSearched: true,
+        pageCache: {},
+        initialNumberMatched: null
       });
       window.scrollTo({ top: 0, behavior: 'smooth' });
       await this.loadResults();
@@ -234,7 +238,11 @@ export default {
 
     async updateSorting() {
       if (this.hasSearched) {
-        // Sort change already committed via v-model setter
+        // Clear cache and count for new sort order
+        this.$store.commit('updateStacFinderState', {
+          pageCache: {},
+          initialNumberMatched: null
+        });
         await this.loadResults();
       }
     },
@@ -251,28 +259,41 @@ export default {
     async loadResults(paginationLink = null) {
       this.error = null;
       this.errorId = null;
-      this.loading = true;
 
       try {
         let requestLink;
 
         if (paginationLink) {
-          // Use pagination link directly (already contains filters & sort from API)
           requestLink = paginationLink;
         } else {
-          // Build fresh request from store state
           const baseUrl = `${this.stacFinderApiUrl}/collections`;
           requestLink = collectionAdapter.buildFilteredLink(baseUrl, this.filters, this.sortParam);
         }
 
+        const cacheKey = requestLink.href;
+        const cached = this.stacFinderState.pageCache[cacheKey];
+
+        // Use cached data if available
+        if (cached) {
+          this.$store.commit('updateStacFinderState', { data: cached });
+          return;
+        }
+
+        this.loading = true;
         const response = await stacRequest(this.$store, requestLink);
 
         if (!Utils.isObject(response.data) || !Array.isArray(response.data.collections)) {
           throw new Error(this.$t('errors.invalidStacCollections'));
         }
 
-        // Store results in Vuex (survives navigation)
-        this.$store.commit('updateStacFinderState', { data: response.data });
+        // Cache the page and update current data
+        const newCache = { ...this.stacFinderState.pageCache, [cacheKey]: response.data };
+        const updates = { data: response.data, pageCache: newCache };
+        // Store initial count on first search (not pagination)
+        if (!paginationLink && typeof response.data.numberMatched === 'number') {
+          updates.initialNumberMatched = response.data.numberMatched;
+        }
+        this.$store.commit('updateStacFinderState', updates);
 
       } catch (error) {
         console.error('Search error:', error);

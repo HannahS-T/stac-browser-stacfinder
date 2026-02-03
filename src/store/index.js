@@ -69,7 +69,9 @@ function getStore(config, router) {
         sortField: 'title',
         sortDirection: 1,
         hasSearched: false,
-        data: null // Cached search results (includes pagination links)
+        data: null, // Current page data
+        pageCache: {}, // Cache for loaded pages: { [href]: responseData }
+        initialNumberMatched: null // Stable count from first search
       }
     }),
     getters: {
@@ -511,6 +513,8 @@ function getStore(config, router) {
         state.stacFinderState.hasSearched = false;
         state.stacFinderState.data = null;
         state.stacFinderState.filters = {};
+        state.stacFinderState.pageCache = {};
+        state.stacFinderState.initialNumberMatched = null;
       },
       showPage(state, { url, stac, page }) {
         if (!stac) {
