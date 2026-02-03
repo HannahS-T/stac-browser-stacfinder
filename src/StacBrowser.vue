@@ -54,13 +54,13 @@
           </nav>
         </b-col>
       </b-row>
-      <b-row class="page" v-if="!loading">
-        <b-col class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center justify-content-lg-start w-100">
-          <div class="title mx-auto text-center">
+      <b-row :class="['page', { 'page-centered': isStacFinderPage }]" v-if="!loading">
+        <b-col md="12">
+          <div class="title">
             <img v-if="icon && !isRoot" :src="icon.getAbsoluteUrl()" :alt="icon.title" :title="icon.title" class="icon">
-            <h1 class="mb-0, mt-2">{{ title }}</h1>
+            <h1>{{ title }}</h1>
           </div>
-          <nav class="actions navigation ml-lg-auto">
+          <nav class="actions navigation">
             <b-button-group>
               <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', { type })"
                 variant="outline-primary" size="sm">
@@ -76,7 +76,7 @@
               </b-button>
             </b-button-group>
           </nav>
-          <Source class="actions ml-lg-2" :title="title" :stacUrl="url" :stac="data" />
+          <Source class="actions" :title="title" :stacUrl="url" :stac="data" />
         </b-col>
       </b-row>
     </header>
@@ -642,19 +642,7 @@ export default {
 @import "./theme/page.scss";
 @import "./theme/custom.scss";
 
-/* Center page title horizontally relative to the full page on lg+ */
-.page { position: relative; }
-@media (min-width: 992px) {
-  .page .title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    text-align: center;
-    width: auto;
-  }
-  .page .title img.icon {
-    margin-right: .5rem;
-    vertical-align: middle;
-  }
+.page-centered > .col-md-12 > .title {
+  justify-content: center;
 }
 </style>
