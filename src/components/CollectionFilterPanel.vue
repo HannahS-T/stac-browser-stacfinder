@@ -869,7 +869,6 @@ $primary-color: map-get($theme-colors, "primary");
 
 @import '~vue2-datepicker/scss/index.scss';
 
-// Use same .filter class as native SearchFilter for consistency
 .filter.collection-filter-panel {
   position: relative;
 
@@ -877,7 +876,6 @@ $primary-color: map-get($theme-colors, "primary");
     width: 100%;
   }
 
-  // Consistent form-group styling
   .form-group {
     > div {
       margin-left: 1em;
@@ -888,7 +886,6 @@ $primary-color: map-get($theme-colors, "primary");
     }
   }
 
-  // Datetime inputs layout
   .datetime-inputs {
     margin-left: 1em;
 
@@ -909,7 +906,6 @@ $primary-color: map-get($theme-colors, "primary");
     }
   }
 
-  // Spatial relation select
   .spatial-relation {
     margin-left: 1em;
 
@@ -922,13 +918,11 @@ $primary-color: map-get($theme-colors, "primary");
     }
   }
 
-  // Additional filters section
   .additional-filters {
     padding-top: 1em;
     border-top: 1px solid rgba(0, 0, 0, .125);
   }
-
-  // Queryables dropdown (same as native SearchFilter)
+  
   .queryables .dropdown-menu {
     max-height: 90vh;
     overflow: auto;

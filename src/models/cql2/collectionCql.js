@@ -1,14 +1,6 @@
 /**
  * CQL2 Builder for Collections API
- * 
- * Builds CQL2-Text filter expressions compatible with the backend parser.
- * Supports:
- * - Text fields: =, !=, LIKE
- * - Array fields: IN
- * - Timestamp fields: <, >, BETWEEN
- * - Logical operators: AND, OR
  */
-
 export default class CollectionCql {
   constructor() {
     /**
@@ -39,17 +31,6 @@ export default class CollectionCql {
   /**
    * Add a comparison filter for text or timestamp fields
    * 
-   * Text fields - Supported operators:
-   * - '=' : Exact match
-   * - '!=' : Not equal
-   * - 'LIKE' : Pattern match (case-insensitive, adds wildcards)
-   * 
-   * Timestamp fields - Supported operators:
-   * - '<' : Before date
-   * - '>' : After date
-   * - '=' : Exact date (not implemented)
-   * - '!=' : Not equal to date (not implemented)
-   * 
    * @param {string} field - Field name from queryables
    * @param {string} operator - Comparison operator
    * @param {string} value - Value to compare
@@ -67,9 +48,6 @@ export default class CollectionCql {
 
   /**
    * Add an IN filter for array fields
-   * 
-   * Backend expects: field IN ('value1', 'value2', 'value3')
-   * Backend converts to: field && ARRAY['value1', 'value2', 'value3']
    * 
    * @param {string} field - Array field name from queryables
    * @param {Array<string>} values - Array of values to match
@@ -91,9 +69,6 @@ export default class CollectionCql {
 
   /**
    * Add a BETWEEN filter for timestamp fields
-   * 
-   * Backend expects: field BETWEEN 'low' AND 'high'
-   * Backend converts to: field BETWEEN 'low'::timestamptz AND 'high'::timestamptz
    * 
    * @param {string} field - Timestamp field name (temporal_start, temporal_end)
    * @param {string} low - ISO 8601 datetime string (start of range)
@@ -138,7 +113,6 @@ export default class CollectionCql {
    * Combines all filters with the configured logical operator (AND/OR).
    * Single filter: no parentheses
    * Multiple filters: wrapped in parentheses
-   * 
    * @returns {string} CQL2-Text expression (empty string if no filters)
    */
   toText() {
@@ -190,10 +164,6 @@ export default class CollectionCql {
 
   /**
    * Build IN expression for array fields
-   * 
-   * CQL2-Text format: field IN ('value1', 'value2', 'value3')
-   * Backend parses and converts to: field && ARRAY['value1', 'value2', 'value3']
-   * 
    * @private
    */
   _buildIn(filter) {
@@ -215,10 +185,6 @@ export default class CollectionCql {
 
   /**
    * Build BETWEEN expression for timestamp fields
-   * 
-   * CQL2-Text format: field BETWEEN 'low' AND 'high'
-   * Backend parses and converts to: field BETWEEN 'low'::timestamptz AND 'high'::timestamptz
-   * 
    * @private
    */
   _buildBetween(filter) {

@@ -58,6 +58,18 @@ class CollectionApiAdapter {
     return this.queryablesCache;
   }
 
+
+  /**
+   * Build query parameters for collection search requests
+   * @param {Object} filters - Filter options for the query
+   * @param {string} [filters.q] - Free-text search query
+   * @param {Array|string} [filters.datetime] - Datetime filter (array with [start, end] or ISO string)
+   * @param {number[]} [filters.bbox] - Bounding box as [west, south, east, north]
+   * @param {string} [filters.cql2] - CQL2 filter expression
+   * @param {number} [filters.limit] - Maximum number of results per page
+   * @param {string|null} sort - Sort parameter string
+   * @returns {Object} Query parameters object ready for URL construction
+   */
   buildQueryParams(filters = {}, sort = null) {
     const params = {};
     // Add free-text search (q parameter)
@@ -115,6 +127,13 @@ class CollectionApiAdapter {
     return params;
   }
 
+  /**
+   * Build a filtered link object for collection data requests
+   * @param {string} baseHref - Base URL for the collection endpoint
+   * @param {Object} [filters={}] - Filter options (see buildQueryParams for details)
+   * @param {string|null} [sort=null] - Sort parameter string
+   * @returns {{href: string, rel: string, type: string}} Link object with href, rel, and type properties
+   */
   buildFilteredLink(baseHref, filters = {}, sort = null) {
     const params = this.buildQueryParams(filters, sort);
     const url = new URL(baseHref, window.location.origin);
@@ -122,6 +141,10 @@ class CollectionApiAdapter {
     return { href: url.toString(), rel: 'data', type: 'application/json' };
   }
 
+  /**
+   * Clear all cached data including queryables, sortables, and the cached API URL
+   * @returns {void}
+   */
   clearCache() {
     this.cachedApiUrl = null;
     this.queryablesCache = null;
