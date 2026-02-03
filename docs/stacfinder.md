@@ -29,7 +29,7 @@ For detailed installation and setup instructions, please refer to the [STACFinde
 git clone --recurse-submodules https://github.com/GeoStack-Solutions/stac-finder.git
 ```
 
-2. Configure environment variables
+2. Configure environment variables  
    Create a central `.env` file in the project root with your configuration:
 
 ```bash
@@ -55,6 +55,7 @@ docker-compose down
 4. Access the application (using ports from `.env`):
 - Frontend (STAC Browser): `http://localhost:${WEB_UI_PORT}` (default: [http://localhost:8080](http://localhost:8080))
 - API Backend: `http://localhost:${API_PORT}` (default: [http://localhost:4000](http://localhost:4000))
+
 ---
 
 ## Key Features
@@ -201,7 +202,7 @@ The frontend uses `CollectionApiAdapter.js` to communicate with the backend:
 
 ### Configuration
 
-The STACFinder API URL is configured via `config.js` and `vue.config.js`, using environment variables from the root `.env` file. For Docker, the variable `SB_stacFinderApiUrl` is set 
+The STACFinder API URL is configured via `config.js` and `vue.config.js`, using environment variables from the root `.env` file. For Docker, the variable `SB_stacFinderApiUrl` is set in `docker-compose.yml`.
 
 ---
 
