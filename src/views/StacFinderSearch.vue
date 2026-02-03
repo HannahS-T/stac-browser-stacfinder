@@ -131,21 +131,37 @@ export default {
   },
   data() {
     return {
+      // Local state (not persisted)
       loading: false,
       error: null,
       errorId: null,
-      hasSearched: false,
       showFilters: true,
-      data: null,
-      filters: {},
-      sortField: 'title',
-      sortDirection: 1,
       sortables: []
     };
   },
   computed: {
-    ...mapState(['stacFinderApiUrl', 'catalogTitle']),
+    ...mapState(['stacFinderApiUrl', 'catalogTitle', 'stacFinderState']),
     ...mapGetters(['root', 'toBrowserPath']),
+
+    // Map store state to computed properties
+    filters() {
+      return this.stacFinderState.filters;
+    },
+    hasSearched() {
+      return this.stacFinderState.hasSearched;
+    },
+    data() {
+      return this.stacFinderState.data;
+    },
+    // Computed with getter/setter for v-model binding
+    sortField: {
+      get() { return this.stacFinderState.sortField; },
+      set(value) { this.$store.commit('setStacFinderSort', { field: value }); }
+    },
+    sortDirection: {
+      get() { return this.stacFinderState.sortDirection; },
+      set(value) { this.$store.commit('setStacFinderSort', { direction: value }); }
+    },
 
     parent() {
       return this.root;
@@ -199,6 +215,7 @@ export default {
   async created() {
     this.showPage();
     await this.loadSortables();
+    // Store state survives navigation 
   },
   methods: {
     async loadSortables() {
@@ -221,13 +238,17 @@ export default {
     },
 
     async searchCollections(filters) {
-      this.filters = { ...filters };
-      this.hasSearched = true;
+      // Update store state
+      this.$store.commit('updateStacFinderState', {
+        filters: { ...filters },
+        hasSearched: true
+      });
       await this.loadResults();
     },
 
     async updateSorting() {
       if (this.hasSearched) {
+        // Sort change already committed via v-model setter
         await this.loadResults();
       }
     },
@@ -250,8 +271,10 @@ export default {
         let requestLink;
 
         if (paginationLink) {
+          // Use pagination link directly (already contains filters & sort from API)
           requestLink = paginationLink;
         } else {
+          // Build fresh request from store state
           const baseUrl = `${this.stacFinderApiUrl}/collections`;
           requestLink = collectionAdapter.buildFilteredLink(baseUrl, this.filters, this.sortParam);
         }
@@ -262,11 +285,12 @@ export default {
           throw new Error(this.$t('errors.invalidStacCollections'));
         }
 
-        this.data = response.data;
+        // Store results in Vuex (survives navigation)
+        this.$store.commit('updateStacFinderState', { data: response.data });
 
       } catch (error) {
         console.error('Search error:', error);
-        this.data = null;
+        this.$store.commit('updateStacFinderState', { data: null });
         this.error = getErrorMessage(error);
         this.errorId = getErrorCode(error);
       } finally {

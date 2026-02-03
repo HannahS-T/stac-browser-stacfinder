@@ -61,7 +61,16 @@ function getStore(config, router) {
       database: {}, // STAC object, Error object or Loading object or Promise (when loading)
       allowSelectCatalog: !config.catalogUrl,
       globalRequestQueryParameters: config.requestQueryParameters,
-      uiLanguage: config.locale
+      uiLanguage: config.locale,
+
+      // StacFinder search state - survives navigation (not reset by resetPage/resetCatalog)
+      stacFinderState: {
+        filters: {},
+        sortField: 'title',
+        sortDirection: 1,
+        hasSearched: false,
+        data: null // Cached search results (includes pagination links)
+      }
     }),
     getters: {
       isRoot: (state, getters) => {
@@ -489,6 +498,19 @@ function getStore(config, router) {
       },
       resetPage(state) {
         Object.assign(state, localDefaults());
+      },
+      // StacFinder state mutations (similar pattern to database cache)
+      updateStacFinderState(state, updates) {
+        Object.assign(state.stacFinderState, updates);
+      },
+      setStacFinderSort(state, { field, direction }) {
+        if (field !== undefined) state.stacFinderState.sortField = field;
+        if (direction !== undefined) state.stacFinderState.sortDirection = direction;
+      },
+      resetStacFinderSearch(state) {
+        state.stacFinderState.hasSearched = false;
+        state.stacFinderState.data = null;
+        state.stacFinderState.filters = {};
       },
       showPage(state, { url, stac, page }) {
         if (!stac) {
