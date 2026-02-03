@@ -50,7 +50,7 @@
         </b-form-group>
 
         <!-- Spatial filter -->
-        <b-form-group class="filter-bbox" :label="$t('search.spatialExtent')">
+        <b-form-group class="filter-bbox" style="max-width: 18.5rem;" :label="$t('search.spatialExtent')">
           <MapSelect v-model="bbox" :stac="resolvedStac" />
           <div class="spatial-relation mt-2">
             <label>{{ $t('search.spatialRelationType') }}</label>
