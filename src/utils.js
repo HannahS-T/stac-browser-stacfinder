@@ -5,7 +5,7 @@ import Link from 'stac-js/src/link.js';
 
 export const commonFileNames = ['catalog', 'collection', 'item'];
 
-export const geojsonMediaType = "application/geo+json";
+export const geojsonMediaType = "application/geo+json"; 
 
 export const schemaMediaType = "application/schema+json";
 

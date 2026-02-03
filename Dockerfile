@@ -1,5 +1,19 @@
 ARG pathPrefix="/"
 
+# DEVELOPMENT STAGE (for Hot Reload)
+# ========================================
+FROM node:lts-alpine3.18 AS development
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+EXPOSE 8080
+
+CMD ["npm", "start"]
+# ========================================
+
 FROM node:lts-alpine3.18 AS build-step
 ARG DYNAMIC_CONFIG=true
 ARG historyMode="history"

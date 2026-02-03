@@ -10,27 +10,24 @@
 <script>
 import Item from './Item.vue';
 import Catalog from './Catalog.vue';
-import { mapGetters } from "vuex";
+import { mapGetters, mapState } from 'vuex';
 import BrowseMixin from './BrowseMixin';
 
 export default {
-  name: "Browse",
+  name: 'Browse',
   components: {
     Catalog,
     Item
   },
-  mixins: [
-    BrowseMixin
-  ],
+  mixins: [BrowseMixin],
   computed: {
-    ...mapGetters(["isItem"]),
+    ...mapState(['url']),
+    ...mapGetters(['isItem']),
     component() {
       if (this.isItem) {
         return 'Item';
       }
-      else {
-        return 'Catalog';
-      }
+      return 'Catalog';
     }
   }
 };

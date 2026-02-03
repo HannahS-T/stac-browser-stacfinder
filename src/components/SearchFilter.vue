@@ -2,7 +2,7 @@
   <b-form class="filter mb-4" @submit.stop.prevent="onSubmit" @reset="onReset">
     <b-card no-body :title="title">
       <b-card-body>
-        <Loading v-if="!loaded" fill />
+        <Loading v-if="!loaded" fill /> 
 
         <b-card-title v-if="title" :title="title" />
 
@@ -87,7 +87,7 @@
 
         <hr v-if="canFilterExtents || conformances.CollectionIdFilter || conformances.ItemIdFilter || showAdditionalFilters">
 
-        <b-form-group v-if="canSort" class="sort" :label="$t('sort.title')" :label-for="ids.sort" :description="$t('search.notFullySupported')">
+        <b-form-group v-if="canSort" class="sort" :label="$t('sort.title')" :label-for="ids.sort">
           <multiselect
             :id="ids.sort" :value="sortTerm" @input="sortFieldSet"
             :options="sortOptions" track-by="value" label="text"
@@ -219,7 +219,8 @@ export default {
       hasAllCollections: false,
       collections: [],
       collectionsLoadingTimer: null,
-      additionalCollectionCount: 0
+      additionalCollectionCount: 0,
+      sortables: []
     }, getDefaults());
   },
   computed: {
@@ -275,20 +276,15 @@ export default {
       return this.cql && Array.isArray(this.queryables) && this.queryables.length > 0;
     },
     sortOptions() {
-      // todo: this should use queryables when available
-      // nevertheless, let's try to provide some reasonable defaults
-      const criteria = [
-        { text: this.$t('default'), value: null },
-        { text: this.$t('fields.Identifier'), value: 'id' },
-      ];
-      const prefix = this.type === 'Collections' ? '' : 'properties.';
-      criteria.push({ text: this.$t('fields.Title'), value: `${prefix}title` });
-      if (this.type !== 'Collections') {
-        criteria.push({ text: this.$t('fields.Time of Data'), value: 'properties.datetime' });
+      if (Array.isArray(this.sortables) && this.sortables.length > 0) {
+        return [
+          { text: this.$t('default'), value: null },
+          ...this.sortables.map(q => ({ text: q.title, value: q.id }))
+        ];
       }
-      criteria.push({ text: this.$t('fields.Created'), value: `${prefix}created` });
-      criteria.push({ text: this.$t('fields.Updated'), value: `${prefix}updated` });
-      return criteria;
+      return [
+        { text: this.$t('default'), value: null }
+      ];
     },
     sortedQueryables() {
       if (!Array.isArray(this.queryables)) {
@@ -385,6 +381,11 @@ export default {
             }
             return this.loadQueryables(queryableLink);
           })
+          .catch(error => console.error(error))
+      );
+      let sortablesLink = this.findSortablesLink(this.stac.links);
+      promises.push(
+        this.loadSortables(sortablesLink)
           .catch(error => console.error(error))
       );
     }
@@ -486,7 +487,7 @@ export default {
     },
     findQueryableLink(links) {
       return Utils.getLinksWithRels(links, ogcQueryables)
-          .find(link => Utils.isMediaType(link.type, schemaMediaType, true));
+        .find(link => Utils.isMediaType(link.type, schemaMediaType, true));
     },
     async loadQueryables(link) {
       this.queryables = [];
@@ -508,10 +509,50 @@ export default {
         console.error(error);
         schemas = response.data;
       }
-
+      
       if (Utils.isObject(schemas) && Utils.isObject(schemas.properties)) {
         this.queryables = Object.entries(schemas.properties)
           .map(([key, schema]) => new Queryable(key, schema));
+      }
+    },
+    findSortablesLink(links) {
+      return Utils.getLinksWithRels(links, ['sortables', 'http://www.opengis.net/def/rel/ogc/1.0/sortables', 'ogc-rel:sortables'])
+        .find(link => Utils.isMediaType(link.type, schemaMediaType, true));
+    },
+    async loadSortables(link) {
+      this.sortables = [];
+      if (!Utils.isObject(link)) {
+        return;
+      }
+      let response = await stacRequest(this.$store, link);
+      if (!Utils.isObject(response.data)) {
+        return;
+      }
+      let schemas;
+      try {
+        schemas = await refParser.dereference(response.data);
+      } catch (error) {
+        console.error(error);
+        schemas = response.data;
+      }
+      if (Utils.isObject(schemas) && Utils.isObject(schemas.properties)) {
+        this.sortables = Object.entries(schemas.properties)
+          .map(([key, schema]) => {
+            let id = schema.property || key;
+            return new Queryable(id, schema);
+          });
+        if (this.sortables.length > 0 && (!this.sortTerm || typeof this.sortTerm.value === 'undefined')) {
+          const defaultOption = this.sortOptions.find(opt => opt.value === null);
+          if (defaultOption) {
+            this.sortTerm = defaultOption;
+          }
+        }
+        this.$nextTick(() => {
+          const defaultOption = this.sortOptions.find(opt => opt.value === null);
+          if (defaultOption) {
+            this.sortTerm = defaultOption;
+          }
+        });
       }
     },
     sortFieldSet(value) {

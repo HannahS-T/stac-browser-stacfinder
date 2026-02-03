@@ -11,6 +11,16 @@ function getPath(route, config) {
 function getRoutes(config) {
   let routes = [];
 
+  // STACFinder Search - dedicated route for collection search with filters
+  // This provides the advanced search UI for the STACFinder API
+  if (config.stacFinderApiUrl) {
+    routes.push({
+      path: "/stacfinder",
+      name: "stacfinder",
+      component: () => import("../views/StacFinderSearch.vue")
+    });
+  }
+
   if (!config.catalogUrl) {
     routes.push({
       path: "/",
@@ -59,6 +69,7 @@ function getRoutes(config) {
     component: Browse,
     props: route => getPath(route, config)
   });
+
 
   // if you add new routes that may include .../external/... in the path make sure
   // to add the new path prefix to the fromBrowserPath regexp in store/index.js

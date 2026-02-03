@@ -85,6 +85,7 @@
     "warning": "Wir weisen darauf hin, dass dies abgekündigt wurde und potenziell jederzeit entfernt werden kann. Die Benutzung sollte so schnell wie möglich eingestellt werden. Die Verwendung in neuen Projekten sollte unterlassen werden."
   },
   "description": "Beschreibung",
+  "docs": "{link}",
   "errors": {
     "authFailed": "Die Anfrage ist fehlgeschlagen, die angegebenen Anmeldedaten sind möglicherweise fehlerhaft.",
     "badRequest": "Die Anfrage ist ungültig. Dies kann an ungültigen Parametern liegen, z.B. in einer Suchanfrage, oder ein Fehler im STAC Browser sein.",
@@ -104,6 +105,7 @@
     "loadApiItemsFailed": "Die Elemente des Dienstanbieters konnten nicht geladen werden.",
     "loadFilteredItems": "Das Laden einer gefilterten Liste von Elementen ist leider fehlgeschlagen.",
     "loadItems": "Das Laden der Liste der Elemente ist leider fehlgeschlagen.",
+    "loadQueryables": "Filter-Felder konnten nicht von der API geladen werden",
     "networkError": "Dieses Problem kann auftreten, wenn Server den externen Zugriff über Webbrowser nicht zulassen (bspw. wenn keine CORS-Kopfzeilen vorhanden sind). @:errors.contactProvider",
     "noExternalAccess": "Der Zugriff auf externe Kataloge ist nicht erlaubt!",
     "notFound": "Die angeforderte Seite existiert nicht. @:errors.contactProvider",
@@ -116,6 +118,32 @@
     "empty": "Keine Features verfügbar.",
     "noProperties": "Keine Eigenschaften vorhanden.",
     "title": "Feature | Features"
+  },
+    "fields": {
+    "id": "ID",
+    "title": "Titel",
+    "description": "Beschreibung",
+    "license": "Lizenz",
+    "keywords": "Schlagworte",
+    "platform_summary": "Plattformen",
+    "constellation_summary": "Konstellationen",
+    "processing_level_summary": "Verarbeitungslevel",
+    "temporal_start": "Zeitbeginn",
+    "temporal_end": "Zeitende",
+    "gsd": "Bodenauflösung (m)"
+  },
+  "operators": {
+    "equals": "Gleich",
+    "notEquals": "Nicht gleich",
+    "contains": "Enthält",
+    "containsOneOf": "Enthält eines von",
+    "before": "Vor",
+    "after": "Nach",
+    "between": "Zwischen",
+    "lessThan": "Kleiner als",
+    "lessThanOrEqual": "Kleiner oder gleich",
+    "greaterThan": "Größer als",
+    "greaterThanOrEqual": "Größer oder gleich"
   },
   "fullscreen": {
     "exit": "Verlasse den Vollbild-Modus",
@@ -137,13 +165,16 @@
     "descriptionWithTitle": "@:goToParent.description: {title}",
     "label": "Hoch"
   },
+  "home": "Start",
   "in": "in {catalog}",
   "index": {
     "api": "API",
     "catalog": "Katalog",
     "load": "Laden",
+    "openStacFinder": "Öffne STACFinder",
     "selectStacIndex": "... oder wähle von {stacIndex}:",
     "specifyCatalog": "Bitte gib einen STAC Katalog oder eine STAC API an...",
+    "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Katalogen mit erweitertem Filtern, Sortieren und CQL2-Unterstützung.",
     "urlInvalid": "Die Adresse ist ungültig.",
     "urlMissingHost": "Der Adresse fehlt ein Host.",
     "urlMissingProtocol": "Der Adresse fehlt ein Protokoll."
@@ -212,6 +243,7 @@
     "previous": "‹ Vorherige"
   },
   "poweredBy": "Generiert von {link}",
+  "extensionInfo": "Collection Search erweitert durch {company}",
   "protocol": {
     "azure": "Microsoft Azure",
     "file": "Dateisystem (lokal)",
@@ -238,6 +270,7 @@
     "less": "Zeige weniger",
     "more": "Zeige mehr"
   },
+  "remove": "Entfernen",
   "reset": "Zurücksetzen",
   "search": {
     "addCollections": "Hinzufügen mittels Enter-Taste",
@@ -245,23 +278,39 @@
     "addItemIds": "Element-Identifikationsnummern hinzufügen mittels Enter-Taste",
     "addSearchTerm": "Suchbegriff hinzufügen mittels Enter-Taste",
     "additionalFilters": "Weitere Filter",
-    "dateDescription": "Alle Zeiten in koordinierter Weltzeit (UTC).",
+    "allFiltersActive": "Alle Filter sind bereits aktiv",
+    "contains": "Beinhaltet",
+    "dateDescription": "Findet Collections, die den gewählten Zeitraum überschneiden (nicht nur vollständig enthalten).",
+    "endDate": "Enddatum (optional)",
     "enterCollections": "Gebe Katalog-Identifikationsnummern ein...",
     "enterItemIds": "Gebe Element-Identifikationsnummern ein...",
+    "enterPattern": "Muster für {field} eingeben",
     "enterSearchTerms": "Gebe Suchbegriffe ein...",
+    "enterValue": "Wert für {field} eingeben",
     "equalTo": "entspricht genau",
     "filterBySpatialExtent": "Filtern nach räumlicher Ausdehnung",
     "filterCollection": "Im Katalog filtern",
     "freeText": "Suchbegriffe",
     "freeTextDescription": "Suche nach mindestens einem der angegebene Begriffen in Feldern wie dem Titel und der Beschreibung.",
+    "freeTextCollectionDescription": "Sucht in: Titel, Beschreibung, Lizenz, Schlüsselwörter, Anbieter",
     "greaterThan": "größer als",
     "greaterThanEqual": "größer als oder entspricht",
+    "intersects": "Schneidet",
     "itemIds": "Element-Identifikationsnummern",
     "itemsPerPage": "Elemente pro Seite",
     "itemsPerPageDescription": "Anzahl der Elemente die pro Seite angefragt wird, maximal {maxItems} Elemente.",
+    "KeywordSearch": "Suche nach Stichworten",
     "lessThan": "kleiner als",
     "lessThanEqual": "kleiner als oder entspricht",
     "likeOperatorDescription": "Platzhalterzeichen können verwendet werden. `_` entspricht einem einzelnen Zeichen, `%` entspricht einer beliebigen Anzahl an Zeichen. Um nach einem Platzhalterzeichen selber zu suchen, müssen ein `\\` vor das Zeichen gesetzt werden.",
+    "loadingFilters": "Lade Filter-Felder...",
+    "filterGroups": {
+      "text": "Textsuche",
+      "selection": "Auswahl",
+      "temporal": "Zeitlich",
+      "numeric": "Numerisch",
+      "other": "Sonstige"
+    },
     "logical": {
       "and": "Berücksichtige alle Filter (und)",
       "or": "Berücksichtige mindestens einen der Filter (oder)"
@@ -269,23 +318,36 @@
     "matches": "enthält etwa",
     "metaDescription": "Durchsuche die angebotenen Daten von {title}.",
     "modifyCriteria": "Bitte die Suchkriterien ändern.",
+    "noFiltersAvailable": "Keine Filter verfügbar",
     "noFurtherItemsFound": "Keine weiteren Elemente verfügbar.",
     "noItemsFound": "Keine Elemente gefunden für die angegebenen Filter.",
     "noOptions": "Noch nichts eingegeben",
     "notEqualTo": "entspricht nicht",
     "notFullySupported": "Eventuell werden nicht alle Optionen unterstützt.",
     "notSupported": "Suchen wird von dem Diensteanbieter nicht unterstützt.",
+    "overlaps": "Überlappt",
     "placeholder": "Suchen...",
+    "searchCollections": "Collections durchsuchen",
     "selectCollections": "Wähle Kataloge...",
+    "selectDate": "Datum wählen",
+    "selectDateAfter": "Datum wählen (nach)",
+    "selectDateBefore": "Datum wählen (vor)",
+    "selectDateRange": "Zeitraum auswählen",
     "selectForItemSearch": "Markiere für Elementsuche",
+    "selectValue": "Wert auswählen...",
+    "selectValues": "Einen oder mehrere Werte auswählen...",
     "spatialExtent": "Räumliche Ausdehnung",
+    "stacFinderDescription": "Suche und entdecke STAC-Sammlungen aus mehreren Quellen.",
+    "startDate": "Startdatum (optional)",
+    "spatialRelationType": "Räumliche Beziehung:",
     "tabs": {
       "collections": "Kataloge durchsuchen",
       "items": "Elemente durchsuchen"
     },
     "temporalExtent": "Zeitliche Ausdehnung",
     "title": "Suche",
-    "useInItemSearch": "Nutze Katalog in Elementsuche | Nutze {count} Kataloge in Elementsuche"
+    "useInItemSearch": "Nutze Katalog in Elementsuche | Nutze {count} Kataloge in Elementsuche",
+    "within": "Innerhalb"
   },
   "showMore": "Zeige mehr...",
   "sidebar": {
@@ -294,11 +356,11 @@
   "sort": {
     "asc": {
       "label": "Aufsteigend",
-      "title": "In aufsteigender Reihenfolge sortieren (A-Z)"
+      "title": "In aufsteigender Reihenfolge sortieren"
     },
     "desc": {
       "label": "Absteigend",
-      "title": "In absteigender Reihenfolge sortieren (Z-A)"
+      "title": "In absteigender Reihenfolge sortieren"
     },
     "title": "Sortieren"
   },
@@ -361,11 +423,15 @@
       "disclaimer": "Der Konformitätsbericht wird auf der Grundlage von Schemata erstellt, die oft nicht vollständig sind. Sie decken daher möglicherweise nicht alle Aspekte der STAC-Spezifikation und ihrer Erweiterungen ab. Der Konformitätsbericht ist keine Garantie dafür, dass die STAC-Daten vollständig mit der Spezifikation und ihren Erweiterungen konform ist.",
       "result": "Ergebnis",
       "title": "Konformitätsbericht"
-    }
+    },
+    "viewSource": "Zur Quelle"
   },
   "stacAssets": "Datei | Dateien",
   "stacCatalog": "Katalog | Kataloge",
-  "stacCollection": "Katalog | Kataloge",
+  "stacFinder": {
+    "title": "STACFinder"
+  },
+  "stacCollection": "Sammlung | Sammlungen",
   "stacItem": "Element | Elemente",
   "submit": "Absenden",
   "table": {

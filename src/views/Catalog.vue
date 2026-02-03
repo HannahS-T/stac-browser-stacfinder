@@ -42,7 +42,7 @@
         <Links v-if="linkPosition === 'right'" :title="$t('additionalResources')" :links="additionalLinks" :context="data" />
       </b-col>
       <b-col class="catalogs-container" v-if="hasCatalogs">
-        <Catalogs :catalogs="catalogs" :hasMore="!!nextCollectionsLink" @loadMore="loadMoreCollections" />
+        <Catalogs :catalogs="catalogs" :collectionsOnly="onlyCollections" :hasMore="!!nextCollectionsLink" @loadMore="loadMoreCollections" />
       </b-col>
       <b-col class="items-container" v-if="hasItems || hasItemAssets">
         <Items
@@ -214,8 +214,25 @@ export default {
     hasItems() {
       return this.items.length > 0 || this.isApi;
     },
+    // Detects the external collections list
+    isExternalCollectionsList() {
+      return this.url === 'internal://collections';
+    },
     hasCatalogs() {
       return this.catalogs.length > 0;
+    },
+    onlyCollections() {
+      return this.catalogs.length > 0 && this.catalogs.every(c => c.type === 'Collection');
+    },
+    // Catalogs getter extended to support external collections
+    catalogs() {
+      // External collections list from API
+      if (this.isExternalCollectionsList && this.data?._apiCollections) {
+        return this.data._apiCollections;
+      }
+      
+      // Default behavior: use Vuex catalogs getter
+      return this.$store.getters.catalogs;
     },
     mapData() {
       const data = {};

@@ -16,8 +16,8 @@ export default {
     }
   },
   computed: {
-    ...mapState(["allowExternalAccess", "catalogUrl", "loading", "url"]),
-    ...mapGetters(["fromBrowserPath", "error"]),
+    ...mapState(['allowExternalAccess', 'catalogUrl', 'loading', 'url']),
+    ...mapGetters(['fromBrowserPath', 'error']),
     errorId() {
       return getErrorCode(this.error);
     },
@@ -25,7 +25,7 @@ export default {
       return getErrorMessage(this.error);
     },
     isExternal() {
-      return URI(this.path).is("absolute");
+      return URI(this.path).is('absolute');
     }
   },
   watch: {
@@ -35,12 +35,11 @@ export default {
         if (path === oldPath) {
           return;
         }
-        else if (!this.allowExternalAccess && this.isExternal) {
+        if (!this.allowExternalAccess && this.isExternal) {
           return;
         }
-
         let url = this.fromBrowserPath(path || '/');
-        this.$store.dispatch("load", { url, show: true });
+        this.$store.dispatch('load', { url, show: true });
       }
     }
   }

@@ -85,6 +85,7 @@
     "warning": "Please note that this {type} is deprecated with the potential to be removed anytime. It should be transitioned out of usage as soon as possible. Refrain from using it in new projects."
   },
   "description": "Description",
+  "docs": "{link}",
   "errors": {
     "authFailed": "The request errored, the provided authentication details may be incorrect.",
     "badRequest": "The request is invalid. This might be due to invalid parameters, e.g. in a search request, or could be a bug in STAC Browser.",
@@ -104,6 +105,7 @@
     "loadApiItemsFailed": "The API Items could not be loaded.",
     "loadFilteredItems": "Sorry, loading a filtered list of Items failed.",
     "loadItems": "Sorry, loading the list of STAC Items failed.",
+    "loadQueryables": "Could not load filter fields from API",
     "networkError": "This issue may occur when servers don't allow external access via web browsers (e.g., when CORS headers are not present). @:errors.contactProvider",
     "noExternalAccess": "Accessing external catalogs is not allowed!",
     "notFound": "The requested resource does not exist. @:errors.contactProvider",
@@ -116,6 +118,32 @@
     "empty": "No features available.",
     "noProperties": "No properties provided.",
     "title": "Feature | Features"
+  },
+  "fields": {
+    "id": "ID",
+    "title": "Title",
+    "description": "Description",
+    "license": "License",
+    "keywords": "Keywords",
+    "platform_summary": "Platforms",
+    "constellation_summary": "Constellations",
+    "processing_level_summary": "Processing Levels",
+    "temporal_start": "Start Date",
+    "temporal_end": "End Date",
+    "gsd": "Ground Sample Distance (m)"
+  },
+  "operators": {
+    "equals": "Equals",
+    "notEquals": "Not equals",
+    "contains": "Contains",
+    "containsOneOf": "Contains one of",
+    "before": "Before",
+    "after": "After",
+    "between": "Between",
+    "lessThan": "Less than",
+    "lessThanOrEqual": "Less than or equal",
+    "greaterThan": "Greater than",
+    "greaterThanOrEqual": "Greater than or equal"
   },
   "fullscreen": {
     "exit": "Exit fullscreen mode",
@@ -137,13 +165,16 @@
     "descriptionWithTitle": "@:goToParent.description: {title}",
     "label": "Up"
   },
+  "home": "Home",
   "in": "in {catalog}",
   "index": {
     "api": "API",
     "catalog": "Static Catalog",
     "load": "Load",
+    "openStacFinder": "Open STACFinder",
     "selectStacIndex": "... or select one from {stacIndex}:",
     "specifyCatalog": "Please specify a STAC Catalog or API...",
+    "stacFinderDescription": "Search and discover STAC collections from multiple catalogs with advanced filtering, sorting, and CQL2 support.",
     "urlInvalid": "The URL is invalid.",
     "urlMissingHost": "The URL is missing a host.",
     "urlMissingProtocol": "The URL is missing a protocol."
@@ -212,6 +243,7 @@
     "previous": "‹ Previous"
   },
   "poweredBy": "Powered by {link}",
+  "extensionInfo": "Collection Search extended by {company}",
   "protocol": {
     "azure": "Microsoft Azure",
     "file": "file system (local)",
@@ -238,6 +270,7 @@
     "less": "Read less",
     "more": "Read more"
   },
+  "remove": "Remove",
   "reset": "Reset",
   "search": {
     "addCollections": "Press enter to add a collection",
@@ -245,23 +278,39 @@
     "addItemIds": "Press enter to add an Item ID",
     "addSearchTerm": "Press enter to add a search term",
     "additionalFilters": "Additional filters",
-    "dateDescription": "All times in Coordinated Universal Time (UTC).",
+    "allFiltersActive": "All filters are already active",
+    "contains": "contains",
+    "dateDescription": "Finds collections that overlap the selected time range (not only fully contained).",
+    "endDate": "End date (optional)",
     "enterCollections": "Enter one or more Collection IDs...",
     "enterItemIds": "Enter one or more Item IDs...",
+    "enterPattern": "Enter pattern for {field}",
     "enterSearchTerms": "Enter one or more search terms...",
+    "enterValue": "Enter value for {field}",
     "equalTo": "equal to",
     "filterBySpatialExtent": "Filter by spatial extent",
     "filterCollection": "Filter Collection",
     "freeText": "Search Terms",
     "freeTextDescription": "Search for at least one of the given terms in fields such as the title and the description.",
+    "freeTextCollectionDescription": "Searches in: Title, Description, License, Keywords, Providers",
     "greaterThan": "greater than",
     "greaterThanEqual": "greater than or equal to",
+    "intersects": "intersects",
     "itemIds": "Item IDs",
     "itemsPerPage": "Items per page",
     "itemsPerPageDescription": "Number of items requested per page, max. {maxItems} items.",
+    "KeywordSearch": "Search for keywords",
     "lessThan": "less than",
     "lessThanEqual": "less than or equal to",
     "likeOperatorDescription": "You can use wildcard characters. `_` matches a single character, `%` matches any number of characters. To search for a wildcard character specifically, you need to add a `\\` in front of the character.",
+    "loadingFilters": "Loading filter fields...",
+    "filterGroups": {
+      "text": "Text Search",
+      "selection": "Selection",
+      "temporal": "Temporal",
+      "numeric": "Numeric",
+      "other": "Other"
+    },
     "logical": {
       "and": "Match all filters (and)",
       "or": "Match any filters (or)"
@@ -269,23 +318,36 @@
     "matches": "matches",
     "metaDescription": "Search through the data offering of {title}.",
     "modifyCriteria": "Please modify the search criteria.",
+    "noFiltersAvailable": "No filters available",
     "noFurtherItemsFound": "No further items available.",
     "noItemsFound": "No items found for the given filters.",
     "noOptions": "Nothing entered yet",
     "notEqualTo": "not equal to",
     "notFullySupported": "Not all of the options may be supported.",
     "notSupported": "Item Search is not supported by the API.",
+    "overlaps": "overlaps",
     "placeholder": "Search...",
+    "searchCollections": "Search collections",
     "selectCollections": "Select one or multiple collections...",
+    "selectDate": "Select date",
+    "selectDateAfter": "Select date (after)",
+    "selectDateBefore": "Select date (before)",
+    "selectDateRange": "Select date range",
     "selectForItemSearch": "Select for Item Search",
+    "selectValue": "Select a value...",
+    "selectValues": "Select one or more values...",
     "spatialExtent": "Spatial Extent",
+    "spatialRelationType": "Spatial Relation Type:",
+    "stacFinderDescription": "Search and discover STAC collections from multiple sources.",
+    "startDate": "Start date (optional)",
     "tabs": {
       "collections": "Search for Collections",
       "items": "Search for Items"
     },
     "temporalExtent": "Temporal Extent",
     "title": "Search",
-    "useInItemSearch": "Open Collection in Item Search | Open {count} Collections in Item Search"
+    "useInItemSearch": "Open Collection in Item Search | Open {count} Collections in Item Search",
+    "within": "within"
   },
   "showMore": "Show more...",
   "sidebar": {
@@ -294,11 +356,11 @@
   "sort": {
     "asc": {
       "label": "Ascending",
-      "title": "Sort in ascending order (A-Z)"
+      "title": "Sort in ascending order"
     },
     "desc": {
       "label": "Descending",
-      "title": "Sort in descending order (Z-A)"
+      "title": "Sort in descending order"
     },
     "title": "Sort"
   },
@@ -360,11 +422,15 @@
     "validationReport": {
       "disclaimer": "The validation report is generated based on schemas, which often are not exhaustive. As such they may not cover all aspects of the STAC specification and its extensions. The validation report is not a guarantee that the STAC entity is fully compliant with the specification and its extensions.",
       "result": "Result",
-      "title": "Validation Report"
-    }
+      "title": "Validation ,Report"
+    },
+    "viewSource": "Go to Source"
   },
   "stacAssets": "Asset | Assets",
   "stacCatalog": "Catalog | Catalogs",
+  "stacFinder": {
+    "title": "STACFinder"
+  },
   "stacCollection": "Collection | Collections",
   "stacItem": "Item | Items",
   "submit": "Submit",

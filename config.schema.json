@@ -11,6 +11,14 @@
       ],
       "format": "uri"
     },
+    "stacFinderApiUrl": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "uri",
+      "description": "Base URL of the STACFinder API for collection search and filtering"
+    },
     "catalogTitle": {
       "type": [
         "string"

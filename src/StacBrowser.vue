@@ -7,26 +7,39 @@
     <header>
       <b-row class="site">
         <b-col md="12">
+      <div class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center">
+          <div>
+            <img src="./media/GeoStack_Solutions_logo.png" alt="GeoStack Solutions logo" style="height: 60px;">
+          </div>
           <nav class="actions navigation">
-            <b-button-group v-if="canSearch || isServerSelector">
-              <b-button v-if="isServerSelector" variant="primary" size="sm" :title="$t('browse')" v-b-toggle.sidebar @click="sidebar = true">
+            <b-button-group>
+              <b-button v-if="showHomeButton" variant="outline-primary" size="sm" to="/" :title="$t('home')">
+                <b-icon-house-door /><span class="button-label">{{ $t('home') }}</span>
+              </b-button>
+              <b-button v-if="showStacFinderButton" variant="primary" size="sm" to="/stacfinder" :title="$t('stacFinder.title')">
+                <b-icon-funnel /><span class="button-label">{{ $t('stacFinder.title') }}</span>
+              </b-button>
+              <b-button v-if="isServerSelector" variant="primary" size="sm" :title="$t('browse')" v-b-toggle.sidebar
+                @click="sidebar = true">
                 <b-icon-list /><span class="button-label">{{ $t('browse') }}</span>
               </b-button>
-              <b-button v-if="canSearch" variant="primary" size="sm" :to="searchBrowserLink" :title="$t('search.title')" :pressed="isSearchPage">
+              <b-button v-if="canSearch" variant="primary" size="sm" :to="searchBrowserLink" :title="$t('search.title')"
+                :pressed="isSearchPage">
                 <b-icon-search /><span class="button-label">{{ $t('search.title') }}</span>
               </b-button>
             </b-button-group>
           </nav>
+          </div>
           <div class="title">
             <img v-if="logo" :src="logo.getAbsoluteUrl()" :alt="logo.title" :title="logo.title" class="logo">
-            <span role="banner">
-              <StacLink v-if="root" :data="root" hideIcon />
-              <template v-else>{{ catalogTitle }}</template>
+            <span role="banner" style="display: block; text-align: center;">
+              <div style="white-space: nowrap; display: inline-block;" class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center w-100">
+                <img src="./media/STACFinder_logo.png" alt="STACFinder logo" style="height: 60px;">
+                <h1 style="white-space: normal; display: inline-block; margin: 0; vertical-align: middle;">STACFinder</h1>
+              </div>
             </span>
-            <b-button
-              v-if="root" size="sm" variant="outline-primary" id="popover-root-btn"
-              :title="serviceType" tag="a" tabindex="0"
-            >
+            <b-button v-if="root" size="sm" variant="outline-primary" id="popover-root-btn" :title="serviceType" tag="a"
+              tabindex="0">
               <b-icon-caret-down-fill />
             </b-button>
           </div>
@@ -35,15 +48,13 @@
               <b-button v-if="canAuthenticate" variant="primary" size="sm" @click="logInOut" :title="authTitle">
                 <component :is="authIcon" /><span class="button-label">{{ authLabel }}</span>
               </b-button>
-              <LanguageChooser
-                :data="data" :currentLocale="localeFromVueX" :locales="supportedLocalesFromVueX"
-                @setLocale="locale => switchLocale({locale, userSelected: true})"
-              />
+              <LanguageChooser :data="data" :currentLocale="localeFromVueX" :locales="supportedLocalesFromVueX"
+                @setLocale="locale => switchLocale({ locale, userSelected: true })" />
             </b-button-group>
           </nav>
         </b-col>
       </b-row>
-      <b-row class="page" v-if="!loading">
+      <b-row :class="['page', { 'page-centered': isStacFinderPage }]" v-if="!loading">
         <b-col md="12">
           <div class="title">
             <img v-if="icon && !isRoot" :src="icon.getAbsoluteUrl()" :alt="icon.title" :title="icon.title" class="icon">
@@ -51,13 +62,16 @@
           </div>
           <nav class="actions navigation">
             <b-button-group>
-              <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', {type})" variant="outline-primary" size="sm">
+              <b-button v-if="back" :to="selfBrowserLink" :title="$t('goBack.description', { type })"
+                variant="outline-primary" size="sm">
                 <b-icon-arrow-left /><span class="button-label">{{ $t('goBack.label') }}</span>
               </b-button>
-              <b-button v-if="collectionLink" :to="toBrowserPath(collectionLink.href)" :title="collectionLinkTitle" variant="outline-primary" size="sm">
+              <b-button v-if="collectionLink" :to="toBrowserPath(collectionLink.href)" :title="collectionLinkTitle"
+                variant="outline-primary" size="sm">
                 <b-icon-folder-symlink /><span class="button-label">{{ $t('goToCollection.label') }}</span>
               </b-button>
-              <b-button v-if="parentLink" :to="toBrowserPath(parentLink.href)" :title="parentLinkTitle" variant="outline-primary" size="sm">
+              <b-button v-if="parentLink" :to="toBrowserPath(parentLink.href)" :title="parentLinkTitle"
+                variant="outline-primary" size="sm">
                 <b-icon-arrow-90deg-up /><span class="button-label">{{ $t('goToParent.label') }}</span>
               </b-button>
             </b-button-group>
@@ -68,17 +82,28 @@
     </header>
     <!-- Content (Item / Catalog) -->
     <router-view />
+    <!-- Footer -->
     <footer>
-      <i18n tag="small" path="poweredBy" class="poweredby text-muted">
-        <template #link>
-          <a href="https://github.com/radiantearth/stac-browser" target="_blank">STAC Browser</a> {{ browserVersion }}
-        </template>
-      </i18n>
+      <div class="mx-auto d-flex flex-column flex-lg-row align-items-center justify-content-center w-100">
+        <i18n tag="small" path="poweredBy" class="poweredby text-muted mb-2 mb-lg-0 mr-lg-3">
+          <template #link>
+            <a href="https://github.com/radiantearth/stac-browser" target="_blank">STAC Browser</a> {{ browserVersion }}
+          </template>
+        </i18n>
+        <i18n tag="small" path="extensionInfo" class="text-muted mb-2 mb-lg-0">
+          <template #company>
+            <a href="https://github.com/GeoStack-Solutions" target="_blank" class="mr-lg-3">GeoStack Solutions</a>
+          </template>
+        </i18n>
+        <i18n tag="small" path="docs" class="text-muted mb-2 mb-lg-0 mr-lg-3">
+          <template #link>
+            <a href="https://github.com/GeoStack-Solutions/stac-finder/tree/main/docs" target="_blank">Docs</a>
+          </template>
+        </i18n>
+      </div>
     </footer>
-    <b-popover
-      v-if="root" id="popover-root" custom-class="popover-large" target="popover-root-btn"
-      triggers="focus" placement="bottom" container="stac-browser"
-    >
+    <b-popover v-if="root" id="popover-root" custom-class="popover-large" target="popover-root-btn" triggers="focus"
+      placement="bottom" container="stac-browser">
       <template #title>
         {{ serviceType }}
       </template>
@@ -98,9 +123,10 @@ import getStore from "./store";
 import {
   AlertPlugin, BadgePlugin, BPopover,
   BIconArrow90degUp, BIconArrowLeft, BIconCaretDownFill,
-  BIconFolderSymlink, BIconInfoLg, BIconList, BIconSearch,
+  BIconFolderSymlink, BIconFunnel, BIconHouseDoor, BIconInfoLg, BIconList, BIconSearch,
   ButtonGroupPlugin, ButtonPlugin, CardPlugin, LayoutPlugin, SpinnerPlugin,
-  VBToggle, VBVisible } from "bootstrap-vue";
+  VBToggle, VBVisible
+} from "bootstrap-vue";
 import "bootstrap/dist/css/bootstrap.css";
 import "bootstrap-vue/dist/bootstrap-vue.css";
 
@@ -154,13 +180,13 @@ const store = getStore(CONFIG, router);
 // Pass Config through from props to vuex
 let Props = {};
 let Watchers = {};
-for(let key in CONFIG) {
+for (let key in CONFIG) {
   Props[key] = {
     default: ['object', 'function'].includes(typeof CONFIG[key]) ? () => CONFIG[key] : CONFIG[key]
   };
   Watchers[key] = {
     immediate: true,
-    handler: async function(newValue) {
+    handler: async function (newValue) {
       await this.$store.dispatch('config', {
         [key]: newValue
       });
@@ -178,6 +204,8 @@ export default {
     BIconArrowLeft,
     BIconCaretDownFill,
     BIconFolderSymlink,
+    BIconFunnel,
+    BIconHouseDoor,
     BIconInfoLg,
     BIconList,
     BIconSearch,
@@ -200,7 +228,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(['allowSelectCatalog', 'conformsTo', 'data', 'dataLanguage', 'globalError', 'loading', 'stateQueryParameters', 'uiLanguage', 'url']),
+    ...mapState(['allowSelectCatalog', 'conformsTo', 'data', 'dataLanguage', 'globalError', 'loading', 'stacFinderApiUrl', 'stateQueryParameters', 'uiLanguage', 'url']),
     ...mapState({
       catalogImageFromVueX: 'catalogImage',
       localeFromVueX: 'locale',
@@ -224,6 +252,18 @@ export default {
     },
     isServerSelector() {
       return this.$route.name !== 'select';
+    },
+    isStacFinderPage() {
+      return this.$route.name === 'stacfinder';
+    },
+    hasStacFinderApi() {
+      return Boolean(this.stacFinderApiUrl);
+    },
+    showHomeButton() {
+      return this.allowSelectCatalog && this.isServerSelector;
+    },
+    showStacFinderButton() {
+      return this.hasStacFinderApi && !this.isStacFinderPage;
     },
     authIcon() {
       return this.isLoggedIn ? 'b-icon-unlock' : 'b-icon-lock';
@@ -384,7 +424,7 @@ export default {
             }
           }
           else if (value !== null) {
-              query[name] = value;
+            query[name] = value;
           }
         }
 
@@ -410,7 +450,7 @@ export default {
       let doReset = !root || (oldRoot && Utils.isObject(oldRoot['stac_browser']));
       let doSet = root && Utils.isObject(root['stac_browser']);
 
-      for(let key of canChange) {
+      for (let key of canChange) {
         let value;
         if (doReset) {
           value = CONFIG[key]; // Original value
@@ -514,7 +554,7 @@ export default {
       if (!locale && this.detectLocaleFromBrowserFromVueX && Array.isArray(navigator.languages)) {
         // Detect the most suitable locale
         const supported = prepareSupported(this.supportedLocalesFromVueX);
-        for(let l of navigator.languages) {
+        for (let l of navigator.languages) {
           const best = getBest(supported, l, null);
           if (best) {
             locale = best;
@@ -524,11 +564,11 @@ export default {
       }
       if (locale && this.supportedLocalesFromVueX.includes(locale)) {
         // This may only change the UI language, but does not change the data language if the data is not loaded yet
-        this.switchLocale({locale});
+        this.switchLocale({ locale });
         if (!this.data) {
           // Thus try switching the (data) language again once the data is loaded.
           this.onDataLoaded = () => {
-            this.switchLocale({locale});
+            this.switchLocale({ locale });
             this.onDataLoaded = null;
           };
         }
@@ -542,7 +582,7 @@ export default {
       }
       let query = Object.assign({}, route.query, privateFromHash);
       let params = {};
-      for(let key in query) {
+      for (let key in query) {
         let value = query[key];
         // Store all private query parameters (start with ~) and replace them in the shown URI
         if (key.startsWith('~')) {
@@ -570,12 +610,12 @@ export default {
       if (Utils.size(params) > 0) {
         for (let type in params) {
           for (let key in params[type]) {
-            this.$store.commit('setQueryParameter', {type, key, value: params[type][key]});
+            this.$store.commit('setQueryParameter', { type, key, value: params[type][key] });
           }
         }
       }
       if (params?.state?.language) {
-        this.switchLocale({locale: params.state.language});
+        this.switchLocale({ locale: params.state.language });
       }
       if (Utils.size(params.private) > 0) {
         this.$router.replace({ query });
@@ -584,7 +624,7 @@ export default {
     },
     showError(error, message) {
       this.$store.commit('showGlobalError', {
-        error, 
+        error,
         message
       });
     },
@@ -601,5 +641,8 @@ export default {
 @import '~bootstrap-vue/src/index.scss';
 @import "./theme/page.scss";
 @import "./theme/custom.scss";
-</style>
 
+.page-centered > .col-md-12 > .title {
+  justify-content: center;
+}
+</style>

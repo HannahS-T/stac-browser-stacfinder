@@ -29,6 +29,12 @@ export default {
     };
   },
   watch: {
+    // Watch for external value changes (e.g., when restoring filters)
+    value(newValue) {
+      if (this.searchTerm !== newValue) {
+        this.searchTerm = newValue || '';
+      }
+    },
     searchTerm(newValue) {
       if (newValue.length < this.minLength) {
         newValue = '';

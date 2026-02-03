@@ -26,6 +26,13 @@ export const ogcQueryables = [
   'ogc-rel:queryables' // Alternative in OGC APIs
 ];
 
+// Sortables
+export const ogcSortables = [
+  'sortables', // Old way in STAC (deprecated)
+  'http://www.opengis.net/def/rel/ogc/1.0/sortables', // STAC and OGC APIs
+  'ogc-rel:sortables' // Alternative in OGC APIs
+];
+
 // Rels that STAC Browser can navigate to and display natively (i.e. Collections, Catalogs and Items)
 export const stacBrowserNavigatesTo = [
   'canonical', // Links to other catalogs or items v
@@ -46,7 +53,7 @@ export const stacBrowserSpecialHandling = [
   'search',
   'icon', // Other v
   'license',
-].concat(stacHierarchy).concat(stacPagination).concat(ogcQueryables);
+].concat(stacHierarchy).concat(stacPagination).concat(ogcQueryables).concat(ogcSortables);
 
 // OGC APIs
 export const ogcRelPrefix = 'http://www.opengis.net/def/rel/ogc/1.0/';

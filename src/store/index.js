@@ -61,7 +61,16 @@ function getStore(config, router) {
       database: {}, // STAC object, Error object or Loading object or Promise (when loading)
       allowSelectCatalog: !config.catalogUrl,
       globalRequestQueryParameters: config.requestQueryParameters,
-      uiLanguage: config.locale
+      uiLanguage: config.locale,
+
+      // StacFinder search state - survives navigation (not reset by resetPage/resetCatalog)
+      stacFinderState: {
+        filters: {},
+        sortField: 'title',
+        sortDirection: 1,
+        hasSearched: false,
+        data: null // Cached search results (includes pagination links)
+      }
     }),
     getters: {
       isRoot: (state, getters) => {
@@ -205,7 +214,7 @@ function getStore(config, router) {
         return null;
       },
       supportsConformance: state => classes => {
-        if(!Array.isArray(classes)) {
+        if (!Array.isArray(classes)) {
           return classes;
         }
         let classRegexp = classes
@@ -223,6 +232,12 @@ function getStore(config, router) {
       },
       canSearchCollections: (state, getters) => {
         return getters.supportsConformance(TYPES.Collections.BasicFilters);
+      },
+      /**
+       * Sort field options for collection views
+       */
+      collectionSortableFields: () => {
+        return collectionAdapter.getSortableFields();
       },
 
       items: state => {
@@ -358,7 +373,7 @@ function getStore(config, router) {
           languages[state.locale] = 1;
         }
         return Object.entries(languages)
-          .sort((a,b) => {
+          .sort((a, b) => {
             if (a[1] > b[1]) {
               return -1;
             }
@@ -396,7 +411,7 @@ function getStore(config, router) {
           }
         }
       },
-      languages(state, {uiLanguage, dataLanguage}) {
+      languages(state, { uiLanguage, dataLanguage }) {
         state.dataLanguage = dataLanguage || null;
         state.uiLanguage = uiLanguage || null;
       },
@@ -431,7 +446,7 @@ function getStore(config, router) {
       state(state, newState) {
         state.stateQueryParameters = newState;
       },
-      updateState(state, {type, value}) {
+      updateState(state, { type, value }) {
         if (value === null || typeof value === 'undefined') {
           Vue.delete(state.stateQueryParameters, type);
         }
@@ -483,6 +498,19 @@ function getStore(config, router) {
       },
       resetPage(state) {
         Object.assign(state, localDefaults());
+      },
+      // StacFinder state mutations (similar pattern to database cache)
+      updateStacFinderState(state, updates) {
+        Object.assign(state.stacFinderState, updates);
+      },
+      setStacFinderSort(state, { field, direction }) {
+        if (field !== undefined) state.stacFinderState.sortField = field;
+        if (direction !== undefined) state.stacFinderState.sortDirection = direction;
+      },
+      resetStacFinderSearch(state) {
+        state.stacFinderState.hasSearched = false;
+        state.stacFinderState.data = null;
+        state.stacFinderState.filters = {};
       },
       showPage(state, { url, stac, page }) {
         if (!stac) {
@@ -593,7 +621,7 @@ function getStore(config, router) {
         state.parents = parents;
       },
       showGlobalError(state, error) {
-        if(error) {
+        if (error) {
           console.trace(error);
         }
         state.globalError = error;
@@ -616,8 +644,8 @@ function getStore(config, router) {
           }
         }
       },
-      async switchLocale(cx, {locale, userSelected}) {
-        await cx.dispatch('config', {locale});
+      async switchLocale(cx, { locale, userSelected }) {
+        await cx.dispatch('config', { locale });
 
         if (cx.state.storeLocale && userSelected) {
           const storage = new BrowserStorage();
@@ -642,7 +670,7 @@ function getStore(config, router) {
         // Execute other custom functions required to localize
         await executeCustomFunctions(uiLanguage);
 
-        cx.commit('languages', {dataLanguage, uiLanguage});
+        cx.commit('languages', { dataLanguage, uiLanguage });
         cx.commit('setQueryParameter', { type: 'state', key: 'language', value: locale });
       },
       async loadBackground(cx, count) {
@@ -684,7 +712,7 @@ function getStore(config, router) {
         }
         cx.commit('parents', parents);
       },
-      async tryLogin(cx, {url, action}) {
+      async tryLogin(cx, { url, action }) {
         cx.commit('clear', url);
         cx.commit('errored', { url, error: new BrowserError(i18n.t('authentication.unauthorized')) });
         if (action) {
@@ -751,7 +779,7 @@ function getStore(config, router) {
             if (!noRetry && cx.state.authConfig && isAuthenticationError(error)) {
               await cx.dispatch('tryLogin', {
                 url,
-                action: () => cx.dispatch('load', Object.assign({noRetry: true, force: true, show: true}, args))
+                action: () => cx.dispatch('load', Object.assign({ noRetry: true, force: true, show: true }, args))
               });
               return;
             }
@@ -896,7 +924,7 @@ function getStore(config, router) {
           if (!noRetry && cx.state.authConfig && isAuthenticationError(error)) {
             await cx.dispatch('tryLogin', {
               url: link.href,
-              action: () => cx.dispatch('loadApiItems', Object.assign({noRetry: true, force: true}, args))
+              action: () => cx.dispatch('loadApiItems', Object.assign({ noRetry: true, force: true }, args))
             });
             return;
           }
@@ -965,7 +993,7 @@ function getStore(config, router) {
           if (!noRetry && cx.state.authConfig && isAuthenticationError(error)) {
             await cx.dispatch('tryLogin', {
               url: link.href,
-              action: () => cx.dispatch('loadNextApiCollections', Object.assign({noRetry: true, force: true}, args))
+              action: () => cx.dispatch('loadNextApiCollections', Object.assign({ noRetry: true, force: true }, args))
             });
             return;
           }
