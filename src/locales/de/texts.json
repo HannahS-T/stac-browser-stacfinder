@@ -165,6 +165,7 @@
     "descriptionWithTitle": "@:goToParent.description: {title}",
     "label": "Hoch"
   },
+  "home": "Start",
   "in": "in {catalog}",
   "index": {
     "api": "API",
@@ -427,6 +428,9 @@
   },
   "stacAssets": "Datei | Dateien",
   "stacCatalog": "Katalog | Kataloge",
+  "stacFinder": {
+    "title": "STACFinder"
+  },
   "stacCollection": "Sammlung | Sammlungen",
   "stacItem": "Element | Elemente",
   "submit": "Absenden",

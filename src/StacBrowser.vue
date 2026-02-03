@@ -12,7 +12,13 @@
             <img src="./media/GeoStack_Solutions_logo.png" alt="GeoStack Solutions logo" style="height: 60px;">
           </div>
           <nav class="actions navigation">
-            <b-button-group v-if="canSearch || isServerSelector">
+            <b-button-group>
+              <b-button v-if="showHomeButton" variant="outline-primary" size="sm" to="/" :title="$t('home')">
+                <b-icon-house-door /><span class="button-label">{{ $t('home') }}</span>
+              </b-button>
+              <b-button v-if="showStacFinderButton" variant="primary" size="sm" to="/stacfinder" :title="$t('stacFinder.title')">
+                <b-icon-funnel /><span class="button-label">{{ $t('stacFinder.title') }}</span>
+              </b-button>
               <b-button v-if="isServerSelector" variant="primary" size="sm" :title="$t('browse')" v-b-toggle.sidebar
                 @click="sidebar = true">
                 <b-icon-list /><span class="button-label">{{ $t('browse') }}</span>
@@ -117,7 +123,7 @@ import getStore from "./store";
 import {
   AlertPlugin, BadgePlugin, BPopover,
   BIconArrow90degUp, BIconArrowLeft, BIconCaretDownFill,
-  BIconFolderSymlink, BIconInfoLg, BIconList, BIconSearch,
+  BIconFolderSymlink, BIconFunnel, BIconHouseDoor, BIconInfoLg, BIconList, BIconSearch,
   ButtonGroupPlugin, ButtonPlugin, CardPlugin, LayoutPlugin, SpinnerPlugin,
   VBToggle, VBVisible
 } from "bootstrap-vue";
@@ -198,6 +204,8 @@ export default {
     BIconArrowLeft,
     BIconCaretDownFill,
     BIconFolderSymlink,
+    BIconFunnel,
+    BIconHouseDoor,
     BIconInfoLg,
     BIconList,
     BIconSearch,
@@ -220,7 +228,7 @@ export default {
     };
   },
   computed: {
-    ...mapState(['allowSelectCatalog', 'conformsTo', 'data', 'dataLanguage', 'globalError', 'loading', 'stateQueryParameters', 'uiLanguage', 'url']),
+    ...mapState(['allowSelectCatalog', 'conformsTo', 'data', 'dataLanguage', 'globalError', 'loading', 'stacFinderApiUrl', 'stateQueryParameters', 'uiLanguage', 'url']),
     ...mapState({
       catalogImageFromVueX: 'catalogImage',
       localeFromVueX: 'locale',
@@ -244,6 +252,18 @@ export default {
     },
     isServerSelector() {
       return this.$route.name !== 'select';
+    },
+    isStacFinderPage() {
+      return this.$route.name === 'stacfinder';
+    },
+    hasStacFinderApi() {
+      return Boolean(this.stacFinderApiUrl);
+    },
+    showHomeButton() {
+      return this.allowSelectCatalog && this.isServerSelector;
+    },
+    showStacFinderButton() {
+      return this.hasStacFinderApi && !this.isStacFinderPage;
     },
     authIcon() {
       return this.isLoggedIn ? 'b-icon-unlock' : 'b-icon-lock';
