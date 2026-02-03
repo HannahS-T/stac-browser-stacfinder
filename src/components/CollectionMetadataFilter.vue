@@ -145,7 +145,7 @@ import DatePicker from 'vue2-datepicker';
  * - Enum fields: dropdown for single (=, !=) or multi-select for IN
  * - Array fields: multi-select with tagging (=, !=, IN)
  * - Timestamp fields: single date picker (<, >) or date-range picker (BETWEEN)
- * - Number fields: text input (=, !=, <, >)
+ * - Number fields: text input  (=, !=, <, ≤, >, ≥) 
  * 
  * @emits update - When filter properties change
  * @emits remove - When filter should be removed
